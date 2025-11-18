@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Manager - Login</title>
+    <style>
+        :root{
+          --bg: #0b0f12;
+          --card: #0f1720;
+          --accent: #00d1ff;
+          --muted: #94a3b8;
+          --text: #e6f0f6;
+          --glass: rgba(255,255,255,0.03);
+          --border: rgba(255,255,255,0.04);
+          --danger: #ff6b6b;
+        }
+        html,body{
+          height:100%;
+          margin:0;
+          font-family: Inter, system-ui, Arial, sans-serif;
+          background: linear-gradient(180deg,var(--bg), #081018 80%);
+          color:var(--text);
+          -webkit-font-smoothing:antialiased;
+          -moz-osx-font-smoothing:grayscale;
+        }
+        .header-inner{
+          display:flex;
+          align-items:center;
+          gap:1rem;
+          max-width:980px;
+          margin:0 auto;
+        }
+        header{
+          background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+          padding:1rem 1.5rem;
+          border-bottom:1px solid var(--border);
+          backdrop-filter: blur(6px);
+        }
+        h1{
+          margin:0;
+          font-size:1.125rem;
+          color:var(--accent);
+          letter-spacing:0.2px;
+        }
+        .btn{
+          display:inline-block;
+          padding:0.45rem 0.8rem;
+          border-radius:8px;
+          background:var(--accent);
+          color:#041018;
+          font-weight:600;
+          text-decoration:none;
+          border: none;
+          cursor: pointer;
+          transition: transform .08s ease, box-shadow .08s ease, opacity .12s ease;
+        }
+        .btn:hover{
+          opacity: 0.9;
+        }
+        .btn:active{ 
+          transform: translateY(1px);
+        }
+        .btn-ghost{
+          background:transparent;
+          color:var(--text);
+          border:1px solid var(--glass);
+        }
+        .text-muted{ 
+          color:var(--muted);
+        }
+        .card{
+          background: linear-gradient(180deg, var(--card), rgba(15,23,32,0.98));
+          padding:1.5rem;
+          border-radius:10px;
+          box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+          border: 1px solid var(--glass);
+        }
+        .hidden{ 
+          display:none !important;
+        }
+        .field{ 
+          display:block;
+          margin:0.8rem 0;
+        }
+        .field .label{ 
+          display:block;
+          color:var(--muted);
+          font-size:0.875rem;
+          margin-bottom:6px;
+          font-weight: 500;
+        }
+        .field input{
+          width:100%;
+          padding:0.7rem;
+          background:transparent;
+          border:1px solid var(--glass);
+          color:var(--text);
+          border-radius:8px;
+          font-size:0.95rem;
+          box-sizing: border-box;
+        }
+        .field input:focus{
+          outline: none;
+          border-color: var(--accent);
+          box-shadow: 0 0 0 2px rgba(0,209,255,0.1);
+        }
+        .form-actions{ 
+          display:flex;
+          gap:0.6rem;
+          margin-top:1.2rem;
+        }
+        .form-actions .btn{
+          flex: 1;
+        }
+        .auth-container{
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: calc(100vh - 80px);
+          padding: 20px;
+        }
+        .auth-card{
+          width: 100%;
+          max-width: 420px;
+        }
+        .auth-card h2{
+          margin: 0 0 0.5rem 0;
+          font-size: 1.5rem;
+          color: var(--text);
+        }
+        .auth-card p{
+          margin: 0 0 1.5rem 0;
+          color: var(--muted);
+          font-size: 0.9rem;
+        }
+        .toggle-text{
+          text-align: center;
+          margin-top: 1rem;
+          font-size: 0.9rem;
+        }
+        .toggle-text a{
+          color: var(--accent);
+          text-decoration: none;
+          cursor: pointer;
+          font-weight: 600;
+        }
+        .toggle-text a:hover{
+          text-decoration: underline;
+        }
+        .alert{
+          padding: 0.75rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          font-size: 0.9rem;
+        }
+        .alert-error{
+          background: rgba(255,107,107,0.1);
+          border: 1px solid rgba(255,107,107,0.3);
+          color: var(--danger);
+        }
+        .alert-success{
+          background: rgba(0,209,255,0.1);
+          border: 1px solid rgba(0,209,255,0.3);
+          color: var(--accent);
+        }
+        @media (max-width:600px){
+          .auth-container{
+            padding: 12px;
+          }
+          header{
+            padding: 0.8rem 1rem;
+          }
+        }
+        /* Select dark / contrastante (estilo minimalista) */
+        select {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        padding: 0.6rem 2.8rem 0.6rem 0.6rem; /* espacio para el icono a la derecha */
+        background: transparent;
+        border: 1px solid var(--glass);
+        color: var(--text);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+        transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+        /* icono de flecha (SVG embebido). color concordante con --text */
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23e6f0f6' d='M7 10l5 5 5-5z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px 12px;
+        cursor: pointer;
+        }
+
+        /* Quitar flecha nativa en IE/Edge */
+        select::-ms-expand { display: none; }
+
+        /* For Firefox focus ring fix */
+        select:-moz-focusring { color: transparent; text-shadow: 0 0 0 var(--text); }
+
+        /* Estilos para las opciones del desplegable (aplica en la mayoría de navegadores) */
+        select option,
+        select optgroup {
+        background-color: var(--card); /* fondo oscuro */
+        color: var(--text);            /* texto claro */
+        }
+
+        /* Estado seleccionado / hover en opciones (otros navegadores usan esto) */
+        select option:checked,
+        select option:hover {
+        background-color: rgba(0,209,255,0.12); /* acento sutil */
+        color: var(--text);
+        }
+
+        /* Focus */
+        select:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 4px 18px rgba(0,209,255,0.08);
+        }
+
+        /* Disabled / read-only */
+        select:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        }
+
+        /* Ajustes móviles */
+        @media (max-width: 420px) {
+        select {
+            padding-right: 2.6rem;
+            background-position: right 8px center;
+        }
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <h1>Stock Manager</h1>
+        </div>
+    </header>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Login Form -->
+            <div id="loginForm" class="card">
+                <h2>Iniciar Sesión</h2>
+                <p class="text-muted">Ingresa a tu cuenta de Stock Manager</p>
+                
+                {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+                {% endif %}
+                
+                <form method="POST" action="/login">
+                    <div class="field">
+                        <label class="label" for="login-email">Email</label>
+                        <input type="user" id="login-user" name="user" required placeholder="Usuario">
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" name="password" required placeholder="••••••••">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn">Ingresar</button>
+                    </div>
+                </form>
+                
+                <div class="toggle-text">
+                    <span class="text-muted">¿No tienes cuenta? </span>
+                    <a onclick="toggleForms()">Regístrate aquí</a>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="card hidden">
+                <h2>Crear Cuenta</h2>
+                <p class="text-muted">Regístrate para empezar a gestionar tu inventario</p>
+                
+                {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+                {% endif %}
+                
+                <form method="POST" action="/register">
+                    <div class="field">
+                        <label class="label" for="register-name">Nombre completo</label>
+                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez">
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="register-email">Email</label>
+                        <input type="email" id="register-email" name="email" required placeholder="tu@email.com">
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="register-password">Contraseña</label>
+                        <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6">
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label" for="register-confirm">Confirmar contraseña</label>
+                        <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6">
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="register-role">Rol</label>
+                        <select id="register-role" name="role" required>
+                            <option value="Vendedor" selected>Vendedor</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn">Crear cuenta</button>
+                    </div>
+                </form>
+                
+                <div class="toggle-text">
+                    <span class="text-muted">¿Ya tienes cuenta? </span>
+                    <a onclick="toggleForms()">Inicia sesión aquí</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleForms() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            loginForm.classList.toggle('hidden');
+            registerForm.classList.toggle('hidden');
+        }
+
+        // Check if we should show register form (from URL parameter or Flask flash)
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('register') === 'true') {
+                toggleForms();
+            }
+        });
+    </script>
+</body>
+</html>

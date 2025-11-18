@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section id="overview" class="card">
+  <div class="kv">
+    <div>
+      <div class="text-muted">Estado API</div>
+      <div id="health" class="mono">-</div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div class="text-muted">Productos</div>
+      <div id="count" class="mono">0</div>
+    </div>
+  </div>
+</section>
+
+<section id="items" class="card-grid" aria-live="polite">
+  <!-- items renderizados por JS -->
+</section>
+{% endblock %}

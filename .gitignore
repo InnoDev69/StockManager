@@ -1,0 +1,94 @@
+# ===== Python / Flask =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# dotenv / secrets
+.env
+.env.*
+instance/         # Flask instance folder
+secrets.yml
+credentials.json
+*.pem
+*.key
+
+# Byte-compiled / distribution / packaging
+build/
+dist/
+eggs/
+*.egg-info/
+pip-wheel-metadata/
+wheelhouse/
+
+# SQLite / DB files (local DBs should not be committed)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs, caches, test output
+*.log
+logs/
+coverage.xml
+.coverage
+htmlcov/
+.pytest_cache/
+.cache/
+.mypy_cache/
+
+# ===== Node / Electron (future-proof) =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.pnp.js
+
+# Electron build / packaging artifacts
+dist/
+out/
+release/
+build/
+*.asar
+*.AppImage
+*.deb
+*.rpm
+*.exe
+*.msi
+*.dmg
+*.app
+
+# Electron-builder / Forge config outputs
+electron-builder.yml
+dist-electron/
+forge-output/
+asar-unpack/
+
+# Package manager lockfiles (optional)
+# You may want to keep package-lock.json / yarn.lock under version control.
+# Uncomment to ignore them:
+# package-lock.json
+# yarn.lock
+
+# ===== IDEs / Editors =====
+.vscode/
+*.code-workspace
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.swp
+*~ 

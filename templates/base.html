@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Stock Manager{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Stock Manager</h1>
+      <nav class="nav-actions">
+        <input id="search" class="search" type="search" placeholder="Buscar producto..." aria-label="Buscar">
+        <button id="btn-new" class="btn" title="Nuevo producto">Nuevo</button>
+      </nav>
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- modal / panel -->
+  <div id="drawer" class="drawer hidden" aria-hidden="true">
+    <form id="item-form" class="card form-card" autocomplete="off">
+      <h3 id="form-title">Nuevo producto</h3>
+      <label class="field">
+        <span class="label">Nombre</span>
+        <input name="name" id="f-name" required maxlength="120" />
+      </label>
+      <label class="field">
+        <span class="label">Stock</span>
+        <input name="stock" id="f-stock" type="number" min="0" value="0" />
+      </label>
+      <label class="field">
+        <span class="label">SKU (opcional)</span>
+        <input name="sku" id="f-sku" />
+      </label>
+      <div class="form-actions">
+        <button type="button" id="btn-cancel" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn">Guardar</button>
+      </div>
+      <input type="hidden" id="f-id" />
+    </form>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
