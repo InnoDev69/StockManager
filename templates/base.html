@@ -3,25 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}Stock Manager{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <h1>Stock Manager</h1>
-      <nav class="nav-actions">
-        <input id="search" class="search" type="search" placeholder="Buscar producto..." aria-label="Buscar">
-        <button id="btn-new" class="btn" title="Nuevo producto">Nuevo</button>
-      </nav>
+  <header class="app-header">
+    <div class="header-inner container">
+      <h1 class="brand">Stock Manager</h1>
+      <div class="nav-actions" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
+        {% if session.get('user_id') %}
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span class="text-muted" style="font-size:0.9rem;">{{ session.get('username') }}</span>
+          <span class="role-badge">
+            {{ session.get('role') }}
+          </span>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-ghost" title="Cerrar sesión">Cerrar sesión</a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-ghost">Iniciar sesión</a>
+        {% endif %}
+      </div>
     </div>
   </header>
-  <main>
+
+  <main class="container">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- modal / panel -->
+  <!-- Drawer / panel -->
   <div id="drawer" class="drawer hidden" aria-hidden="true">
+    <div class="overlay" data-close="true"></div>
     <form id="item-form" class="card form-card" autocomplete="off">
       <h3 id="form-title">Nuevo producto</h3>
       <label class="field">

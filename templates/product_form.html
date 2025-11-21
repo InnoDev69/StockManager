@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:720px; margin:1rem auto;">
+  <h2>Agregar Producto</h2>
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="POST" action="/products/new">
+    <div class="field">
+      <label class="label">Código de barras</label>
+      <div style="display:flex; gap:0.5rem;">
+        <input id="barrs_code" name="barrs_code" required placeholder="EAN / UPC / Code128" />
+      </div>
+    </div>
+    <div class="field"><label class="label">Nombre</label><input name="name" required /></div>
+    <div class="field"><label class="label">Descripción</label><input name="description" /></div>
+    <div class="field"><label class="label">Stock</label><input type="number" name="quantity" value="0" min="0" /></div>
+    <div class="field"><label class="label">Stock mínimo</label><input type="number" name="min_quantity" value="0" min="0" /></div>
+    <div class="field"><label class="label">Precio</label><input type="number" step="0.01" name="price" value="0.00" /></div>
+    <div class="form-actions">
+      <a href="/" class="btn btn-ghost">Cancelar</a>
+      <button class="btn" type="submit">Agregar</button>
+    </div>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/barcode.js') }}"></script>
+{% endblock %}

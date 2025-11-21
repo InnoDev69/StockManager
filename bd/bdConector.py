@@ -38,40 +38,40 @@ class BDConector:
         items_table_query = """
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            barrs_code TEXT NOT NULL UNIQUE,
-            description TEXT NOT NULL,
+            barrs_code TEXT UNIQUE,  -- Ahora puede ser NULL
+            description TEXT,
             name TEXT NOT NULL,
-            quantity INTEGER NOT NULL,
-            min_quantity INTEGER NOT NULL,
+            quantity INTEGER NOT NULL DEFAULT 0,
+            min_quantity INTEGER NOT NULL DEFAULT 5,
             price REAL NOT NULL
         )
         """
         
-        movements_table_query = """
-        CREATE TABLE IF NOT EXISTS movements (
+        sells_details_table_query = """
+        CREATE TABLE IF NOT EXISTS details (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sell_id INTEGER NOT NULL,
             item_id INTEGER NOT NULL,
             quantity INTEGER NOT NULL,
-            movement_type TEXT NOT NULL,
-            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            price REAL NOT NULL,
+            FOREIGN KEY (sell_id) REFERENCES sells (id),
             FOREIGN KEY (item_id) REFERENCES items (id)
         )
         """
-        
+    
         sells_table_query = """
         CREATE TABLE IF NOT EXISTS sells (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
             date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (item_id) REFERENCES items (id)
         )
         """
         with self._cursor() as cur:
-            cur.execute(users_table_query)
+            cur.execute(users_table_query)  
             cur.execute(items_table_query)
-            cur.execute(movements_table_query)
             cur.execute(sells_table_query)
+            cur.execute(sells_details_table_query)
     
     def create_table(self, table_name, columns):
         """
@@ -111,5 +111,63 @@ class BDConector:
         self.execute_query(
             "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
             (username, password, email, role),
+            fetch=False
+        )
+        
+    def add_item(self, barrs_code, description, name, quantity, min_quantity, price):
+        # Permitir código de barras vacío
+        barrs_code = barrs_code.strip() if barrs_code else None
+        self.execute_query(
+            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
+            (barrs_code, description, name, quantity, min_quantity, price),
+            fetch=False
+        )
+        
+    def get_item_by_barcode(self, barcode):
+        """
+        Devuelve una tupla consistente:
+        (id, barrs_code, name, description, quantity, price) o None
+        """
+        rows = self.execute_query(
+            "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code = ?",
+            (barcode,)
+        )
+        return rows[0] if rows else None
+    
+    def get_item_stock(self, item_id):
+        """
+        Devuelve la cantidad en stock de un ítem específico.
+        """
+        rows = self.execute_query(
+            "SELECT quantity FROM items WHERE id = ?",
+            (item_id,)
+        )
+        return rows[0][0] if rows else None
+
+    def record_sale(self, item_id, quantity):
+        """
+        Inserta venta en sells e inserta los detalles en details y actualiza stock de forma segura.
+        """
+        self.execute_query(
+            "INSERT INTO sells (item_id) VALUES (?)",
+            (item_id,),
+            fetch=False
+        )
+        sell_id = self.execute_query("SELECT last_insert_rowid()", fetch=True)[0][0]
+        self.execute_query(
+            "INSERT INTO details (sell_id, item_id, quantity, price) SELECT ?, id, ?, price FROM items WHERE id = ?",
+            (sell_id, quantity, item_id),
+            fetch=False
+        )
+        
+        self.update_stock(item_id, self.get_item_stock(item_id) - quantity)
+        
+    def update_stock(self, item_id, new_quantity):
+        """
+        Actualiza la cantidad de stock de un ítem específico.
+        """
+        self.execute_query(
+            "UPDATE items SET quantity = ? WHERE id = ?",
+            (new_quantity, item_id),
             fetch=False
         )

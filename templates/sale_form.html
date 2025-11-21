@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:520px; margin:1rem auto;">
+  <h2>Registrar Venta</h2>
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="POST" action="/sales/new">
+    <div class="field">
+      <label class="label">Código de barras</label>
+      <div style="display:flex; gap:0.5rem;">
+        <input id="barcode" name="barcode" required placeholder="Escanea o ingresa código" />
+      </div>
+    </div>
+    <div class="field"><label class="label">Cantidad</label><input type="number" name="quantity" value="1" min="1" /></div>
+    <div class="form-actions">
+      <a href="/" class="btn btn-ghost">Cancelar</a>
+      <button class="btn" type="submit">Vender</button>
+    </div>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/barcode.js') }}"></script>
+{% endblock %}

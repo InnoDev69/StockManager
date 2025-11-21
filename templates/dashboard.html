@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Header del Dashboard -->
+<header style="margin-bottom: 1.5rem;">
+  <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">Dashboard</h1>
+  <p class="text-muted" style="margin: 0;">Gestiona tu inventario y ventas en tiempo real</p>
+</header>
+
+<!-- KPIs Section -->
+<section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Estado API</div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <div id="health-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: var(--glass);"></div>
+      <div id="health" class="mono" style="font-size: 1.25rem; font-weight: 600;">Verificando...</div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Productos</div>
+    <div id="count" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">{{ stats.products | default(0) }}</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Bajo stock</div>
+    <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+      <div id="lowstock" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--warning, #f59e0b);">{{ stats.low_stock | default(0) }}</div>
+      {% if stats.low_stock > 0 %}
+      <span style="font-size: 0.75rem; padding: 0.125rem 0.5rem; background: var(--warning-bg, rgba(245, 158, 11, 0.1)); border-radius: 12px; color: var(--warning, #f59e0b);">⚠ Alerta</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Ventas hoy</div>
+    <div id="sales-today" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--success, #10b981);">{{ stats.sales_today | default(0) }}</div>
+  </div>
+</section>
+
+<!-- Acciones y Filtros -->
+<section class="card" aria-label="Búsqueda y filtros" style="margin-top: 1.5rem; padding: 1.25rem;">
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+    <!-- Búsqueda -->
+    <div style="flex: 1; min-width: 250px;">
+      <label for="search" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Buscar</label>
+      <div style="position: relative;">
+        <input 
+          id="search" 
+          type="search" 
+          placeholder="Nombre o SKU del producto..." 
+          aria-label="Buscar producto por nombre o SKU"
+          style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass); color: var(--text); transition: all 0.2s ease;"
+          onfocus="this.style.borderColor='var(--primary)'; this.style.background='rgba(255, 255, 255, 0.08)';"
+          onblur="this.style.borderColor='var(--glass)'; this.style.background='rgba(255, 255, 255, 0.05)';">
+        <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; opacity: 0.5; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Filtro de categoría -->
+    <div style="min-width: 200px;">
+      <label for="filter-category" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Categoría</label>
+      <select id="filter-category" aria-label="Filtrar por categoría" style="width: 100%;">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
+
+    <!-- Filtro de vista -->
+    <div style="min-width: 180px;">
+      <label for="view-mode" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Estado</label>
+      <select id="view-mode" aria-label="Modo de vista" style="width: 100%;">
+        <option value="all">Todos</option>
+        <option value="in_stock">En stock</option>
+        <option value="out_of_stock">Agotados</option>
+        {% if role == 'admin' %}
+        <option value="discontinued">Descatalogados</option>
+        {% endif %}
+      </select>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+      {% if role == 'admin' %}
+      <!-- Uso de url_for evita errores de ruta -->
+      <a href="{{ url_for('product_new') }}" class="btn" style="white-space: nowrap;">
+        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Nuevo producto
+      </a>
+      <a href="/import" class="btn btn-ghost" title="Importar CSV">
+        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+      </a>
+      <a href="/settings" class="btn btn-ghost" title="Configuración">
+        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </a>
+      <a href="/sales/new" class="btn" style="white-space: nowrap;">
+        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        Nueva venta
+      </a>
+      <a href="/sales" class="btn btn-ghost">Historial</a>
+      {% else %}
+      <a href="/sales/new" class="btn" style="white-space: nowrap;">
+        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        Nueva venta
+      </a>
+      <a href="/sales" class="btn btn-ghost">Historial</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Alertas de bajo stock -->
+{% if low_stock_list %}
+<section id="alerts" aria-live="polite" aria-label="Alertas de inventario" style="margin-top: 1.5rem;">
+  <div class="card" style="padding: 1.25rem; border-left: 3px solid var(--warning, #f59e0b);">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <svg style="width: 20px; height: 20px; color: var(--warning, #f59e0b);" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"></path>
+      </svg>
+      <strong style="font-size: 1rem; color: var(--warning, #f59e0b);">Productos con bajo stock ({{ low_stock_list|length }})</strong>
+    </div>
+    <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+      {% for item in low_stock_list %}
+      <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 6px; border: 1px solid var(--glass);">
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <span style="font-weight: 600; font-size: 0.95rem;">{{ item.name }}</span>
+          <span class="text-muted mono" style="font-size: 0.85rem;">SKU: {{ item.sku | default('N/A') }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="text-align: right;">
+            <div class="mono" style="font-size: 1.25rem; font-weight: 700; color: var(--warning, #f59e0b);">{{ item.stock }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">unidades</div>
+          </div>
+          {% if role == 'admin' %}
+          <a href="/products/{{ item.id }}/edit" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Reponer</a>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<!-- Lista de productos -->
+<section style="margin-top: 1.5rem;">
+  <!-- Header de la sección -->
+  <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700;">Inventario</h2>
+        <p class="text-muted" style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+          <span id="products-count-display">{{ products|length if products else 0 }}</span> productos en total
+        </p>
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button id="grid-view" class="btn btn-ghost" style="padding: 0.5rem;" title="Vista en cuadrícula" onclick="switchView('grid')">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+          </svg>
+        </button>
+        <button id="list-view" class="btn btn-ghost" style="padding: 0.5rem;" title="Vista en lista" onclick="switchView('list')">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de productos -->
+  <div id="productsList" class="products-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));" aria-live="polite" aria-label="Lista de productos">
+    <!-- Loading state -->
+    <div id="loadingMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;" hidden>
+      <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--glass); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p class="text-muted" style="margin-top: 1rem;">Cargando productos...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;" {% if products %}hidden{% endif %}>
+      <svg style="width: 64px; height: 64px; margin: 0 auto; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+      </svg>
+      <h3 style="margin: 1.5rem 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
+      <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros de búsqueda o agrega un nuevo producto.</p>
+      {% if role == 'admin' %}
+      <a href="/products/new" class="btn">Agregar primer producto</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Template para tarjeta de producto -->
+<template id="product-card-template">
+  <article class="card product-card" style="padding: 1.25rem; transition: all 0.2s ease; cursor: pointer; position: relative; overflow: hidden;">
+    <!-- Badge de estado -->
+    <div class="product-badge" style="position: absolute; top: 0.75rem; right: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;"></div>
+    
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <!-- Header -->
+      <div>
+        <div class="text-muted mono" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
+          SKU: <span class="sku">-</span>
+        </div>
+        <h3 class="name" style="margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.4;">Nombre del producto</h3>
+        <div class="category text-muted" style="font-size: 0.875rem; margin-top: 0.25rem;"></div>
+      </div>
+
+      <!-- Stats -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--glass);">
+        <div>
+          <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Stock</div>
+          <div class="mono stock" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Precio</div>
+          <div class="mono price" style="font-size: 1.25rem; font-weight: 600;">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display: flex; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--glass);">
+        <button class="btn btn-ghost btn-action view" style="flex: 1; font-size: 0.875rem;">
+          Ver detalles
+        </button>
+        {% if role == 'admin' %}
+        <a class="btn btn-ghost btn-action edit" href="#" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;" title="Editar">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+        </a>
+        <button class="btn btn-ghost btn-action delete" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center; color: var(--danger, #ef4444);" title="Eliminar">
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+        {% else %}
+        <button class="btn btn-action sell" style="flex: 1; font-size: 0.875rem;">
+          <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          Vender
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+</template>
+
+<style>
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary);
+  }
+
+  .products-list .product-card {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 768px) {
+    .kv {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    }
+  }
+</style>
+
+<script>
+  // Configuración y state de la aplicación
+  window.APP = window.APP || {};
+  window.APP.role = "{{ role|e }}";
+  window.APP.currentView = 'grid';
+
+  // Función para cambiar entre vista de cuadrícula y lista
+  function switchView(view) {
+    const container = document.getElementById('productsList');
+    window.APP.currentView = view;
+    
+    if (view === 'grid') {
+      container.className = 'products-grid';
+      container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+    } else {
+      container.className = 'products-list';
+      container.style.gridTemplateColumns = '1fr';
+    }
+
+    // Actualizar botones activos
+    document.getElementById('grid-view').style.opacity = view === 'grid' ? '1' : '0.5';
+    document.getElementById('list-view').style.opacity = view === 'list' ? '1' : '0.5';
+  }
+
+  // Verificar el estado de la API al cargar
+  async function checkAPIHealth() {
+    const healthEl = document.getElementById('health');
+    const indicatorEl = document.getElementById('health-indicator');
+    
+    try {
+      const response = await fetch('/api/health');
+      if (response.ok) {
+        healthEl.textContent = 'Online';
+        healthEl.style.color = 'var(--success, #10b981)';
+        indicatorEl.style.background = 'var(--success, #10b981)';
+        indicatorEl.style.boxShadow = '0 0 8px var(--success, #10b981)';
+      } else {
+        throw new Error('API no disponible');
+      }
+    } catch (error) {
+      healthEl.textContent = 'Offline';
+      healthEl.style.color = 'var(--danger, #ef4444)';
+      indicatorEl.style.background = 'var(--danger, #ef4444)';
+    }
+  }
+
+  // Inicializar cuando se carga la página
+  document.addEventListener('DOMContentLoaded', function() {
+    checkAPIHealth();
+    
+    // Inicializar vista por defecto
+    switchView('grid');
+  });
+
+  console.log('[v0] Dashboard inicializado - Role:', window.APP.role);
+</script>
+{% endblock %}
