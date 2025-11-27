@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Ajustes{% endblock %}
+{% block content %}
+<h1>Ajustes</h1>
+
+<div class="row g-4">
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Perfil</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('update_profile') }}">
+          <div class="mb-3">
+            <label class="form-label">Usuario</label>
+            <input type="text" class="form-control" value="{{ session.get('username','') }}" disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ user.email if user else '' }}" required>
+          </div>
+          <button class="btn btn-primary btn-sm">Guardar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Cambiar contraseña</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('change_password') }}">
+          <div class="mb-3">
+            <label class="form-label">Actual</label>
+            <input type="password" name="current_password" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nueva</label>
+            <input type="password" name="new_password" class="form-control" required minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Repetir nueva</label>
+            <input type="password" name="confirm_password" class="form-control" required minlength="6">
+          </div>
+          <button class="btn btn-warning btn-sm">Actualizar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Preferencias</div>
+      <div class="card-body">
+        <form id="prefsForm">
+          <div class="mb-3">
+            <label class="form-label">Umbral stock bajo (visual)</label>
+            <input type="number" min="0" id="prefLowStock" class="form-control" value="5">
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="prefDark">
+            <label class="form-check-label" for="prefDark">Tema oscuro</label>
+          </div>
+          <button type="button" id="savePrefs" class="btn btn-success btn-sm">Guardar preferencias</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% if session.get('role') == 'admin' %}
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Herramientas</div>
+      <div class="card-body d-grid gap-2">
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('import_preview') }}" onclick="event.preventDefault(); window.location='{{ url_for('import_preview') }}';">Importar CSV</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('product_new') }}">Nuevo producto</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="mt-4">
+  <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Cerrar sesión</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const darkKey = 'pref_dark';
+  const lowKey = 'pref_low_stock';
+  const darkSwitch = document.getElementById('prefDark');
+  const lowInput = document.getElementById('prefLowStock');
+
+  // Cargar
+  darkSwitch.checked = localStorage.getItem(darkKey) === '1';
+  lowInput.value = localStorage.getItem(lowKey) || lowInput.value;
+  applyTheme();
+
+  darkSwitch.addEventListener('change', applyTheme);
+  document.getElementById('savePrefs').addEventListener('click', () => {
+    localStorage.setItem(darkKey, darkSwitch.checked ? '1' : '0');
+    localStorage.setItem(lowKey, lowInput.value);
+    showSaved();
+  });
+
+  function applyTheme(){
+    if(darkSwitch.checked){
+      document.documentElement.classList.add('dark-theme');
+    } else {
+      document.documentElement.classList.remove('dark-theme');
+    }
+  }
+
+  function showSaved(){
+    const btn = document.getElementById('savePrefs');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Guardado';
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
+  }
+})();
+</script>
+{% endblock %}

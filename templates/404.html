@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}404{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-5">Error 404</h1>
+  <p class="lead mb-4" id="phrase">Esta página se ha ido a hacer inventario.</p>
+
+  <a href="{{ url_for('index') }}" class="btn btn-primary btn-sm">Volver al Dashboard</a>
+  <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">Regresar</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const frases = [
+    'La página se escondió detrás de una caja de tus productos.',
+    '404: Inventario desactualizado de rutas.',
+    'Has encontrado un pasillo fantasma.',
+    'Este enlace estaba en liquidación y ya no existe.',
+    'Ruta extraviada. ¿Re-etiquetamos?',
+    'Parece que este enlace se ha agotado.',
+    'La página está en cuarentena por inventario.',
+    'Error 404: Producto no encontrado.',
+    'Esta página está fuera de stock.',
+    'La página se ha ido a hacer inventario.',
+    'Ups, esta página no está en el catálogo.',
+    'Esta página está siendo reabastecida.',
+    'Creo que esta pagina no esta en tu stock.',
+    'No soy Google, no tengo todas las respuestas.',
+  ];
+  const el = document.getElementById('phrase');
+  el.textContent = frases[Math.floor(Math.random()*frases.length)];
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+{
+  "name": "stockmanager-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "python3 main.py & wait-on tcp:5000 && electron .",
+    "dev:win": "python main.py & wait-on tcp:5000 && electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "wait-on": "^7.0.1"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.stockmanager.desktop",
+    "files": [
+      "**/*",
+      "!*.db",
+      "!venv*/**",
+      "!__pycache__/**"
+    ],
+    "extraResources": [
+      {
+        "from": "stock.db",
+        "to": "stock.db"
+      }
+    ]
+  }
+}

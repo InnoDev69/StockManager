@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-3">Ventas realizadas</h1>
+  <p class="text-muted">
+    Aquí podrás consultar el historial de ventas ya registradas en el sistema.
+    Más adelante verás el detalle por producto, cantidades y montos de cada operación.
+  </p>
+
+  <div class="card mt-3">
+    <div class="card-body text-center text-muted">
+      <h5 class="card-title mb-2">Historial de ventas</h5>
+      <p class="mb-3">
+        Este módulo aún está en construcción. Próximamente podrás:
+      </p>
+      <ul class="list-unstyled mb-3">
+        <li>• Filtrar ventas por fecha y producto</li>
+        <li>• Ver cantidades, precios unitarios y totales</li>
+        <li>• Revisar los últimos movimientos de caja</li>
+      </ul>
+      <p class="mb-0">
+        Por ahora, las ventas se siguen registrando normalmente desde el formulario de nueva venta.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

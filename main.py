@@ -3,6 +3,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdConector import BDConector
 from api.API import *
 import requests
+import csv
+import io
+import uuid
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = "a"  # Cambiar en producción
@@ -152,6 +155,169 @@ def sale_new():
     db.record_sale(item_id, qty)
     flash(f"Venta registrada: {name} x{qty}")
     return redirect(url_for("index"))
+
+@app.route("/settings", methods=["GET"])
+def settings():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    user_id = session.get("user_id")
+    user_data = db.execute_query("SELECT username, email FROM users WHERE id = ?", (user_id,))
+    user = None
+    if user_data:
+        user = {"username": user_data[0][0], "email": user_data[0][1]}
+    
+    return render_template("settings.html", user=user)
+
+@app.route("/settings/profile", methods=["POST"])
+def update_profile():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    email = request.form.get("email", "").strip()
+    user_id = session.get("user_id")
+    
+    if email:
+        db.execute_query("UPDATE users SET email = ? WHERE id = ?", (email, user_id))
+        flash("Perfil actualizado correctamente")
+    else:
+        flash("Email inválido", "error")
+    
+    return redirect(url_for("settings"))
+
+@app.route("/settings/password", methods=["POST"])
+def change_password():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    current = request.form.get("current_password", "")
+    new_pwd = request.form.get("new_password", "")
+    confirm = request.form.get("confirm_password", "")
+    user_id = session.get("user_id")
+    
+    if new_pwd != confirm:
+        flash("Las contraseñas nuevas no coinciden", "error")
+        return redirect(url_for("settings"))
+    
+    # Verificar contraseña actual
+    user_data = db.execute_query("SELECT password FROM users WHERE id = ?", (user_id,))
+    if not user_data or not check_password_hash(user_data[0][0], current):
+        flash("Contraseña actual incorrecta", "error")
+        return redirect(url_for("settings"))
+    
+    # Actualizar
+    pw_hash = generate_password_hash(new_pwd)
+    db.execute_query("UPDATE users SET password = ? WHERE id = ?", (pw_hash, user_id))
+    flash("Contraseña actualizada correctamente")
+    return redirect(url_for("settings"))
+
+@app.route("/sales", methods=["GET"])
+def sales():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    sales_data = db.execute_query(
+        "SELECT s.id, i.name, d.quantity, d.price, s.date "
+        "FROM sells s "
+        "JOIN details d ON s.id = d.sell_id "
+        "JOIN items i ON d.item_id = i.id "
+        "ORDER BY s.date DESC"
+    )
+    sales = []
+    for sale in sales_data:
+        sales.append({
+            "id": sale[0],
+            "item_name": sale[1],
+            "quantity": sale[2],
+            "price": sale[3],
+            "date": sale[4]
+        })
+    return render_template("sales.html", sales=sales)
+
+# Almacenamiento temporal para preview
+temp_imports = {}
+
+@app.route("/import", methods=["GET"])
+def import_preview():
+    if not session.get("user_id") or session.get("role") != "admin":
+        return redirect(url_for("index"))
+    
+    if request.method == "GET":
+        return render_template("import.html")
+    
+    # POST: procesar CSV
+    if 'file' not in request.files:
+        return {"error": "No file"}, 400
+    
+    file = request.files['file']
+    delimiter = request.form.get('delimiter', ',')
+    has_header = request.form.get('has_header') == '1'
+    
+    content = file.read().decode('utf-8')
+    reader = csv.reader(io.StringIO(content), delimiter=delimiter)
+    rows = list(reader)
+    
+    if not rows:
+        return {"error": "Empty file"}, 400
+    
+    headers = rows[0] if has_header else [f"Col{i}" for i in range(len(rows[0]))]
+    data_rows = rows[1:] if has_header else rows
+    
+    # Guardar temporalmente
+    temp_key = str(uuid.uuid4())
+    temp_imports[temp_key] = {
+        'headers': headers,
+        'rows': data_rows,
+        'delimiter': delimiter
+    }
+    
+    return {
+        'temp_key': temp_key,
+        'headers': headers,
+        'rows': data_rows[:10]  # Preview solo 10
+    }
+
+@app.route("/import/confirm", methods=["POST"])
+def confirm_import():
+    if not session.get("user_id") or session.get("role") != "admin":
+        return redirect(url_for("index"))
+    
+    temp_key = request.form.get('temp_key')
+    if temp_key not in temp_imports:
+        flash("Sesión expirada, vuelve a subir el CSV", "error")
+        return redirect(url_for('import_preview'))
+    
+    data = temp_imports.pop(temp_key)
+    rows = data['rows']
+    
+    # Mapeo
+    col_barcode = int(request.form.get('col_barcode', 0))
+    col_name = int(request.form.get('col_name', 1))
+    col_description = int(request.form.get('col_description', 2))
+    col_quantity = int(request.form.get('col_quantity', 3))
+    col_min_quantity = int(request.form.get('col_min_quantity', 4))
+    col_price = int(request.form.get('col_price', 5))
+    
+    imported = 0
+    for row in rows:
+        if len(row) <= max(col_barcode, col_name, col_quantity, col_price):
+            continue
+        
+        barcode = row[col_barcode].strip()
+        name = row[col_name].strip()
+        desc = row[col_description].strip() if col_description < len(row) else ""
+        qty = int(row[col_quantity]) if row[col_quantity].isdigit() else 0
+        min_qty = int(row[col_min_quantity]) if col_min_quantity < len(row) and row[col_min_quantity].isdigit() else 0
+        price = float(row[col_price]) if col_price < len(row) else 0.0
+        
+        db.add_item(barcode, desc, name, qty, min_qty, price)
+        imported += 1
+    
+    flash(f"{imported} productos importados correctamente")
+    return redirect(url_for('index'))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

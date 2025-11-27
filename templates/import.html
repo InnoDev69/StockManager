@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Datos{% endblock %}
+
+{% block content %}
+<h1>Importar Datos</h1>
+<p>Sube un archivo CSV para importar productos.</p>
+
+<form id="importForm" action="{{ url_for('import_preview') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+  <div class="mb-3">
+    <label for="file" class="form-label">Archivo CSV</label>
+    <input class="form-control" type="file" id="file" name="file" accept=".csv" required>
+  </div>
+  <div class="mb-3">
+    <label for="delimiter" class="form-label">Delimitador</label>
+    <input type="text" class="form-control" id="delimiter" name="delimiter" value="," maxlength="1">
+  </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" value="1" id="has_header" name="has_header" checked>
+    <label class="form-check-label" for="has_header">Primera fila tiene encabezados</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Previsualizar</button>
+</form>
+
+<div id="previewSection" class="d-none">
+  <h2>Previsualización</h2>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped" id="previewTable">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h3>Mapeo de columnas</h3>
+  <form id="confirmForm" action="{{ url_for('confirm_import') }}" method="POST">
+    <input type="hidden" name="temp_key" id="temp_key">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Código Barras</label>
+        <select class="form-select" name="col_barcode" id="col_barcode" required></select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Nombre</label>
+        <select class="form-select" name="col_name" id="col_name" required></select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Descripción</label>
+        <select class="form-select" name="col_description" id="col_description"></select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad</label>
+        <select class="form-select" name="col_quantity" id="col_quantity" required></select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Cantidad mínima</label>
+        <select class="form-select" name="col_min_quantity" id="col_min_quantity"></select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Precio</label>
+        <select class="form-select" name="col_price" id="col_price" required></select>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-success">Importar</button>
+      <button type="button" class="btn btn-secondary" id="cancelPreview">Cancelar</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const res = await fetch('{{ url_for("import_preview") }}', { method: 'POST', body: formData });
+  if (!res.ok) { alert('Error al procesar el archivo'); return; }
+  const data = await res.json();
+  buildPreview(data);
+});
+
+function buildPreview(data) {
+  document.getElementById('previewSection').classList.remove('d-none');
+  document.getElementById('temp_key').value = data.temp_key;
+  const thead = document.querySelector('#previewTable thead');
+  const tbody = document.querySelector('#previewTable tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+  const hr = document.createElement('tr');
+  data.headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+  thead.appendChild(hr);
+  data.rows.slice(0, 10).forEach(r => {
+    const tr = document.createElement('tr');
+    r.forEach(cell => { const td = document.createElement('td'); td.textContent = cell; tr.appendChild(td); });
+    tbody.appendChild(tr);
+  });
+  ['col_barcode','col_name','col_description','col_quantity','col_min_quantity','col_price'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="" disabled selected>-- Selecciona --</option>';
+    data.headers.forEach((h,i) => {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = h + ' (' + i + ')';
+      sel.appendChild(opt);
+    });
+  });
+}
+
+document.getElementById('cancelPreview').addEventListener('click', () => {
+  document.getElementById('previewSection').classList.add('d-none');
+});
+</script>
+{% endblock %}

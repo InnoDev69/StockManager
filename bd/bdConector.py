@@ -144,30 +144,30 @@ class BDConector:
         )
         return rows[0][0] if rows else None
 
-    def record_sale(self, item_id, quantity):
+    def record_product_sale(self, item_id, quantity):
         """
         Inserta venta en sells e inserta los detalles en details y actualiza stock de forma segura.
         """
-        self.execute_query(
-            "INSERT INTO sells (item_id) VALUES (?)",
-            (item_id,),
-            fetch=False
-        )
-        sell_id = self.execute_query("SELECT last_insert_rowid()", fetch=True)[0][0]
-        self.execute_query(
-            "INSERT INTO details (sell_id, item_id, quantity, price) SELECT ?, id, ?, price FROM items WHERE id = ?",
-            (sell_id, quantity, item_id),
-            fetch=False
-        )
-        
-        self.update_stock(item_id, self.get_item_stock(item_id) - quantity)
-        
-    def update_stock(self, item_id, new_quantity):
-        """
-        Actualiza la cantidad de stock de un ítem específico.
-        """
-        self.execute_query(
-            "UPDATE items SET quantity = ? WHERE id = ?",
-            (new_quantity, item_id),
-            fetch=False
-        )
+        with self._cursor() as cur:
+            # crear venta y obtener sell_id
+            cur.execute("INSERT INTO sells (item_id) VALUES (?)", (item_id,))
+            sell_id = cur.lastrowid
+            # obtener precio actual y stock
+            cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+            row = cur.fetchone()
+            if not row:
+                return
+            price, current_qty = row
+            if current_qty < quantity:
+                raise ValueError("Stock insuficiente")
+
+            # registrar detalle
+            cur.execute(
+                "INSERT INTO details (sell_id, item_id, quantity, price) VALUES (?, ?, ?, ?)",
+                (sell_id, item_id, quantity, price)
+            )
+            # actualizar stock
+            cur.execute(
+                "UPDATE items SET quantity = ? WHERE id = ?",
+                (current_qty - quantity, item_id)
+            )

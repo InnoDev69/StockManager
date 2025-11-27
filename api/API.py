@@ -23,7 +23,6 @@ def get_products():
     
     # Filtros opcionales
     search = request.args.get("search", "")
-    category = request.args.get("category", "")
     view_mode = request.args.get("view_mode", "all")
     
     query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE 1=1"
@@ -228,7 +227,7 @@ def create_sale():
     if stock < qty:
         return jsonify({"error": "Stock insuficiente"}), 400
     
-    db.record_sale(item_id, qty)
+    db.record_product_sale(item_id, qty)
     
     return jsonify({
         "message": f"Venta registrada: {name} x{qty}",
@@ -236,3 +235,113 @@ def create_sale():
         "quantity": qty,
         "total": price * qty
     }), 201
+
+@api_bp.route("/sales/bulk", methods=["POST"])
+def create_sales_bulk():
+    """Registra una venta con múltiples items: body { items: [{item_id, quantity}] }"""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json(silent=True) or {}
+    items = data.get("items", [])
+    if not isinstance(items, list) or not items:
+        return jsonify({"error": "Formato inválido: items[] requerido"}), 400
+
+    resultados = []
+    errores = []
+
+    for idx, it in enumerate(items):
+        try:
+            item_id = int(it.get("item_id"))
+            qty = int(it.get("quantity"))
+        except (TypeError, ValueError):
+            errores.append({"index": idx, "error": "item_id/cantidad inválidos"})
+            continue
+
+        row = db.execute_query("SELECT name, quantity, price FROM items WHERE id = ?", (item_id,))
+        if not row:
+            errores.append({"index": idx, "error": "Producto no encontrado"})
+            continue
+
+        name, stock, price = row[0]
+        if stock < qty:
+            errores.append({"index": idx, "error": "Stock insuficiente", "name": name, "requested": qty, "stock": stock})
+            continue
+
+        try:
+            db.record_product_sale(item_id, qty)
+        except Exception as e:
+            errores.append({"index": idx, "error": str(e)})
+            continue
+
+        resultados.append({
+            "item_id": item_id,
+            "name": name,
+            "quantity": qty,
+            "unit_price": price,
+            "total": round(price * qty, 2)
+        })
+
+    status = 200 if not errores else (207 if resultados else 400)
+    return jsonify({"ok": bool(resultados), "items": resultados, "errors": errores}), status
+    
+@api_bp.route("/sales", methods=["GET"])
+def list_sales():
+    """Lista las ventas registradas"""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    rows = db.execute_query(
+        """SELECT s.id, i.barrs_code, i.name, d.price, s.date, d.quantity
+           FROM sells s
+           JOIN details d ON s.id = d.sell_id
+           JOIN items i ON d.item_id = i.id
+           ORDER BY s.date DESC
+           LIMIT 100"""
+    )
+    
+    sales = [
+        {
+            "sale_id": row[0],
+            "barcode": row[1],
+            "product_name": row[2],
+            "quantity": row[3],
+            "unit_price": row[4],
+            "date": row[5]
+        }
+        for row in rows
+    ]
+    
+    return jsonify(sales), 200
+    
+@api_bp.route("/items", methods=["GET"])
+def search_items():
+    """Busca ítems por código de barras o nombre (autocompletar)"""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    query_param = request.args.get("q", "").strip()
+    if not query_param:
+        return jsonify([]), 200
+    
+    rows = db.execute_query(
+        "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code LIKE ? OR name LIKE ? LIMIT 10",
+        (f"%{query_param}%", f"%{query_param}%")
+    )
+    
+    items = [
+        {
+            "id": row[0],
+            "barcode": row[1],
+            "name": row[2],
+            "description": row[3],
+            "stock": row[4],
+            "price": row[5]
+        }
+        for row in rows
+    ]
+    
+    return jsonify(items), 200
