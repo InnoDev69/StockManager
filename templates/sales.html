@@ -1,30 +1,609 @@
 {% extends "base.html" %}
 
-{% block title %}Ventas{% endblock %}
-
 {% block content %}
-<div class="container mt-4">
-  <h1 class="mb-3">Ventas realizadas</h1>
-  <p class="text-muted">
-    Aquí podrás consultar el historial de ventas ya registradas en el sistema.
-    Más adelante verás el detalle por producto, cantidades y montos de cada operación.
-  </p>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header style="margin-bottom: 1.5rem;">
+          <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; color: white;">Historial de Ventas</h1>
+        </header>
 
-  <div class="card mt-3">
-    <div class="card-body text-center text-muted">
-      <h5 class="card-title mb-2">Historial de ventas</h5>
-      <p class="mb-3">
-        Este módulo aún está en construcción. Próximamente podrás:
-      </p>
-      <ul class="list-unstyled mb-3">
-        <li>• Filtrar ventas por fecha y producto</li>
-        <li>• Ver cantidades, precios unitarios y totales</li>
-        <li>• Revisar los últimos movimientos de caja</li>
-      </ul>
-      <p class="mb-0">
-        Por ahora, las ventas se siguen registrando normalmente desde el formulario de nueva venta.
-      </p>
+        <!-- Filters Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Filtros de búsqueda</h3>
+            </div>
+            <div class="card-body">
+                <form id="filterForm" class="form-grid">
+                    <div class="form-group">
+                        <label for="dateFrom">Fecha desde</label>
+                        <input type="date" id="dateFrom" name="date_from" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label for="dateTo">Fecha hasta</label>
+                        <input type="date" id="dateTo" name="date_to" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label for="productFilter">Producto</label>
+                        <input type="text" id="productFilter" name="product" class="input" placeholder="Buscar por producto...">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end; gap: 0.5rem;">
+                        <button type="submit" class="btn">Filtrar</button>
+                        <button type="button" class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="stats-grid mb-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Total Ventas</p>
+                    <p class="stat-value" id="totalSales">$0.00</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3h18v18H3zM8 12h8M12 8v8"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Transacciones</p>
+                    <p class="stat-value" id="totalTransactions">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Productos Vendidos</p>
+                    <p class="stat-value" id="totalProducts">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Detalle de Ventas</h3>
+                <button class="btn btn-ghost" onclick="exportToCSV()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Exportar CSV
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Productos</th>
+                                <th>Cantidad Total</th>
+                                <th>Total</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody">
+                            <!-- Placeholder rows -->
+                            {% if sales %}
+                                {% for sale in sales %}
+                                <tr>
+                                    <td>#{{ sale.id }}</td>
+                                    <td>{{ sale.date }}</td>
+                                    <td>
+                                        <div class="product-list">
+                                            {% for product in sale.products %}
+                                            <span class="badge">{{ product.name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td>{{ sale.total_quantity }}</td>
+                                    <td class="text-primary">${{ "%.2f"|format(sale.total) }}</td>
+                                    <td>
+                                        <button class="btn-icon" onclick="viewSaleDetail({{ sale.id }})" title="Ver detalle">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <div style="padding: 3rem;">
+                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 1rem; opacity: 0.3;">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        <p>No se encontraron ventas</p>
+                                        <p style="font-size: 0.875rem; opacity: 0.7;">Intenta ajustar los filtros de búsqueda</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+
+    <!-- Sale Detail Modal -->
+    <div id="saleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalle de Venta <span id="modalSaleId"></span></h3>
+                <button class="btn-close" onclick="closeSaleModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="detail-section">
+                    <p><strong>Fecha:</strong> <span id="detailDate"></span></p>
+                    <p><strong>ID Transacción:</strong> <span id="detailId"></span></p>
+                </div>
+                <h4 class="mt-3">Productos</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailTableBody">
+                    </tbody>
+                </table>
+                <div class="detail-total">
+                    <h3>Total: <span id="detailTotal" class="text-primary"></span></h3>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeSaleModal()">Cerrar</button>
+                <button class="btn" onclick="printSale()">Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const el = document.getElementById('current-time');
+            if (el) {
+                el.textContent = `${dateString} - ${timeString}`;
+            }
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Set default dates (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        document.getElementById('dateTo').valueAsDate = today;
+        document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+
+        // Filter form submission
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams(formData);
+            window.location.href = `{{ url_for('sales') }}?${params.toString()}`;
+        });
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('filterForm').reset();
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            document.getElementById('dateTo').valueAsDate = today;
+            document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+            window.location.href = '{{ url_for("sales") }}';
+        }
+
+        // View sale detail
+        async function viewSaleDetail(saleId) {
+            try {
+                const res = await fetch(`/api/sales/${saleId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                console.log(`/api/sales/${saleId}`, res);
+
+                const contentType = res.headers.get('content-type') || '';
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text.slice(0, 200)}`);
+                }
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    throw new Error(`Respuesta no JSON (content-type=${contentType}): ${text.slice(0, 200)}`);
+                }
+
+                const data = await res.json();
+
+                document.getElementById('modalSaleId').textContent = `#${data.id}`;
+                document.getElementById('detailDate').textContent = data.date;
+                document.getElementById('detailId').textContent = data.id;
+                document.getElementById('detailTotal').textContent = `$${Number(data.total).toFixed(2)}`;
+
+                const tbody = document.getElementById('detailTableBody');
+                tbody.innerHTML = '';
+                (data.products || []).forEach(product => {
+                    const row = `
+                        <tr>
+                            <td>${product.name}</td>
+                            <td>${product.quantity}</td>
+                            <td>$${Number(product.price).toFixed(2)}</td>
+                            <td>$${(Number(product.quantity) * Number(product.price)).toFixed(2)}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+                document.getElementById('saleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error fetching sale detail:', error);
+                alert('Error al cargar el detalle de la venta');
+            }
+        }
+
+        // Close modal
+        function closeSaleModal() {
+            document.getElementById('saleModal').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('saleModal');
+            if (event.target === modal) {
+                closeSaleModal();
+            }
+        }
+
+        // Print sale
+        function printSale() {
+            window.print();
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const table = document.querySelector('.table');
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = [], cols = rows[i].querySelectorAll('td, th');
+                
+                for (let j = 0; j < cols.length - 1; j++) { // Skip actions column
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
+                    data = data.replace(/"/g, '""');
+                    row.push('"' + data + '"');
+                }
+                csv.push(row.join(','));
+            }
+            
+            const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const downloadLink = document.createElement('a');
+            downloadLink.download = `ventas_${new Date().toISOString().split('T')[0]}.csv`;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // Calculate summary stats (if data available)
+        function calculateStats() {
+            const rows = document.querySelectorAll('#salesTableBody tr');
+            if (rows.length === 1 && rows[0].cells.length === 1) return; // Empty state
+            
+            let totalSales = 0;
+            let totalProducts = 0;
+            
+            rows.forEach(row => {
+                const totalCell = row.cells[4];
+                if (totalCell) {
+                    const amount = parseFloat(totalCell.textContent.replace('$', '').replace(',', ''));
+                    totalSales += amount;
+                }
+                const quantityCell = row.cells[3];
+                if (quantityCell) {
+                    totalProducts += parseInt(quantityCell.textContent);
+                }
+            });
+            
+            document.getElementById('totalSales').textContent = `$${totalSales.toFixed(2)}`;
+            document.getElementById('totalTransactions').textContent = rows.length;
+            document.getElementById('totalProducts').textContent = totalProducts;
+        }
+        
+        // Run on page load
+        calculateStats();
+    </script>
+
+    <style>
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2.2rem;
+            margin: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0 0 0.25rem 0;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: white;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .table th {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin: 0.125rem;
+        }
+
+        .product-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(20, 20, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        .detail-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-section p {
+            margin: 0.5rem 0;
+        }
+
+        .detail-total {
+            text-align: right;
+            padding: 1rem;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .detail-total h3 {
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table {
+                font-size: 0.875rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .modal-content, .modal-content * {
+                visibility: visible;
+            }
+            .modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .modal-header button,
+            .modal-footer {
+                display: none;
+            }
+        }
+    </style>
+</body>
+</html>
+
 {% endblock %}

@@ -540,6 +540,7 @@ async function fetchSales(params = {}) {
 }
 
 function renderSales(data) {
+  console.log(data);
   const tbody = document.querySelector('#salesTable tbody');
   tbody.innerHTML = '';
   let totalPeriod = 0;
@@ -553,7 +554,7 @@ function renderSales(data) {
   data.forEach(s => {
     totalPeriod += (s.total || 0);
     const tr = document.createElement('tr');
-    const itemsList = (s.items || []).map(i => `${i.name} <span class="badge" style="background: var(--panel-2); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem;">x${i.quantity}</span>`).join(', ');
+    const itemsList = (s.items || []).map(i => `${i.product_name} <span class="badge" style="background: var(--panel-2); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem;">x${i.quantity}</span>`).join(', ');
     tr.innerHTML = `
       <td><span class="badge" style="background: color-mix(in srgb, var(--brand) 15%, transparent); color: var(--brand); padding: 4px 10px; border-radius: 999px; font-weight: 600;">#${s.id}</span></td>
       <td style="color: var(--text-muted);">${s.date || ''}</td>

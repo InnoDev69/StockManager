@@ -1,8 +1,10 @@
 from flask import Blueprint, jsonify, request, session
 from bd.bdConector import BDConector
+from debug.pydebug import DebugLogger
+from bd.bdInstance import *
 
 api_bp = Blueprint("api", __name__)
-db = BDConector("stock.db")
+debugger = DebugLogger()
 
 # Middleware para verificar autenticación en endpoints protegidos
 def require_auth():
@@ -288,31 +290,59 @@ def create_sales_bulk():
     
 @api_bp.route("/sales", methods=["GET"])
 def list_sales():
-    """Lista las ventas registradas"""
+    """Lista las ventas registradas agrupadas por ID de venta"""
     auth_error = require_auth()
     if auth_error:
         return auth_error
     
-    rows = db.execute_query(
-        """SELECT s.id, i.barrs_code, i.name, d.price, s.date, d.quantity
-           FROM sells s
-           JOIN details d ON s.id = d.sell_id
-           JOIN items i ON d.item_id = i.id
-           ORDER BY s.date DESC
-           LIMIT 100"""
-    )
+    # Obtener parámetros de filtro
+    date_from = request.args.get("from")
+    date_to = request.args.get("to")
     
-    sales = [
-        {
-            "sale_id": row[0],
-            "barcode": row[1],
-            "product_name": row[2],
-            "quantity": row[3],
-            "unit_price": row[4],
-            "date": row[5]
-        }
-        for row in rows
-    ]
+    # Construir query con filtros opcionales
+    query = """
+        SELECT s.id, s.date, d.item_id, i.name, d.quantity, d.price
+        FROM sells s
+        JOIN details d ON s.id = d.sell_id
+        JOIN items i ON d.item_id = i.id
+        WHERE 1=1
+    """
+    params = []
+    
+    if date_from:
+        query += " AND DATE(s.date) >= ?"
+        params.append(date_from)
+    
+    if date_to:
+        query += " AND DATE(s.date) <= ?"
+        params.append(date_to)
+    
+    query += " ORDER BY s.date DESC, s.id DESC"
+    
+    rows = db.execute_query(query, tuple(params))
+    
+    # Agrupar por venta
+    sales_dict = {}
+    for row in rows:
+        sale_id, date, item_id, name, quantity, price = row
+        
+        if sale_id not in sales_dict:
+            sales_dict[sale_id] = {
+                "id": sale_id,
+                "date": date,
+                "items": [],
+                "total": 0
+            }
+        
+        sales_dict[sale_id]["items"].append({
+            "product_name": name,
+            "quantity": quantity,
+            "price": price
+        })
+        sales_dict[sale_id]["total"] += quantity * price
+    
+    # Convertir a lista
+    sales = list(sales_dict.values())
     
     return jsonify(sales), 200
     
@@ -345,3 +375,43 @@ def search_items():
     ]
     
     return jsonify(items), 200
+
+@api_bp.route("/sales/<int:sale_id>", methods=["GET"])
+def get_sale_detail(sale_id):
+    """Get details of a specific sale"""
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Get sale with products
+    sale_data = db.execute_query(
+        """
+        SELECT s.id, s.date, i.name, d.quantity, d.price 
+        FROM sells s 
+        JOIN details d ON s.id = d.sell_id 
+        JOIN items i ON d.item_id = i.id 
+        WHERE s.id = ?
+        """,
+        (sale_id,)
+    )
+    
+    if not sale_data:
+        return jsonify({"error": "Sale not found"}), 404
+    
+    # Build response
+    sale = {
+        "id": sale_data[0][0],
+        "date": sale_data[0][1],
+        "products": [],
+        "total": 0.0
+    }
+    
+    for row in sale_data:
+        product = {
+            "name": row[2],
+            "quantity": row[3],
+            "price": float(row[4])
+        }
+        sale["products"].append(product)
+        sale["total"] += product["quantity"] * product["price"]
+    
+    return jsonify(sale), 200, {'Content-Type': 'application/json'}

@@ -1,12 +1,15 @@
 import sqlite3
 import contextlib
+from bd.bdErrors import *
 
 class BDConector:
     def __init__(self, db_path):
         self.db_path = db_path
 
     def _connect(self):
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
 
     @contextlib.contextmanager
     def _cursor(self):
@@ -19,6 +22,11 @@ class BDConector:
             cur = conn.cursor()
             yield cur
             conn.commit()
+        
+        except sqlite3.Error as e:
+            conn.rollback()
+            raise DatabaseError(f"Database error: {e}")    
+            
         finally:
             conn.close()
     
@@ -97,15 +105,13 @@ class BDConector:
         """
         with self._cursor() as cur:
             cur.execute(query, params)
-            return cur.fetchall() if fetch else None
+            if fetch:
+                return cur.fetchall()
+            return cur.rowcount
     
     def user_exists(self, username, email):
         rows = self.execute_query("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
         return len(rows) > 0
-    
-    def verify_user(self, username, password):
-        rows = self.execute_query("SELECT id FROM users WHERE username = ? AND password = ?", (username, password))
-        return rows[0][0] if rows else None
     
     def add_user(self, username, password, email, role="user"):
         self.execute_query(
@@ -115,7 +121,6 @@ class BDConector:
         )
         
     def add_item(self, barrs_code, description, name, quantity, min_quantity, price):
-        # Permitir código de barras vacío
         barrs_code = barrs_code.strip() if barrs_code else None
         self.execute_query(
             "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
@@ -144,15 +149,50 @@ class BDConector:
         )
         return rows[0][0] if rows else None
 
+    def get_dashboard_stats(self):
+        """
+        Obtiene estadísticas para el dashboard.
+        Retorna dict con: products, low_stock, sales_today, low_stock_list
+        """
+        total_products = self.execute_query("SELECT COUNT(*) FROM items")[0][0]
+        
+        low_stock = self.execute_query(
+            "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0"
+        )[0][0]
+        
+        sales_today = self.execute_query(
+            "SELECT COUNT(*) FROM sells WHERE DATE(date) = DATE('now')"
+        )[0][0]
+        
+        low_stock_items = self.execute_query(
+            "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
+        )
+        
+        low_stock_list = [
+            {
+                "id": row[0],
+                "name": row[1],
+                "sku": row[2],
+                "stock": row[3]
+            }
+            for row in low_stock_items
+        ]
+        
+        return {
+            "products": total_products,
+            "low_stock": low_stock,
+            "sales_today": sales_today,
+            "low_stock_list": low_stock_list
+        }
+
     def record_product_sale(self, item_id, quantity):
         """
         Inserta venta en sells e inserta los detalles en details y actualiza stock de forma segura.
         """
         with self._cursor() as cur:
-            # crear venta y obtener sell_id
             cur.execute("INSERT INTO sells (item_id) VALUES (?)", (item_id,))
             sell_id = cur.lastrowid
-            # obtener precio actual y stock
+            
             cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
             row = cur.fetchone()
             if not row:
@@ -161,12 +201,11 @@ class BDConector:
             if current_qty < quantity:
                 raise ValueError("Stock insuficiente")
 
-            # registrar detalle
             cur.execute(
                 "INSERT INTO details (sell_id, item_id, quantity, price) VALUES (?, ?, ?, ?)",
                 (sell_id, item_id, quantity, price)
             )
-            # actualizar stock
+            
             cur.execute(
                 "UPDATE items SET quantity = ? WHERE id = ?",
                 (current_qty - quantity, item_id)

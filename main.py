@@ -2,6 +2,7 @@ from flask import Flask, redirect, render_template, session, request, url_for, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdConector import BDConector
 from api.API import *
+from bd.bdInstance import *
 import requests
 import csv
 import io
@@ -9,9 +10,6 @@ import uuid
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = "a"  # Cambiar en producción
-
-db = BDConector("stock.db")
-db.init_db()
 
 app.register_blueprint(api_bp, url_prefix="/api")
 
@@ -35,27 +33,18 @@ def index():
     if not session.get("user_id"):
         return redirect("/login")
     
-    with app.test_client() as client:
-        with client.session_transaction() as sess:
-            sess["user_id"] = session.get("user_id")
-            sess["role"] = session.get("role")
-        
-        stats_response = client.get("/api/stats")
-        if stats_response.status_code == 200:
-            stats_data = stats_response.get_json()
-            stats = {
-                "products": stats_data.get("products", 0),
-                "low_stock": stats_data.get("low_stock", 0),
-                "sales_today": stats_data.get("sales_today", 0)
-            }
-            low_stock_list = stats_data.get("low_stock_list", [])
-        else:
-            stats = {"products": 0, "low_stock": 0, "sales_today": 0}
-            low_stock_list = []
+    # Llamada directa a BD en lugar de HTTP interno
+    stats_data = db.get_dashboard_stats()
+    stats = {
+        "products": stats_data.get("products", 0),
+        "low_stock": stats_data.get("low_stock", 0),
+        "sales_today": stats_data.get("sales_today", 0)
+    }
+    low_stock_list = stats_data.get("low_stock_list", [])
     
     role = session.get("role", "Vendedor")
     return render_template('dashboard.html', stats=stats, role=role,
-                           low_stock_list=low_stock_list, products=[])
+                           low_stock_list=low_stock_list, products=[], show_back=False)
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -215,22 +204,38 @@ def change_password():
 def sales():
     if not session.get("user_id"):
         return redirect(url_for("login"))
+    
+    # Agrupar ventas por sell_id
     sales_data = db.execute_query(
-        "SELECT s.id, i.name, d.quantity, d.price, s.date "
+        "SELECT s.id, s.date, i.name, d.quantity, d.price "
         "FROM sells s "
         "JOIN details d ON s.id = d.sell_id "
         "JOIN items i ON d.item_id = i.id "
         "ORDER BY s.date DESC"
     )
-    sales = []
-    for sale in sales_data:
-        sales.append({
-            "id": sale[0],
-            "item_name": sale[1],
-            "quantity": sale[2],
-            "price": sale[3],
-            "date": sale[4]
+    
+    # Estructurar ventas agrupadas
+    sales_dict = {}
+    for row in sales_data:
+        sale_id = row[0]
+        if sale_id not in sales_dict:
+            sales_dict[sale_id] = {
+                "id": sale_id,
+                "date": row[1],
+                "products": [],
+                "total": 0.0,
+                "total_quantity": 0
+            }
+        
+        sales_dict[sale_id]["products"].append({
+            "name": row[2],
+            "quantity": row[3],
+            "price": row[4]
         })
+        sales_dict[sale_id]["total"] += row[3] * row[4]
+        sales_dict[sale_id]["total_quantity"] += row[3]
+    
+    sales = list(sales_dict.values())
     return render_template("sales.html", sales=sales)
 
 # Almacenamiento temporal para preview

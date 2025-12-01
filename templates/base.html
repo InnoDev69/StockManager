@@ -29,6 +29,13 @@
 
   <main class="container">
     {% block content %}{% endblock %}
+    {% if show_back is not defined or show_back %}
+    {% block back_button %}
+    <div class="back-footer">
+      <a href="javascript:history.back()" class="btn btn-ghost">Volver atrás</a>
+    </div>
+    {% endblock %}
+    {% endif %}
   </main>
 
   <!-- Drawer / panel -->

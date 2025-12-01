@@ -391,4 +391,11 @@ body { font-family: var(--font-sans); }  /* fuerza sans también en body */
 button, input, select, textarea { font: inherit; }
 a, h1, h2, h3, h4, h5, h6, p, label, small, span { font-family: inherit; }
 
-/* Elimina el override previo que ponía serif por defecto */
+.back-footer {
+  margin-top: 2rem;
+  padding: 1rem 0 2rem;
+  text-align: center;
+}
+.back-footer .btn {
+  min-width: 160px;
+}
