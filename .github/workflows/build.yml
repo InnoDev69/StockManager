@@ -53,8 +53,14 @@ jobs:
         run: ls -la dist/
         shell: bash
       
-      - name: Clean Electron output directories
-        run: rm -rf dist/linux-unpacked dist/win-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.exe dist/*.blockmap || true
+      - name: Clean Electron output directories (Linux)
+        if: matrix.platform == 'linux'
+        run: rm -rf dist/linux-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.blockmap 2>/dev/null || true
+        shell: bash
+      
+      - name: Clean Electron output directories (Windows)
+        if: matrix.platform == 'windows'
+        run: rm -rf dist/win-unpacked dist/*.exe dist/*.blockmap 2>/dev/null || true
         shell: bash
       
       - name: Build Electron app (Linux)

@@ -10,10 +10,10 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "clean": "rm -rf dist/linux-unpacked dist/win-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.exe dist/*.blockmap || true",
+    "clean:electron": "rm -rf dist/linux-unpacked dist/win-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.exe dist/*.blockmap 2>/dev/null || true",
     "build:server": "pyinstaller build.spec",
-    "build:win": "npm run clean && electron-builder --win --x64",
-    "build:linux": "npm run clean && electron-builder --linux"
+    "build:win": "npm run clean:electron && electron-builder --win --x64",
+    "build:linux": "npm run clean:electron && electron-builder --linux"
   },
   "build": {
     "appId": "com.stockmanager.app",
