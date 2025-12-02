@@ -1,33 +1,63 @@
 {
-  "name": "stockmanager-desktop",
-  "version": "0.1.0",
-  "private": true,
+  "name": "stock-manager",
+  "version": "1.0.0",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "python3 main.py & wait-on tcp:5000 && electron .",
-    "dev:win": "python main.py & wait-on tcp:5000 && electron .",
-    "build": "electron-builder"
-  },
-  "dependencies": {
-    "wait-on": "^7.0.1"
-  },
-  "devDependencies": {
-    "electron": "^29.0.0",
-    "electron-builder": "^24.0.0"
+    "start": "electron .",
+    "build:server": "pyinstaller build/build.spec",
+    "build:win": "electron-builder --win --x64",
+    "build:linux": "electron-builder --linux",
+    "build:all": "npm run build:server && electron-builder --win --linux"
   },
   "build": {
-    "appId": "com.stockmanager.desktop",
+    "appId": "com.stockmanager.app",
+    "productName": "Stock Manager",
     "files": [
-      "**/*",
-      "!*.db",
-      "!venv*/**",
-      "!__pycache__/**"
+      "electron/**/*",
+      "static/**/*",
+      "!build",
+      "!**/*.pyc",
+      "!dist/stock-manager-server",
+      "!.github"
     ],
     "extraResources": [
       {
-        "from": "stock.db",
-        "to": "stock.db"
+        "from": "dist/stock-manager-server${os === 'win' ? '.exe' : ''}",
+        "to": "server/"
       }
-    ]
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "static/icon.ico",
+      "publisherName": "Tu Nombre"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "icon": "static/icon.png",
+      "artifactName": "${productName}-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "find-free-port": "^2.0.0"
   }
 }

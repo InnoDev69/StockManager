@@ -1,0 +1,115 @@
+name: Build Multi-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Activa en tags como v1.0.0
+  workflow_dispatch:  # Permite ejecución manual
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact_name: StockManager-Linux
+            build_script: build:linux
+          - os: windows-latest
+            platform: windows
+            artifact_name: StockManager-Windows
+            build_script: build:win
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller flask werkzeug
+      
+      - name: Install Node dependencies
+        run: npm ci
+      
+      - name: Build Python server (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          pyinstaller build/build.spec
+          chmod +x dist/stock-manager-server
+      
+      - name: Build Python server (Windows)
+        if: matrix.platform == 'windows'
+        run: pyinstaller build/build.spec
+      
+      - name: Build Electron app
+        run: npm run ${{ matrix.build_script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: List build artifacts (debug)
+        run: |
+          ls -R dist/
+        shell: bash
+      
+      - name: Upload Linux AppImage
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-AppImage
+          path: dist/*.AppImage
+          if-no-files-found: warn
+      
+      - name: Upload Linux DEB
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-DEB
+          path: dist/*.deb
+          if-no-files-found: warn
+      
+      - name: Upload Windows Installer
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-Installer
+          path: dist/*.exe
+          if-no-files-found: warn
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
