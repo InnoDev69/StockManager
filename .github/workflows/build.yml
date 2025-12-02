@@ -15,9 +15,11 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             artifact_name: StockManager-Linux
+            targets: "AppImage deb"
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
+            targets: "nsis"
     
     runs-on: ${{ matrix.os }}
     
@@ -53,7 +55,7 @@ jobs:
       
       - name: Build Electron app (Linux)
         if: matrix.platform == 'linux'
-        run: npm run build:linux
+        run: npm run build:linux -- --linux ${{ matrix.targets }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -83,14 +85,6 @@ jobs:
           path: dist/*.deb
           if-no-files-found: warn
       
-      - name: Upload Pacman (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-Pacman
-          path: dist/*.pacman
-          if-no-files-found: warn
-      
       - name: Upload Windows Installer
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
@@ -98,9 +92,44 @@ jobs:
           name: ${{ matrix.artifact_name }}-Installer
           path: dist/*.exe
           if-no-files-found: error
+
+  build-arch:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    
+    steps:
+      - name: Update system and install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git python python-pip nodejs npm fakeroot bsdtar
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Python dependencies
+        run: pip install --break-system-packages flask werkzeug pyinstaller
+      
+      - name: Install Node dependencies
+        run: npm ci
+      
+      - name: Build Python server
+        run: pyinstaller build.spec
+      
+      - name: Build Electron (pacman package)
+        run: npm run build:linux -- --linux pacman
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Arch package
+        uses: actions/upload-artifact@v4
+        with:
+          name: StockManager-Arch
+          path: dist/*.pacman
+          if-no-files-found: warn
   
   release:
-    needs: build
+    needs: [build, build-arch]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -124,5 +153,39 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+          body: |
+            ## 📦 Descargas
+
+            ### Windows
+            - **Stock Manager Setup.exe** - Instalador para Windows 10/11
+
+            ### Linux
+            - **stock-manager.AppImage** - Portable para cualquier distribución
+            - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
+            - **stock-manager.pacman** - Paquete para Arch/Manjaro
+
+            ## 🚀 Instalación
+
+            **Windows:**
+            ```
+            Ejecuta el instalador y sigue las instrucciones
+            ```
+
+            **Linux (AppImage):**
+            ```bash
+            chmod +x stock-manager-*.AppImage
+            ./stock-manager-*.AppImage
+            ```
+
+            **Debian/Ubuntu:**
+            ```bash
+            sudo dpkg -i stock-manager_*.deb
+            sudo apt-get install -f
+            ```
+
+            **Arch/Manjaro:**
+            ```bash
+            sudo pacman -U stock-manager-*.pacman
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

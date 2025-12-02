@@ -12,7 +12,7 @@
     "start": "electron .",
     "build:server": "pyinstaller build.spec",
     "build:win": "electron-builder --win --x64",
-    "build:linux": "electron-builder --linux AppImage deb pacman"
+    "build:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.stockmanager.app",
@@ -27,8 +27,9 @@
     ],
     "extraResources": [
       {
-        "from": "dist/stock-manager-server${os === 'win' ? '.exe' : ''}",
-        "to": "server/"
+        "from": "dist/stock-manager-server",
+        "to": "server/stock-manager-server",
+        "filter": ["**/*"]
       }
     ],
     "win": {
@@ -39,7 +40,13 @@
         }
       ],
       "icon": "static/icon.ico",
-      "publisherName": "InnoDev69"
+      "publisherName": "InnoDev69",
+      "extraResources": [
+        {
+          "from": "dist/stock-manager-server.exe",
+          "to": "server/stock-manager-server.exe"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -50,8 +57,7 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb",
-        "pacman"
+        "deb"
       ],
       "category": "Office",
       "icon": "static/icon.png",
@@ -62,13 +68,12 @@
         "GenericName": "Inventory Management",
         "Comment": "Gestión de inventario y ventas",
         "Categories": "Office;Finance;"
-      }
-    },
-    "pacman": {
-      "depends": [
-        "glibc",
-        "gtk3",
-        "nss"
+      },
+      "extraResources": [
+        {
+          "from": "dist/stock-manager-server",
+          "to": "server/stock-manager-server"
+        }
       ]
     }
   },
