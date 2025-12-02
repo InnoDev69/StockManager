@@ -1,13 +1,18 @@
 {
   "name": "stock-manager",
   "version": "1.0.0",
+  "description": "Sistema de gestión de inventario y ventas",
   "main": "electron/main.js",
+  "author": {
+    "name": "InnoDev69",
+    "email": "yamirnu14@proton.me"
+  },
+  "license": "MIT",
   "scripts": {
     "start": "electron .",
     "build:server": "pyinstaller build/build.spec",
     "build:win": "electron-builder --win --x64",
-    "build:linux": "electron-builder --linux",
-    "build:all": "npm run build:server && electron-builder --win --linux"
+    "build:linux": "electron-builder --linux AppImage deb pacman"
   },
   "build": {
     "appId": "com.stockmanager.app",
@@ -22,8 +27,9 @@
     ],
     "extraResources": [
       {
-        "from": "dist/stock-manager-server${os === 'win' ? '.exe' : ''}",
-        "to": "server/"
+        "from": "dist/stock-manager-server",
+        "to": "server/",
+        "filter": ["**/*"]
       }
     ],
     "win": {
@@ -34,23 +40,37 @@
         }
       ],
       "icon": "static/icon.ico",
-      "publisherName": "Tu Nombre"
+      "publisherName": "InnoDev69"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "pacman"
       ],
       "category": "Office",
       "icon": "static/icon.png",
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "${name}-${version}.${ext}",
+      "maintainer": "InnoDev69 yamirnu14@proton.me",
+      "desktop": {
+        "Name": "Stock Manager",
+        "GenericName": "Inventory Management",
+        "Comment": "Gestión de inventario y ventas",
+        "Categories": "Office;Finance;"
+      }
+    },
+    "pacman": {
+      "depends": [
+        "glibc",
+        "gtk3",
+        "nss"
+      ]
     }
   },
   "devDependencies": {

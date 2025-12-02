@@ -7,6 +7,7 @@ import requests
 import csv
 import io
 import uuid
+import os
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = "a"  # Cambiar en producción
@@ -325,4 +326,5 @@ def page_not_found(e):
     return render_template("404.html"), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("FLASK_PORT", 5000))
+    app.run(host="127.0.0.1", port=port, debug=False)

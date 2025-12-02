@@ -1,45 +1,54 @@
 const { app, BrowserWindow } = require('electron');
-const { spawn } = require('child_process');
 const path = require('path');
-let pyProc;
-let mainWin;
+const PythonServer = require('./python-server');
 
-function startFlask() {
-  pyProc = spawn('python3', [path.join(__dirname, '..', 'main.py')], {
-    env: { ...process.env }
-  });
-  pyProc.stdout.on('data', d => process.stdout.write('[FLASK] ' + d));
-  pyProc.stderr.on('data', d => process.stderr.write('[FLASK ERR] ' + d));
-}
+let mainWindow;
+let server;
 
-function createWindow() {
-  mainWin = new BrowserWindow({
-    width: 1100,
-    height: 750,
+async function createWindow() {
+  // Inicia el servidor Flask
+  server = new PythonServer();
+  const serverUrl = await server.start();
+
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
-    }
+    },
+    icon: path.join(__dirname, '..', 'static', 'icon.png')
   });
-  mainWin.loadURL('http://127.0.0.1:5000/');
+
+  // Carga la app Flask
+  mainWindow.loadURL(serverUrl);
+
+  // DevTools en desarrollo
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
-app.whenReady().then(() => {
-  startFlask();
-  // Pequeño retry para esperar Flask (simple, sin wait-on)
-  const tryConnect = () => {
-    fetch('http://127.0.0.1:5000/login')
-      .then(() => createWindow())
-      .catch(() => setTimeout(tryConnect, 400));
-  };
-  tryConnect();
-});
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (server) server.stop();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
 app.on('before-quit', () => {
-  if (pyProc) pyProc.kill('SIGTERM');
+  if (server) server.stop();
 });
