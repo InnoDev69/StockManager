@@ -10,7 +10,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build:server": "pyinstaller build/build.spec",
+    "build:server": "pyinstaller build.spec",
     "build:win": "electron-builder --win --x64",
     "build:linux": "electron-builder --linux AppImage deb pacman"
   },
@@ -20,16 +20,15 @@
     "files": [
       "electron/**/*",
       "static/**/*",
-      "!build",
+      "!build.spec",
       "!**/*.pyc",
-      "!dist/stock-manager-server",
+      "!dist/stock-manager-server*",
       "!.github"
     ],
     "extraResources": [
       {
-        "from": "dist/stock-manager-server",
-        "to": "server/",
-        "filter": ["**/*"]
+        "from": "dist/stock-manager-server${os === 'win' ? '.exe' : ''}",
+        "to": "server/"
       }
     ],
     "win": {
@@ -57,7 +56,7 @@
       "category": "Office",
       "icon": "static/icon.png",
       "artifactName": "${name}-${version}.${ext}",
-      "maintainer": "InnoDev69 yamirnu14@proton.me",
+      "maintainer": "InnoDev69 <yamirnu14@proton.me>",
       "desktop": {
         "Name": "Stock Manager",
         "GenericName": "Inventory Management",

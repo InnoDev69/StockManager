@@ -9,17 +9,15 @@ on:
 jobs:
   build:
     strategy:
-      fail-fast: false  # No cancelar otros jobs si uno falla
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             platform: linux
             artifact_name: StockManager-Linux
-            targets: AppImage deb
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
-            targets: nsis
     
     runs-on: ${{ matrix.os }}
     
@@ -40,21 +38,17 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          pip install flask werkzeug pyinstaller
       
       - name: Install Node dependencies
         run: npm ci
       
       - name: Build Python server
-        run: |
-          cd build
-          pyinstaller build.spec
+        run: pyinstaller build.spec
         shell: bash
       
       - name: Verify Python build
-        run: |
-          ls -la dist/
+        run: ls -la dist/
         shell: bash
       
       - name: Build Electron app (Linux)
@@ -69,13 +63,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: List artifacts
-        run: |
-          echo "=== Dist directory ==="
-          ls -lh dist/
+      - name: List final artifacts
+        run: ls -lh dist/
         shell: bash
       
-      # Upload artifacts individuales
       - name: Upload AppImage (Linux)
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
@@ -92,6 +83,14 @@ jobs:
           path: dist/*.deb
           if-no-files-found: warn
       
+      - name: Upload Pacman (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-Pacman
+          path: dist/*.pacman
+          if-no-files-found: warn
+      
       - name: Upload Windows Installer
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
@@ -99,46 +98,9 @@ jobs:
           name: ${{ matrix.artifact_name }}-Installer
           path: dist/*.exe
           if-no-files-found: error
-
-  build-arch:
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux:latest
-    
-    steps:
-      - name: Install base dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git python python-pip nodejs npm fakeroot
-      
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Install Python dependencies
-        run: |
-          pip install --break-system-packages flask werkzeug pyinstaller
-      
-      - name: Install Node dependencies
-        run: npm ci
-      
-      - name: Build Python server
-        run: |
-          cd build
-          pyinstaller build.spec
-      
-      - name: Build Electron (pacman package)
-        run: |
-          npm run build:linux -- --linux pacman
-      
-      - name: Upload Arch package
-        uses: actions/upload-artifact@v4
-        with:
-          name: StockManager-Arch
-          path: dist/*.pacman
-          if-no-files-found: warn
   
   release:
-    needs: [build, build-arch]
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -157,41 +119,10 @@ jobs:
           files: |
             artifacts/**/*.AppImage
             artifacts/**/*.deb
-            artifacts/**/*.exe
             artifacts/**/*.pacman
+            artifacts/**/*.exe
           generate_release_notes: true
           draft: false
           prerelease: false
-          body: |
-            ## Descargas
-
-            ### Windows
-            - `Stock Manager Setup.exe` - Instalador para Windows 10/11
-
-            ### Linux
-            - `StockManager.AppImage` - Portable para cualquier distro
-            - `stockmanager.deb` - Paquete para Debian/Ubuntu/Mint
-            - `stockmanager.pacman` - Paquete para Arch/Manjaro
-
-            ## Instalación
-
-            **Windows:** Ejecuta el instalador y sigue las instrucciones.
-
-            **Linux (AppImage):**
-            ```bash
-            chmod +x StockManager-*.AppImage
-            ./StockManager-*.AppImage
-            ```
-
-            **Debian/Ubuntu:**
-            ```bash
-            sudo dpkg -i stockmanager_*.deb
-            sudo apt-get install -f
-            ```
-
-            **Arch/Manjaro:**
-            ```bash
-            sudo pacman -U stockmanager-*.pkg.tar.zst
-            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
