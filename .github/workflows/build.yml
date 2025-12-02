@@ -53,6 +53,10 @@ jobs:
         run: ls -la dist/
         shell: bash
       
+      - name: Clean Electron output directories
+        run: rm -rf dist/linux-unpacked dist/win-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.exe dist/*.blockmap || true
+        shell: bash
+      
       - name: Build Electron app (Linux)
         if: matrix.platform == 'linux'
         run: npm run build:linux -- --linux ${{ matrix.targets }}
@@ -115,6 +119,9 @@ jobs:
       
       - name: Build Python server
         run: pyinstaller build.spec
+      
+      - name: Clean Electron output directories
+        run: rm -rf dist/linux-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.blockmap || true
       
       - name: Build Electron (pacman package)
         run: npm run build:linux -- --linux pacman
