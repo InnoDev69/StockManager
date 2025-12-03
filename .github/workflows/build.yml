@@ -108,6 +108,14 @@ jobs:
           name: ${{ matrix.artifact_name }}-DEB
           path: dist/*.deb
           if-no-files-found: warn
+
+      - name: Upload Linux TAR.GZ
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-TAR
+          path: dist/*.tar.gz
+          if-no-files-found: warn
       
       - name: Upload Windows Installer
         if: matrix.platform == 'windows'
@@ -116,6 +124,22 @@ jobs:
           name: ${{ matrix.artifact_name }}-Installer
           path: dist/*.exe
           if-no-files-found: error
+
+      - name: Upload Windows Portable EXE
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-Portable
+          path: dist/*.exe
+          if-no-files-found: warn
+
+      - name: Upload Windows ZIP
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-ZIP
+          path: dist/*.zip
+          if-no-files-found: warn
 
   release:
     needs: [build]
