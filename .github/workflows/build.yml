@@ -72,7 +72,9 @@ jobs:
       
       - name: Clean Electron output directories (Windows)
         if: matrix.platform == 'windows'
-        run: rm -rf dist/win-unpacked dist/*.exe dist/*.blockmap 2>/dev/null || true
+        run: |
+          rm -rf dist/win-unpacked 2>/dev/null || true
+          rm -f dist/*.blockmap 2>/dev/null || true
         shell: bash
       
       - name: Build Electron app (Linux)
