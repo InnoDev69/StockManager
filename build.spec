@@ -30,6 +30,7 @@ a = Analysis(
         'uuid',
         'datetime',
         'decimal',
+        'requests',
     ],
     hookspath=[],
     hooksconfig={},
