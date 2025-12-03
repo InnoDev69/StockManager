@@ -1,65 +1,61 @@
+const { app } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const findFreePort = require('find-free-port');
 
 class PythonServer {
   constructor() {
-    this.process = null;
+    this.child = null;
     this.port = null;
   }
 
   async start() {
-    // Encuentra puerto libre
-    const [port] = await findFreePort(5000, 5100);
-    this.port = port;
+    if (this.child) return this.url();
 
-    // Ruta al ejecutable empaquetado
-    const isDev = !require('electron').app.isPackaged;
-    const serverPath = isDev
-      ? path.join(__dirname, '..', 'main.py')
-      : path.join(process.resourcesPath, 'server', 'stock-manager-server');
+    this.port = await this._getPort();
 
-    const args = isDev ? ['main.py'] : [];
-    const command = isDev ? 'python' : serverPath;
+    // Usa .exe en Windows
+    const binName = process.platform === 'win32'
+      ? 'stock-manager-server.exe'
+      : 'stock-manager-server';
 
-    this.process = spawn(command, args, {
-      env: { ...process.env, FLASK_PORT: port.toString() },
-      cwd: isDev ? path.join(__dirname, '..') : process.resourcesPath
+    // En dev: usa dist/<binario>; en producción: resources/server/<binario>
+    const binPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'server', binName)
+      : path.join(__dirname, '..', 'dist', binName);
+
+    if (!fs.existsSync(binPath)) {
+      throw new Error(`No se encontró el binario del servidor en: ${binPath}`);
+    }
+
+    this.child = spawn(binPath, ['--port', String(this.port)], {
+      stdio: 'inherit',
+      windowsHide: true,
+      shell: false
     });
 
-    this.process.stdout.on('data', (data) => {
-      console.log(`[Python] ${data}`);
-    });
+    this.child.on('exit', () => { this.child = null; });
 
-    this.process.stderr.on('data', (data) => {
-      console.error(`[Python Error] ${data}`);
-    });
-
-    // Espera a que Flask inicie
-    await this.waitForServer(port);
-    return `http://127.0.0.1:${port}`;
+    // Espera breve a que el server esté listo; sustituye por un healthcheck si tienes endpoint
+    await new Promise(r => setTimeout(r, 800));
+    return this.url();
   }
 
-  async waitForServer(port, timeout = 10000) {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      try {
-        const http = require('http');
-        await new Promise((resolve, reject) => {
-          http.get(`http://127.0.0.1:${port}`, resolve).on('error', reject);
-        });
-        return;
-      } catch {
-        await new Promise(r => setTimeout(r, 200));
-      }
-    }
-    throw new Error('Flask server failed to start');
+  url() {
+    return `http://127.0.0.1:${this.port}`;
   }
 
   stop() {
-    if (this.process) {
-      this.process.kill();
+    if (this.child) {
+      this.child.kill();
+      this.child = null;
     }
+  }
+
+  async _getPort() {
+    const [port] = await findFreePort(5000);
+    return port;
   }
 }
 
