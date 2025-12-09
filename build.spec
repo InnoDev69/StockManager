@@ -31,6 +31,7 @@ a = Analysis(
         'datetime',
         'decimal',
         'requests',
+        'python-dotenv',
     ],
     hookspath=[],
     hooksconfig={},

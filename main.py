@@ -1,6 +1,5 @@
 from flask import Flask, redirect, render_template, session, request, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from bd.bdConector import BDConector
 from api.API import *
 from bd.bdInstance import *
 import requests
@@ -8,14 +7,31 @@ import csv
 import io
 import uuid
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = "a"  # Cambiar en producción
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
 
 app.register_blueprint(api_bp, url_prefix="/api")
 
 def api_call(endpoint, method="GET", data=None):
-    """Realiza llamadas internas a la API"""
+    """
+    Realiza llamadas internas a la API REST.
+    Requiere login: True.
+    
+    Args:
+        endpoint (str): Endpoint de la API (ej. '/items', '/sales')
+        method (str): Método HTTP ('GET', 'POST', 'PUT', 'DELETE')
+        data (dict, optional): Datos para enviar en métodos POST/PUT
+    
+    Returns:
+        Response: Objeto de respuesta de Flask con el resultado de la API
+    
+    Ejemplo:
+        response = api_call('/items', 'POST', {'name': 'Producto'})
+    """
     base_url = request.url_root.rstrip('/')
     url = f"{base_url}/api{endpoint}"
     
@@ -31,10 +47,24 @@ def api_call(endpoint, method="GET", data=None):
 
 @app.route("/")
 def index():
+    """
+    Dashboard principal de la aplicación.
+    
+    Muestra estadísticas generales:
+    - Total de productos
+    - Productos con stock bajo
+    - Ventas del día
+    - Lista de productos con stock crítico
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: dashboard.html con estadísticas y datos del usuario
+    """
+    
     if not session.get("user_id"):
         return redirect("/login")
     
-    # Llamada directa a BD en lugar de HTTP interno
     stats_data = db.get_dashboard_stats()
     stats = {
         "products": stats_data.get("products", 0),
@@ -49,10 +79,35 @@ def index():
 
 @app.route("/login", methods=["GET"])
 def login():
+    """
+    Muestra el formulario de inicio de sesión.
+    
+    Requiere login: False.
+    
+    Returns:
+        Template: login.html
+    """
+    
     return render_template("login.html")
 
 @app.route("/login", methods=["POST"])
 def login_post():
+    """
+    Procesa el inicio de sesión del usuario.
+    
+    Valida credenciales contra la base de datos y crea sesión si es válido.
+    Utiliza hash de contraseñas con Werkzeug para seguridad.
+    
+    Requiere login: False.
+    
+    Form Data:
+        user (str): Nombre de usuario
+        password (str): Contraseña en texto plano (se compara con hash)
+    
+    Returns:
+        Redirect: Al dashboard si login exitoso, al formulario si falla
+    """
+    
     user = request.form.get("user", "").strip()
     password = request.form.get("password", "")
     if not user or not password:
@@ -73,10 +128,37 @@ def login_post():
 
 @app.route("/register", methods=["GET"])
 def register(): 
+    """
+    Muestra el formulario de registro de nuevos usuarios.
+    
+    Requiere login: False.
+    
+    Returns:
+        Template: login.html con parámetro register=True
+    """
+    
     return render_template("login.html", register=True)
 
 @app.route("/register", methods=["POST"])
 def register_post():
+    """
+    Procesa el registro de un nuevo usuario.
+    
+    Crea un nuevo usuario en la base de datos con contraseña hasheada.
+    Valida que el usuario/email no existan previamente.
+    
+    Requiere login: False.
+    
+    Form Data:
+        user (str): Nombre de usuario único
+        password (str): Contraseña (se almacena como hash)
+        email (str): Correo electrónico
+        role (str): Rol del usuario (default: 'user')
+    
+    Returns:
+        Redirect: A login si registro exitoso, al formulario si falla
+    """
+    
     user = request.form.get("user", "").strip()
     password = request.form.get("password", "")
     email = request.form.get("email", "").strip()
@@ -95,16 +177,49 @@ def register_post():
 
 @app.route("/logout")
 def logout():
+    """
+    Cierra la sesión del usuario actual.
+    
+    Elimina todos los datos de sesión y redirige al login.
+    
+    Requiere login: True.
+    
+    Returns:
+        Redirect: A la página de login
+    """
+    
     session.clear()
     return redirect(url_for("login"))
 
 @app.route("/products/new", methods=["GET", "POST"])
 def product_new():
+    """
+    Crear un nuevo producto en el inventario.
+    
+    Solo usuarios con rol 'admin' pueden acceder.
+    
+    Requiere login: True.
+    
+    GET: Muestra formulario de creación
+    POST: Procesa y guarda el nuevo producto
+    
+    Form Data (POST):
+        barrs_code (str): Código de barras del producto
+        name (str): Nombre del producto
+        description (str): Descripción detallada
+        quantity (int): Cantidad en stock inicial
+        min_quantity (int): Stock mínimo (alerta de bajo stock)
+        price (float): Precio de venta
+    
+    Returns:
+        Template/Redirect: Formulario en GET, redirect a dashboard en POST
+    """
+    
     if not session.get("user_id") or session.get("role") != "admin":
         return redirect(url_for("index"))
     if request.method == "GET":
         return render_template("product_form.html")
-    # POST
+
     barrs_code = request.form.get("barrs_code", "").strip()
     name = request.form.get("name", "").strip()
     description = request.form.get("description", "").strip()
@@ -122,11 +237,26 @@ def legacy_product_form():
 
 @app.route("/sales/new", methods=["GET", "POST"])
 def sale_new():
+    """
+    Crear una nueva venta.
+    
+    Requiere login: True.
+    
+    GET: Muestra formulario de venta
+    POST: Procesa y registra la venta
+    
+    Form Data (POST):
+        barcode (str): Código de barras del producto
+        quantity (int): Cantidad vendida
+    
+    Returns:
+        Template/Redirect: Formulario en GET, redirect a dashboard en POST
+    """
+    
     if not session.get("user_id"):
         return redirect(url_for("login"))
     if request.method == "GET":
         return render_template("sale_form.html")
-    # POST
     barcode = request.form.get("barcode", "").strip()
     try:
         qty = int(request.form.get("quantity", "1"))
@@ -148,6 +278,20 @@ def sale_new():
 
 @app.route("/settings", methods=["GET"])
 def settings():
+    """
+    Página de configuración del usuario.
+    
+    Permite modificar:
+    - Email
+    - Contraseña
+    - Otros datos de perfil
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: settings.html con datos del usuario actual
+    """
+    
     if not session.get("user_id"):
         return redirect(url_for("login"))
     
@@ -161,6 +305,18 @@ def settings():
 
 @app.route("/settings/profile", methods=["POST"])
 def update_profile():
+    """
+    Actualizar información de perfil del usuario.
+    
+    Requiere login: True.
+    
+    Form Data:
+        email (str): Nuevo correo electrónico
+    
+    Returns:
+        Redirect: A página de configuración con mensaje de éxito/error
+    """
+    
     if not session.get("user_id"):
         return redirect(url_for("login"))
     
@@ -177,6 +333,23 @@ def update_profile():
 
 @app.route("/settings/password", methods=["POST"])
 def change_password():
+    """
+    Cambiar contraseña del usuario.
+    
+    Valida contraseña actual antes de permitir el cambio.
+    La nueva contraseña se almacena como hash.
+    
+    Requiere login: True.
+    
+    Form Data:
+        current_password (str): Contraseña actual
+        new_password (str): Nueva contraseña
+        confirm_password (str): Confirmación de nueva contraseña
+    
+    Returns:
+        Redirect: A configuración con mensaje de éxito/error
+    """
+    
     if not session.get("user_id"):
         return redirect(url_for("login"))
     
@@ -189,13 +362,11 @@ def change_password():
         flash("Las contraseñas nuevas no coinciden", "error")
         return redirect(url_for("settings"))
     
-    # Verificar contraseña actual
     user_data = db.execute_query("SELECT password FROM users WHERE id = ?", (user_id,))
     if not user_data or not check_password_hash(user_data[0][0], current):
         flash("Contraseña actual incorrecta", "error")
         return redirect(url_for("settings"))
     
-    # Actualizar
     pw_hash = generate_password_hash(new_pwd)
     db.execute_query("UPDATE users SET password = ? WHERE id = ?", (pw_hash, user_id))
     flash("Contraseña actualizada correctamente")
@@ -203,10 +374,18 @@ def change_password():
 
 @app.route("/sales", methods=["GET"])
 def sales():
+    """
+    Muestra el historial de ventas.
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: sales.html con datos de ventas
+    """
+    
     if not session.get("user_id"):
         return redirect(url_for("login"))
     
-    # Agrupar ventas por sell_id
     sales_data = db.execute_query(
         "SELECT s.id, s.date, i.name, d.quantity, d.price "
         "FROM sells s "
@@ -215,7 +394,6 @@ def sales():
         "ORDER BY s.date DESC"
     )
     
-    # Estructurar ventas agrupadas
     sales_dict = {}
     for row in sales_data:
         sale_id = row[0]
@@ -239,18 +417,29 @@ def sales():
     sales = list(sales_dict.values())
     return render_template("sales.html", sales=sales)
 
-# Almacenamiento temporal para preview
 temp_imports = {}
 
 @app.route("/import", methods=["GET"])
 def import_preview():
+    """
+    Vista previa de importación CSV.
+    
+    Solo administradores pueden importar productos.
+    Muestra las primeras filas del CSV para mapear columnas.
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: import.html con formulario de importación
+        JSON: Vista previa de datos si es POST (legacy support)
+    """
+    
     if not session.get("user_id") or session.get("role") != "admin":
         return redirect(url_for("index"))
     
     if request.method == "GET":
         return render_template("import.html")
     
-    # POST: procesar CSV
     if 'file' not in request.files:
         return {"error": "No file"}, 400
     
@@ -268,7 +457,6 @@ def import_preview():
     headers = rows[0] if has_header else [f"Col{i}" for i in range(len(rows[0]))]
     data_rows = rows[1:] if has_header else rows
     
-    # Guardar temporalmente
     temp_key = str(uuid.uuid4())
     temp_imports[temp_key] = {
         'headers': headers,
@@ -279,11 +467,32 @@ def import_preview():
     return {
         'temp_key': temp_key,
         'headers': headers,
-        'rows': data_rows[:10]  # Preview solo 10
+        'rows': data_rows[:10]
     }
 
 @app.route("/import/confirm", methods=["POST"])
 def confirm_import():
+    """
+    Confirmar e importar productos desde CSV.
+    
+    Procesa el archivo CSV temporal, mapea columnas según configuración
+    del usuario e inserta productos en la base de datos.
+    
+    Requiere login: True.
+    
+    Form Data:
+        temp_key (str): UUID del archivo temporal
+        col_barcode (int): Índice de columna para código de barras
+        col_name (int): Índice de columna para nombre
+        col_description (int): Índice de columna para descripción
+        col_quantity (int): Índice de columna para cantidad
+        col_min_quantity (int): Índice de columna para stock mínimo
+        col_price (int): Índice de columna para precio
+    
+    Returns:
+        Redirect: A dashboard con mensaje de productos importados
+    """
+    
     if not session.get("user_id") or session.get("role") != "admin":
         return redirect(url_for("index"))
     
@@ -295,7 +504,6 @@ def confirm_import():
     data = temp_imports.pop(temp_key)
     rows = data['rows']
     
-    # Mapeo
     col_barcode = int(request.form.get('col_barcode', 0))
     col_name = int(request.form.get('col_name', 1))
     col_description = int(request.form.get('col_description', 2))
@@ -323,8 +531,21 @@ def confirm_import():
 
 @app.errorhandler(404)
 def page_not_found(e):
+    """
+    Manejador de error 404 - Página no encontrada.
+    
+    Requiere login: False.
+    
+    Args:
+        e: Objeto de excepción
+    
+    Returns:
+        Template: 404.html con código de estado 404
+    """
+    
     return render_template("404.html"), 404
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
-    app.run(host="127.0.0.1", port=port, debug=False)
+    app.run(host="127.0.0.1", port=port, debug=True if 
+            os.environ.get("FLASK_ENV", "production") == "development" else False)

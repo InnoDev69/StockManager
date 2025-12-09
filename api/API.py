@@ -6,24 +6,63 @@ from bd.bdInstance import *
 api_bp = Blueprint("api", __name__)
 debugger = DebugLogger()
 
-# Middleware para verificar autenticación en endpoints protegidos
 def require_auth():
+    """
+    Verifica si el usuario está autenticado.
+    Retorna un error JSON si no está autenticado.
+    
+    Requiere login: True.
+    
+    Returns:
+        None si está autenticado, o una respuesta JSON de error si no lo está.
+    """
+    
     if not session.get("user_id"):
         return jsonify({"error": "No autorizado"}), 401
     return None
 
 @api_bp.route("/health", methods=["GET"])
 def health():
+    """
+    Endpoint de verificación de salud del servidor.
+    
+    Requiere login: False.
+    
+    Returns:
+        JSON: {"status": "ok"} con código 200
+    """
     return jsonify({"status": "ok"}), 200
 
 @api_bp.route("/products", methods=["GET"])
 def get_products():
-    """Obtiene todos los productos con filtros opcionales"""
+    """
+    Obtiene todos los productos del inventario con filtros opcionales.
+    
+    Requiere login: True.
+    
+    Query Parameters:
+        search (str, optional): Búsqueda por nombre o código de barras
+        view_mode (str, optional): Filtro por stock ("all", "in_stock", "out_of_stock")
+    
+    Returns:
+        JSON: Lista de productos con sus detalles
+        - id (int): ID del producto
+        - barcode (str): Código de barras
+        - name (str): Nombre del producto
+        - description (str): Descripción
+        - stock (int): Cantidad disponible
+        - min_stock (int): Stock mínimo
+        - price (float): Precio de venta
+    
+    Status Codes:
+        200: Éxito
+        401: No autorizado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
     
-    # Filtros opcionales
     search = request.args.get("search", "")
     view_mode = request.args.get("view_mode", "all")
     
@@ -58,7 +97,30 @@ def get_products():
 
 @api_bp.route("/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
-    """Obtiene un producto específico por ID"""
+    """
+    Obtiene un producto específico por su ID.
+    
+    Requiere login: True.
+    
+    Args:
+        product_id (int): ID del producto a buscar
+    
+    Returns:
+        JSON: Detalles completos del producto
+        - id (int): ID del producto
+        - barcode (str): Código de barras
+        - name (str): Nombre
+        - description (str): Descripción
+        - stock (int): Cantidad disponible
+        - min_stock (int): Stock mínimo
+        - price (float): Precio
+    
+    Status Codes:
+        200: Producto encontrado
+        401: No autorizado
+        404: Producto no encontrado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -86,7 +148,31 @@ def get_product(product_id):
 
 @api_bp.route("/products", methods=["POST"])
 def create_product():
-    """Crea un nuevo producto (solo admin)"""
+    """
+    Crea un nuevo producto en el inventario.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Request Body (JSON):
+        barcode (str): Código de barras del producto
+        name (str): Nombre del producto
+        description (str, optional): Descripción detallada
+        quantity (int): Cantidad inicial en stock
+        min_quantity (int): Stock mínimo de alerta
+        price (float): Precio de venta
+    
+    Returns:
+        JSON: {"message": "Producto creado exitosamente"}
+    
+    Status Codes:
+        201: Producto creado exitosamente
+        400: Faltan campos requeridos
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+        500: Error en la base de datos
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -115,7 +201,32 @@ def create_product():
 
 @api_bp.route("/products/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
-    """Actualiza un producto existente (solo admin)"""
+    """
+    Actualiza un producto existente.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Args:
+        product_id (int): ID del producto a actualizar
+    
+    Request Body (JSON):
+        name (str, optional): Nuevo nombre
+        description (str, optional): Nueva descripción
+        quantity (int, optional): Nueva cantidad en stock
+        min_quantity (int, optional): Nuevo stock mínimo
+        price (float, optional): Nuevo precio
+    
+    Returns:
+        JSON: {"message": "Producto actualizado"}
+    
+    Status Codes:
+        200: Producto actualizado exitosamente
+        400: No hay datos para actualizar
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -125,7 +236,6 @@ def update_product(product_id):
     
     data = request.get_json()
     
-    # Construir query dinámica según campos presentes
     updates = []
     params = []
     
@@ -153,7 +263,24 @@ def update_product(product_id):
 
 @api_bp.route("/products/<int:product_id>", methods=["DELETE"])
 def delete_product(product_id):
-    """Elimina un producto (solo admin)"""
+    """
+    Elimina un producto del inventario.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Args:
+        product_id (int): ID del producto a eliminar
+    
+    Returns:
+        JSON: {"message": "Producto eliminado"}
+    
+    Status Codes:
+        200: Producto eliminado exitosamente
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -166,25 +293,41 @@ def delete_product(product_id):
 
 @api_bp.route("/stats", methods=["GET"])
 def get_stats():
-    """Obtiene estadísticas del dashboard"""
+    """
+    Obtiene estadísticas del dashboard.
+    
+    Requiere login: True.
+    
+    Returns:
+        JSON: Estadísticas del sistema
+        - products (int): Total de productos
+        - low_stock (int): Productos con stock bajo
+        - sales_today (int): Ventas realizadas hoy
+        - low_stock_list (array): Top 10 productos con stock crítico
+          - id (int): ID del producto
+          - name (str): Nombre
+          - sku (str): Código de barras
+          - stock (int): Cantidad actual
+    
+    Status Codes:
+        200: Estadísticas obtenidas exitosamente
+        401: No autorizado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
     
-    # Total de productos
     total_products = db.execute_query("SELECT COUNT(*) FROM items")[0][0]
     
-    # Productos con stock bajo
     low_stock = db.execute_query(
         "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0"
     )[0][0]
     
-    # Ventas de hoy
     sales_today = db.execute_query(
         "SELECT COUNT(*) FROM sells WHERE DATE(date) = DATE('now')"
     )[0][0]
     
-    # Lista de productos con bajo stock
     low_stock_items = db.execute_query(
         "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
     )
@@ -208,7 +351,29 @@ def get_stats():
 
 @api_bp.route("/sales", methods=["POST"])
 def create_sale():
-    """Registra una nueva venta"""
+    """
+    Registra una nueva venta de un producto.
+    
+    Requiere login: True.
+    
+    Request Body (JSON):
+        barcode (str): Código de barras del producto
+        quantity (int): Cantidad a vender
+    
+    Returns:
+        JSON: Confirmación de venta
+        - message (str): Mensaje de éxito
+        - product (str): Nombre del producto vendido
+        - quantity (int): Cantidad vendida
+        - total (float): Total de la venta
+    
+    Status Codes:
+        201: Venta registrada exitosamente
+        400: Faltan campos requeridos o stock insuficiente
+        401: No autorizado
+        404: Producto no encontrado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -240,7 +405,29 @@ def create_sale():
 
 @api_bp.route("/sales/bulk", methods=["POST"])
 def create_sales_bulk():
-    """Registra una venta con múltiples items: body { items: [{item_id, quantity}] }"""
+    """
+    Registra una venta con múltiples productos.
+    
+    Requiere login: True.
+    
+    Request Body (JSON):
+        items (array): Lista de productos a vender
+          - item_id (int): ID del producto
+          - quantity (int): Cantidad a vender
+    
+    Returns:
+        JSON: Resultado de la operación bulk
+        - ok (bool): True si al menos una venta fue exitosa
+        - items (array): Lista de ventas exitosas con detalles
+        - errors (array): Lista de errores encontrados
+    
+    Status Codes:
+        200: Todas las ventas procesadas exitosamente
+        207: Algunas ventas fallaron (procesamiento parcial)
+        400: Formato inválido o todas las ventas fallaron
+        401: No autorizado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -290,16 +477,37 @@ def create_sales_bulk():
     
 @api_bp.route("/sales", methods=["GET"])
 def list_sales():
-    """Lista las ventas registradas agrupadas por ID de venta"""
+    """
+    Lista las ventas registradas con filtros opcionales.
+    
+    Requiere login: True.
+    
+    Query Parameters:
+        from (str, optional): Fecha inicial (formato: YYYY-MM-DD)
+        to (str, optional): Fecha final (formato: YYYY-MM-DD)
+    
+    Returns:
+        JSON: Lista de ventas agrupadas por ID
+        - id (int): ID de la venta
+        - date (str): Fecha y hora de la venta
+        - items (array): Productos vendidos
+          - product_name (str): Nombre del producto
+          - quantity (int): Cantidad vendida
+          - price (float): Precio unitario
+        - total (float): Total de la venta
+    
+    Status Codes:
+        200: Ventas obtenidas exitosamente
+        401: No autorizado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
     
-    # Obtener parámetros de filtro
     date_from = request.args.get("from")
     date_to = request.args.get("to")
     
-    # Construir query con filtros opcionales
     query = """
         SELECT s.id, s.date, d.item_id, i.name, d.quantity, d.price
         FROM sells s
@@ -321,7 +529,6 @@ def list_sales():
     
     rows = db.execute_query(query, tuple(params))
     
-    # Agrupar por venta
     sales_dict = {}
     for row in rows:
         sale_id, date, item_id, name, quantity, price = row
@@ -341,14 +548,34 @@ def list_sales():
         })
         sales_dict[sale_id]["total"] += quantity * price
     
-    # Convertir a lista
     sales = list(sales_dict.values())
     
     return jsonify(sales), 200
     
 @api_bp.route("/items", methods=["GET"])
 def search_items():
-    """Busca ítems por código de barras o nombre (autocompletar)"""
+    """
+    Busca productos para autocompletado.
+    
+    Requiere login: True.
+    
+    Query Parameters:
+        q (str): Término de búsqueda (nombre o código de barras)
+    
+    Returns:
+        JSON: Lista de hasta 10 productos coincidentes
+        - id (int): ID del producto
+        - barcode (str): Código de barras
+        - name (str): Nombre
+        - description (str): Descripción
+        - stock (int): Cantidad disponible
+        - price (float): Precio
+    
+    Status Codes:
+        200: Búsqueda exitosa (puede retornar array vacío)
+        401: No autorizado
+    """
+    
     auth_error = require_auth()
     if auth_error:
         return auth_error
@@ -378,11 +605,33 @@ def search_items():
 
 @api_bp.route("/sales/<int:sale_id>", methods=["GET"])
 def get_sale_detail(sale_id):
-    """Get details of a specific sale"""
+    """
+    Obtiene los detalles de una venta específica.
+    
+    Requiere login: True.
+    
+    Args:
+        sale_id (int): ID de la venta a consultar
+    
+    Returns:
+        JSON: Detalles completos de la venta
+        - id (int): ID de la venta
+        - date (str): Fecha y hora de la venta
+        - products (array): Lista de productos vendidos
+          - name (str): Nombre del producto
+          - quantity (int): Cantidad vendida
+          - price (float): Precio unitario
+        - total (float): Total de la venta
+    
+    Status Codes:
+        200: Venta encontrada
+        401: No autorizado
+        404: Venta no encontrada
+    """
+    
     if not session.get("user_id"):
         return jsonify({"error": "Unauthorized"}), 401
     
-    # Get sale with products
     sale_data = db.execute_query(
         """
         SELECT s.id, s.date, i.name, d.quantity, d.price 
@@ -397,7 +646,6 @@ def get_sale_detail(sale_id):
     if not sale_data:
         return jsonify({"error": "Sale not found"}), 404
     
-    # Build response
     sale = {
         "id": sale_data[0][0],
         "date": sale_data[0][1],
