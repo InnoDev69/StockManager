@@ -301,7 +301,7 @@ def settings():
     if user_data:
         user = {"username": user_data[0][0], "email": user_data[0][1]}
     
-    return render_template("settings.html", user=user)
+    return render_template("settings.html", user=user, show_back=False)
 
 @app.route("/settings/profile", methods=["POST"])
 def update_profile():

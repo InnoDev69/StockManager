@@ -112,14 +112,39 @@ function renderProducts(products) {
 }
 
 // Funciones de acción
+function openProductModal(product) {
+  const modal = document.getElementById('product-modal');
+  document.getElementById('pm-name').textContent = product.name;
+  document.getElementById('pm-sku').textContent = product.barcode || '—';
+  document.getElementById('pm-category').textContent = product.description || '—';
+  document.getElementById('pm-stock').textContent = product.stock;
+  document.getElementById('pm-price').textContent = `$${Number(product.price).toFixed(2)}`;
+  const edit = document.getElementById('pm-edit');
+  if (edit) edit.href = `/products/${product.id}/edit`;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('product-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('product-modal')?.addEventListener('click', (e) => {
+  if (e.target.dataset.close === 'true') closeModal();
+});
+document.getElementById('pm-close')?.addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
 async function viewProduct(id) {
   try {
     const response = await fetch(`/api/products/${id}`);
+    if (!response.ok) throw new Error('No se pudo cargar el producto');
     const product = await response.json();
-    
-    alert(`Producto: ${product.name}\nStock: ${product.stock}\nPrecio: $${product.price}`);
+    openProductModal(product);
   } catch (error) {
     console.error('Error:', error);
+    showToast('No se pudo cargar el producto', true);
   }
 }
 

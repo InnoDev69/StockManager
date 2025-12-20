@@ -299,6 +299,9 @@ class BDConector:
         """
         
         barrs_code = barrs_code.strip() if barrs_code else None
+        
+        
+        
         self.execute_query(
             "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
             (barrs_code, description, name, quantity, min_quantity, price),

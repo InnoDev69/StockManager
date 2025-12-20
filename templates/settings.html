@@ -1,87 +1,143 @@
 {% extends "base.html" %}
 {% block title %}Ajustes{% endblock %}
 {% block content %}
-<h1>Ajustes</h1>
 
-<div class="row g-4">
+<main class="container">
+  <h1 style="margin-bottom: 1.5rem; font-size: 2rem; font-weight: 700;">Ajustes</h1>
 
-  <div class="col-md-6">
+  <div style="display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));">
+    
+    <!-- Perfil -->
     <div class="card">
-      <div class="card-header">Perfil</div>
-      <div class="card-body">
-        <form method="POST" action="{{ url_for('update_profile') }}">
-          <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <input type="text" class="form-control" value="{{ session.get('username','') }}" disabled>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" value="{{ user.email if user else '' }}" required>
-          </div>
-          <button class="btn btn-primary btn-sm">Guardar</button>
-        </form>
+      <h2 style="margin: 0 0 18px; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Perfil
+      </h2>
+      <form method="POST" action="{{ url_for('update_profile') }}" id="profileForm">
+        <div class="field">
+          <label class="label">Usuario</label>
+          <input type="text" value="{{ session.get('username','') }}" disabled style="background: var(--panel); cursor: not-allowed; opacity: 0.7;">
+        </div>
+        <div class="field" style="margin-top: 14px;">
+          <label class="label">Email</label>
+          <input type="email" name="email" id="profileEmail" value="{{ user.email if user else '' }}" required placeholder="tu@email.com">
+          <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 4px;">Tu dirección de correo electrónico</small>
+        </div>
+        <button type="submit" class="btn" style="margin-top: 18px; width: 100%;">
+          <span>Guardar cambios</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Cambiar contraseña -->
+    <div class="card">
+      <h2 style="margin: 0 0 18px; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Cambiar contraseña
+      </h2>
+      <form method="POST" action="{{ url_for('change_password') }}" id="passwordForm">
+        <div class="field">
+          <label class="label">Contraseña actual</label>
+          <input type="password" name="current_password" id="currentPass" required minlength="6" autocomplete="current-password">
+        </div>
+        <div class="field" style="margin-top: 14px;">
+          <label class="label">Nueva contraseña</label>
+          <input type="password" name="new_password" id="newPass" required minlength="6" autocomplete="new-password">
+          <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 4px;">Mínimo 6 caracteres</small>
+        </div>
+        <div class="field" style="margin-top: 14px;">
+          <label class="label">Repetir nueva contraseña</label>
+          <input type="password" name="confirm_password" id="confirmPass" required minlength="6" autocomplete="new-password">
+          <small id="passMatchMsg" style="font-size: 0.8rem; display: none; margin-top: 4px;"></small>
+        </div>
+        <button type="submit" class="btn" style="margin-top: 18px; width: 100%; --btn-bg: var(--warning); --btn-bg-2: #d97706;">
+          <span>Actualizar contraseña</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Preferencias -->
+    <div class="card">
+      <h2 style="margin: 0 0 18px; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v6m0 6v6M5.636 5.636l4.243 4.243m4.242 4.242l4.243 4.243M1 12h6m6 0h6M5.636 18.364l4.243-4.243m4.242-4.242l4.243-4.243"/>
+        </svg>
+        Preferencias
+      </h2>
+      <form id="prefsForm">
+        <div class="field">
+          <label class="label" for="prefLowStock">Umbral stock bajo (visual)</label>
+          <input type="number" min="0" max="100" id="prefLowStock" value="5" placeholder="5">
+          <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 4px;">Alerta visual cuando el stock sea menor a este valor</small>
+        </div>
+        <button type="button" id="savePrefs" class="btn" style="margin-top: 18px; width: 100%; --btn-bg: var(--success); --btn-bg-2: #059669;">
+          <span>Guardar preferencias</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Herramientas (solo admin) -->
+    {% if session.get('role') == 'admin' %}
+    <div class="card">
+      <h2 style="margin: 0 0 18px; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        Herramientas
+      </h2>
+      <div style="display: grid; gap: 10px;">
+        <a class="btn-ghost" href="{{ url_for('import_preview') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" x2="12" y1="15" y2="3"/>
+          </svg>
+          Importar CSV
+        </a>
+        <a class="btn-ghost" href="{{ url_for('product_new') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M12 5v14m-7-7h14"/>
+          </svg>
+          Nuevo producto
+        </a>
       </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Acciones principales -->
+  <div class="back-footer">
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="{{ url_for('index') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+        Volver atrás
+      </a>
+      <a href="{{ url_for('logout') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; --btn-bg: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); color: color-mix(in srgb, var(--danger) 90%, white 10%);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" x2="9" y1="12" y2="12"/>
+        </svg>
+        Cerrar sesión
+      </a>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">Cambiar contraseña</div>
-      <div class="card-body">
-        <form method="POST" action="{{ url_for('change_password') }}">
-          <div class="mb-3">
-            <label class="form-label">Actual</label>
-            <input type="password" name="current_password" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Nueva</label>
-            <input type="password" name="new_password" class="form-control" required minlength="6">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Repetir nueva</label>
-            <input type="password" name="confirm_password" class="form-control" required minlength="6">
-          </div>
-          <button class="btn btn-warning btn-sm">Actualizar</button>
-        </form>
-      </div>
-    </div>
-  </div>
+</main>
 
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">Preferencias</div>
-      <div class="card-body">
-        <form id="prefsForm">
-          <div class="mb-3">
-            <label class="form-label">Umbral stock bajo (visual)</label>
-            <input type="number" min="0" id="prefLowStock" class="form-control" value="5">
-          </div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="prefDark">
-            <label class="form-check-label" for="prefDark">Tema oscuro</label>
-          </div>
-          <button type="button" id="savePrefs" class="btn btn-success btn-sm">Guardar preferencias</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  {% if session.get('role') == 'admin' %}
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">Herramientas</div>
-      <div class="card-body d-grid gap-2">
-        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('import_preview') }}" onclick="event.preventDefault(); window.location='{{ url_for('import_preview') }}';">Importar CSV</a>
-        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('product_new') }}">Nuevo producto</a>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-</div>
-
-<div class="mt-4">
-  <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Cerrar sesión</a>
+<!-- Toast de notificación -->
+<div id="toast" class="toast hidden">
+  <span id="toastMsg"></span>
 </div>
 
 {% endblock %}
@@ -89,38 +145,195 @@
 {% block scripts %}
 <script>
 (function(){
-  const darkKey = 'pref_dark';
-  const lowKey = 'pref_low_stock';
+  'use strict';
+
+  // Configuración
+  const DARK_KEY = 'pref_dark';
+  const LOW_STOCK_KEY = 'pref_low_stock';
+
+  // Elementos DOM
   const darkSwitch = document.getElementById('prefDark');
   const lowInput = document.getElementById('prefLowStock');
+  const savePrefsBtn = document.getElementById('savePrefs');
+  const passwordForm = document.getElementById('passwordForm');
+  const newPass = document.getElementById('newPass');
+  const confirmPass = document.getElementById('confirmPass');
+  const passMatchMsg = document.getElementById('passMatchMsg');
+  const profileForm = document.getElementById('profileForm');
+  const profileEmail = document.getElementById('profileEmail');
 
-  // Cargar
-  darkSwitch.checked = localStorage.getItem(darkKey) === '1';
-  lowInput.value = localStorage.getItem(lowKey) || lowInput.value;
-  applyTheme();
+  // ===== PREFERENCIAS =====
+  // Cargar preferencias guardadas
+  function loadPreferences() {
+    const isDark = localStorage.getItem(DARK_KEY) === '1';
+    const lowStock = localStorage.getItem(LOW_STOCK_KEY) || '5';
+    
+    darkSwitch.checked = isDark;
+    lowInput.value = lowStock;
+    applyTheme();
+  }
 
-  darkSwitch.addEventListener('change', applyTheme);
-  document.getElementById('savePrefs').addEventListener('click', () => {
-    localStorage.setItem(darkKey, darkSwitch.checked ? '1' : '0');
-    localStorage.setItem(lowKey, lowInput.value);
-    showSaved();
-  });
-
-  function applyTheme(){
-    if(darkSwitch.checked){
+  // Aplicar tema
+  function applyTheme() {
+    if (darkSwitch.checked) {
       document.documentElement.classList.add('dark-theme');
     } else {
       document.documentElement.classList.remove('dark-theme');
     }
   }
 
-  function showSaved(){
-    const btn = document.getElementById('savePrefs');
-    const original = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Guardado';
-    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
+  // Guardar preferencias
+  function savePreferences() {
+    const lowStock = parseInt(lowInput.value);
+    
+    // Validación
+    if (isNaN(lowStock) || lowStock < 0) {
+      showToast('El umbral debe ser un número válido mayor o igual a 0', 'error');
+      return;
+    }
+    
+    localStorage.setItem(DARK_KEY, darkSwitch.checked ? '1' : '0');
+    localStorage.setItem(LOW_STOCK_KEY, lowStock.toString());
+    
+    showFeedback(savePrefsBtn, 'Preferencias guardadas', 'success');
   }
+
+  // ===== VALIDACIÓN DE CONTRASEÑA =====
+  function validatePasswordMatch() {
+    const newPassword = newPass.value;
+    const confirmPassword = confirmPass.value;
+    
+    if (confirmPassword.length === 0) {
+      passMatchMsg.style.display = 'none';
+      return true;
+    }
+    
+    passMatchMsg.style.display = 'block';
+    
+    if (newPassword === confirmPassword) {
+      passMatchMsg.textContent = '✓ Las contraseñas coinciden';
+      passMatchMsg.style.color = 'var(--success)';
+      return true;
+    } else {
+      passMatchMsg.textContent = '✗ Las contraseñas no coinciden';
+      passMatchMsg.style.color = 'var(--danger)';
+      return false;
+    }
+  }
+
+  // ===== VALIDACIÓN DE EMAIL =====
+  function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
+  // ===== UI FEEDBACK =====
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    
+    // Configurar color del borde según tipo
+    const borderColors = {
+      success: 'var(--success)',
+      error: 'var(--danger)',
+      warning: 'var(--warning)',
+      info: 'var(--brand)'
+    };
+    
+    toast.style.borderLeftColor = borderColors[type] || borderColors.success;
+    toastMsg.textContent = message;
+    toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 3000);
+  }
+
+  function showFeedback(button, message, type = 'success') {
+    const originalHTML = button.innerHTML;
+    const originalDisabled = button.disabled;
+    
+    button.disabled = true;
+    
+    const icons = {
+      success: '✓',
+      error: '✗',
+      warning: '⚠'
+    };
+    
+    button.innerHTML = `<span>${icons[type] || icons.success} ${message}</span>`;
+    
+    setTimeout(() => {
+      button.innerHTML = originalHTML;
+      button.disabled = originalDisabled;
+    }, 2000);
+    
+    showToast(message, type);
+  }
+
+  // ===== EVENT LISTENERS =====
+  
+  // Tema en tiempo real
+  darkSwitch.addEventListener('change', applyTheme);
+  
+  // Guardar preferencias
+  savePrefsBtn.addEventListener('click', savePreferences);
+  
+  // Validación de contraseñas en tiempo real
+  newPass.addEventListener('input', validatePasswordMatch);
+  confirmPass.addEventListener('input', validatePasswordMatch);
+  
+  // Validación del formulario de contraseña antes de enviar
+  passwordForm.addEventListener('submit', function(e) {
+    if (!validatePasswordMatch()) {
+      e.preventDefault();
+      showToast('Las contraseñas no coinciden', 'error');
+      confirmPass.focus();
+      return false;
+    }
+    
+    if (newPass.value.length < 6) {
+      e.preventDefault();
+      showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+      newPass.focus();
+      return false;
+    }
+  });
+  
+  // Validación del formulario de perfil
+  profileForm.addEventListener('submit', function(e) {
+    const email = profileEmail.value.trim();
+    
+    if (!validateEmail(email)) {
+      e.preventDefault();
+      showToast('Por favor, ingresa un email válido', 'error');
+      profileEmail.focus();
+      return false;
+    }
+  });
+  
+  // Validación de umbral de stock
+  lowInput.addEventListener('input', function() {
+    const value = parseInt(this.value);
+    if (isNaN(value) || value < 0) {
+      this.style.borderColor = 'var(--danger)';
+    } else {
+      this.style.borderColor = '';
+    }
+  });
+
+  // ===== INICIALIZACIÓN =====
+  loadPreferences();
+  
+  // Mostrar mensajes flash de Flask si existen
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        showToast('{{ message }}', '{{ category }}');
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
 })();
 </script>
 {% endblock %}

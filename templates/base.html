@@ -65,6 +65,36 @@
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+  <div id="product-modal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="overlay" data-close="true"></div>
+    <article class="dialog card" role="document">
+      <header class="header">
+        <h3 id="pm-name">Producto</h3>
+        <button class="btn-ghost close-btn" id="pm-close" aria-label="Cerrar">✕</button>
+      </header>
+      <section class="body">
+        <div class="row">
+          <span class="meta-label">SKU</span>
+          <span class="mono" id="pm-sku">—</span>
+        </div>
+        <div class="row">
+          <span class="meta-label">Categoría</span>
+          <span id="pm-category">—</span>
+        </div>
+        <div class="stats">
+          <div>
+            <div class="meta-label">Stock</div>
+            <div class="mono" id="pm-stock">0</div>
+          </div>
+          <div>
+            <div class="meta-label">Precio</div>
+            <div class="mono" id="pm-price">$0.00</div>
+          </div>
+        </div>
+      </section>
+    </article>
+  </div>
+
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
