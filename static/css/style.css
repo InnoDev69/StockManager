@@ -399,3 +399,40 @@ a, h1, h2, h3, h4, h5, h6, p, label, small, span { font-family: inherit; }
 .back-footer .btn {
   min-width: 160px;
 }
+
+.modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; }
+.modal.hidden { display: none; }
+.modal .overlay { position: absolute; inset: 0; z-index: 0; background-color: rgba(0,0,0,0.45);}
+.modal .dialog  { position: relative; z-index: 1; }
+.modal .header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.modal .body { padding: 16px; display: grid; gap: 14px; }
+.modal .body .row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; }
+.modal .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel-2); }
+.modal .actions { display: flex; gap: 10px; justify-content: end; margin-top: 6px; }
+.close-btn { padding: 0.4rem 0.6rem; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Errores de validación en campos */
+.input-error {
+  border-color: #e74c3c !important;
+  background-color: rgba(231, 76, 60, 0.05);
+}
+
+.field-error {
+  display: block;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.alert-error {
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #c0392b;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

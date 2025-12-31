@@ -1,6 +1,8 @@
 import sqlite3
 import contextlib
 from bd.bdErrors import *
+from debug.logger import logger
+from data.validators import ItemValidator, UserValidator, ValidationError
 
 class BDConector:
     """
@@ -75,9 +77,15 @@ class BDConector:
             cur = conn.cursor()
             yield cur
             conn.commit()
+            logger.debug(
+                f"Transacción completa | "
+                f"Filas afectadas: {cur.rowcount} | "
+                f"Último ID: {cur.lastrowid}"
+            )
         
         except sqlite3.Error as e:
             conn.rollback()
+            logger.error(f"Database error: {e}", exc_info=True)
             raise DatabaseError(f"Database error: {e}")    
             
         finally:
@@ -122,7 +130,8 @@ class BDConector:
             name TEXT NOT NULL,
             quantity INTEGER NOT NULL DEFAULT 0,
             min_quantity INTEGER NOT NULL DEFAULT 5,
-            price REAL NOT NULL
+            price REAL NOT NULL,
+            status INTEGER NOT NULL DEFAULT 1  -- 1=active, 0=disabled
         )
         """
         
@@ -217,7 +226,9 @@ class BDConector:
         with self._cursor() as cur:
             cur.execute(query, params)
             if fetch:
+                logger.debug(f"Executed query: {query} with params: {params}")
                 return cur.fetchall()
+            logger.debug(f"Rows affected: {cur.rowcount} for query: {query} with params: {params}")
             return cur.rowcount
     
     def user_exists(self, username, email):
@@ -273,7 +284,7 @@ class BDConector:
             fetch=False
         )
         
-    def add_item(self, barrs_code, description, name, quantity, min_quantity, price):
+    def add_item(self, barrs_code, description, name, quantity, min_quantity, price:float):
         """
         Agrega un nuevo producto al inventario.
         
@@ -299,9 +310,15 @@ class BDConector:
         """
         
         barrs_code = barrs_code.strip() if barrs_code else None
+        
+        validated = ItemValidator.validate(
+            barrs_code, description, name, quantity, min_quantity, price
+        )
+        
         self.execute_query(
             "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
-            (barrs_code, description, name, quantity, min_quantity, price),
+            (validated["barrs_code"], validated["description"], validated["name"], 
+             validated["quantity"], validated["min_quantity"], validated["price"]),
             fetch=False
         )
         
@@ -355,6 +372,24 @@ class BDConector:
             (item_id,)
         )
         return rows[0][0] if rows else None
+    
+    def total_items(self):
+        """
+        Obtiene el total de productos activos en el inventario.
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Returns:
+            int: Total de productos registrados
+        
+        Example:
+            total = db.total_items()
+            print(f"Total productos en inventario: {total}")
+        """
+        
+        rows = self.execute_query("SELECT COUNT(*) FROM items WHERE status = 1")
+        return rows[0][0] if rows else 0
 
     def get_dashboard_stats(self):
         """
@@ -382,10 +417,10 @@ class BDConector:
                 print(f"  {item['name']}: {item['stock']} unidades")
         """
         
-        total_products = self.execute_query("SELECT COUNT(*) FROM items")[0][0]
+        total_products = self.total_items()
         
         low_stock = self.execute_query(
-            "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0"
+            "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0 AND status = 1"
         )[0][0]
         
         sales_today = self.execute_query(
@@ -393,7 +428,7 @@ class BDConector:
         )[0][0]
         
         low_stock_items = self.execute_query(
-            "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
+            "SELECT id, name, barrs_code, quantity FROM items WHERE status = 1 AND quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
         )
         
         low_stock_list = [
@@ -465,3 +500,71 @@ class BDConector:
                 "UPDATE items SET quantity = ? WHERE id = ?",
                 (current_qty - quantity, item_id)
             )
+            
+    def disable_item(self, item_id):
+        """
+        Deshabilita un producto estableciendo su cantidad a cero.
+        
+        Thread-safe: Sí.
+        Transaccional: Sí.
+        
+        Args:
+            item_id (int): ID del producto a deshabilitar
+        
+        Raises:
+            DatabaseError: Si hay un error SQL
+        
+        Example:
+            db.disable_item(10)
+        """
+        
+        self.execute_query(
+            "UPDATE items SET status = 0 WHERE id = ?",
+            (item_id,),
+            fetch=False
+        )
+        
+    def enable_item(self, item_id):
+        """
+        Habilita un producto estableciendo su estado a activo.
+        
+        Thread-safe: Sí.    
+        Transaccional: Sí.
+        Args:
+            item_id (int): ID del producto a habilitar
+        Raises:
+            DatabaseError: Si hay un error SQL
+        """
+        
+        self.execute_query(
+            "UPDATE items SET status = 1 WHERE id = ?",
+            (item_id,),
+            fetch=False
+        )
+        
+    def get_item_status(self, item_id):
+        """
+        Obtiene el estado (habilitado/deshabilitado) de un producto.
+        
+        Thread-safe: Sí.    
+        Transaccional: No requiere (solo lectura).
+        Args:
+            item_id (int): ID del producto
+        Returns:
+            int|None: 1 si está habilitado, 0 si deshabilitado, None si no existe
+        Example:
+            status = db.get_item_status(5)
+            
+            if status == 1:
+                print("Producto habilitado")
+            elif status == 0:
+                print("Producto deshabilitado")
+            else:
+                print("Producto no existe")
+        """
+        
+        rows = self.execute_query(
+            "SELECT status FROM items WHERE id = ?",
+            (item_id,)
+        )
+        return rows[0][0] if rows else None
