@@ -117,21 +117,14 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: warn
       
-      - name: Upload Windows Installer
+      # Un solo upload para todos los .exe de Windows
+      - name: Upload Windows EXE files
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-Installer
+          name: ${{ matrix.artifact_name }}-EXE
           path: dist/*.exe
           if-no-files-found: error
-
-      - name: Upload Windows Portable EXE
-        if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-Portable
-          path: dist/*.exe
-          if-no-files-found: warn
 
       - name: Upload Windows ZIP
         if: matrix.platform == 'windows'
@@ -154,6 +147,14 @@ jobs:
       
       - name: Display structure
         run: ls -R artifacts/
+      
+      # Eliminar duplicados antes de crear release
+      - name: Remove duplicate files
+        run: |
+          cd artifacts
+          find . -type f -name "*.exe" | sort | uniq -d | xargs -r rm -f
+          echo "Files to upload:"
+          find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" \)
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
