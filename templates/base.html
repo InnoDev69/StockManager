@@ -45,11 +45,11 @@
       <h3 id="form-title">Nuevo producto</h3>
       <label class="field">
         <span class="label">Nombre</span>
-        <input name="name" id="f-name" required maxlength="120" />
+        <input name="name" id="f-name" required maxlength="{{ Limits.MAX_ITEMS_CHARACTERS }}" />
       </label>
       <label class="field">
         <span class="label">Stock</span>
-        <input name="stock" id="f-stock" type="number" min="0" value="0" />
+        <input name="stock" id="f-stock" type="number" min="0" max="{{ Limits.MAX_STOCK_VALUE }}" value="" />
       </label>
       <label class="field">
         <span class="label">SKU (opcional)</span>

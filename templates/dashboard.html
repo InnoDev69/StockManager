@@ -7,6 +7,103 @@
   <p class="text-muted" style="margin: 0;">Gestiona tu inventario y ventas en tiempo real</p>
 </header>
 
+<!-- Barra de Acceso Rápido -->
+<section class="card quick-access-bar" aria-label="Acceso rápido" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <h2 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Acceso Rápido</h2>
+  <div class="quick-access-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+    
+    <!-- Nueva Venta -->
+    <a href="/sales/new" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 80%, #000));">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Nueva Venta</div>
+        <div class="quick-access-subtitle">Registrar transacción</div>
+      </div>
+    </a>
+
+    {% if role == 'admin' %}
+    <!-- Nuevo Producto -->
+    <a href="{{ url_for('product_new') }}" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--brand), var(--brand-2));">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Nuevo Producto</div>
+        <div class="quick-access-subtitle">Agregar al inventario</div>
+      </div>
+    </a>
+    {% endif %}
+
+    <!-- Historial de Ventas -->
+    <a href="/sales" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Historial</div>
+        <div class="quick-access-subtitle">Ver ventas</div>
+      </div>
+      {% if stats.sales_today > 0 %}
+      <span class="quick-access-badge" style="background: var(--success); color: white;">{{ stats.sales_today }}</span>
+      {% endif %}
+    </a>
+
+    <!-- Bajo Stock -->
+    <a href="#alerts" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 80%, #000));">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Alertas</div>
+        <div class="quick-access-subtitle">Productos bajo stock</div>
+      </div>
+      {% if stats.low_stock > 0 %}
+      <span class="quick-access-badge" style="background: var(--warning); color: white;">{{ stats.low_stock }}</span>
+      {% endif %}
+    </a>
+
+    {% if role == 'admin' %}
+    <!-- Importar CSV -->
+    <a href="/import" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Importar</div>
+        <div class="quick-access-subtitle">Cargar CSV</div>
+      </div>
+    </a>
+
+    <!-- Configuración -->
+    <a href="/settings" class="quick-access-item" style="text-decoration: none;">
+      <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </div>
+      <div class="quick-access-content">
+        <div class="quick-access-title">Configuración</div>
+        <div class="quick-access-subtitle">Ajustes del sistema</div>
+      </div>
+    </a>
+    {% endif %}
+
+  </div>
+</section>
+
 <!-- KPIs Section -->
 <section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -101,22 +198,14 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         </svg>
       </a>
-      <a href="/sales/new" class="btn" style="white-space: nowrap;">
-        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-        </svg>
-        Nueva venta
-      </a>
-      <a href="/sales" class="btn btn-ghost">Historial</a>
-      {% else %}
-      <a href="/sales/new" class="btn" style="white-space: nowrap;">
-        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-        </svg>
-        Nueva venta
-      </a>
-      <a href="/sales" class="btn btn-ghost">Historial</a>
       {% endif %}
+      <a href="/sales/new" class="btn" style="white-space: nowrap;">
+        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        Nueva venta
+      </a>
+      <a href="/sales" class="btn btn-ghost">Historial</a>
     </div>
   </div>
 </section>
@@ -192,7 +281,7 @@
     <!-- Empty state -->
     <div id="emptyMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;" {% if products %}hidden{% endif %}>
       <svg style="width: 64px; height: 64px; margin: 0 auto; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 00-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
       </svg>
       <h3 style="margin: 1.5rem 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
       <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros de búsqueda o agrega un nuevo producto.</p>
@@ -236,25 +325,22 @@
         <button class="btn btn-ghost btn-action view" style="flex: 1; font-size: 0.875rem;">
           Ver detalles
         </button>
-        {% if role == 'admin' %}
-        <a class="btn btn-ghost btn-action edit" href="#" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;" title="Editar">
+        <a class="btn btn-ghost btn-action edit admin-only" href="#" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;" title="Editar">
           <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
           </svg>
         </a>
-        <button class="btn btn-ghost btn-action delete" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center; color: var(--danger, #ef4444);" title="Eliminar">
+        <button class="btn btn-ghost btn-action delete admin-only" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center; color: var(--danger, #ef4444);" title="Eliminar">
           <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
           </svg>
         </button>
-        {% else %}
-        <button class="btn btn-action sell" style="flex: 1; font-size: 0.875rem;">
+        <button class="btn btn-action sell non-admin-only" style="flex: 1; font-size: 0.875rem;">
           <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
           Vender
         </button>
-        {% endif %}
       </div>
     </div>
   </article>
@@ -275,9 +361,161 @@
     grid-column: 1 / -1;
   }
 
+  /* Ocultar botones según rol */
+  .admin-only { display: none !important; }
+  .non-admin-only { display: flex !important; }
+  
+  body.role-admin .admin-only { display: flex !important; }
+  body.role-admin .non-admin-only { display: none !important; }
+
+  /* Quick Access Bar */
+  .quick-access-bar {
+    animation: fadeInUp 0.5s ease;
+  }
+
+  .quick-access-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+
+  .quick-access-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+  }
+
+  .quick-access-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .quick-access-item:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+  }
+
+  .quick-access-item:hover::before {
+    opacity: 1;
+  }
+
+  .quick-access-item:active {
+    transform: translateY(0);
+  }
+
+  .quick-access-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .quick-access-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .quick-access-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .quick-access-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .quick-access-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  /* Responsive adjustments */
   @media (max-width: 768px) {
-    .kv {
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    .quick-access-grid {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    
+    .quick-access-item {
+      padding: 0.875rem;
+      gap: 0.75rem;
+    }
+
+    .quick-access-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .quick-access-icon svg {
+      width: 20px !important;
+      height: 20px !important;
+    }
+
+    .quick-access-title {
+      font-size: 0.875rem;
+    }
+
+    .quick-access-subtitle {
+      font-size: 0.75rem;
     }
   }
 </style>
@@ -332,10 +570,15 @@
   document.addEventListener('DOMContentLoaded', function() {
     checkAPIHealth();
     
+    // Aplicar clase de rol al body para CSS
+    if (window.APP.role === 'admin') {
+      document.body.classList.add('role-admin');
+    }
+    
     // Inicializar vista por defecto
     switchView('grid');
   });
 
-  console.log('[v0] Dashboard inicializado - Role:', window.APP.role);
+  console.log('Dashboard inicializado - Role:', window.APP.role);
 </script>
 {% endblock %}
