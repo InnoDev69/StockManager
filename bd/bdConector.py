@@ -465,3 +465,73 @@ class BDConector:
                 "UPDATE items SET quantity = ? WHERE id = ?",
                 (current_qty - quantity, item_id)
             )
+    
+    def record_bulk_sale(self, items):
+        """
+        Registra una venta con múltiples productos en una sola transacción.
+        
+        Thread-safe: Sí.
+        Transaccional: Sí (rollback automático si falla).
+        Atómica: Sí (inserta venta + todos los detalles + actualiza stock en una transacción).
+        
+        Args:
+            items (list): Lista de diccionarios con:
+                - item_id (int): ID del producto
+                - quantity (int): Cantidad a vender
+        
+        Returns:
+            int: ID de la venta creada
+        
+        Raises:
+            ValueError: Si no hay stock suficiente para algún producto
+            DatabaseError: Si algún producto no existe o hay error SQL
+        
+        Example:
+            try:
+                sale_id = db.record_bulk_sale([
+                    {"item_id": 5, "quantity": 3},
+                    {"item_id": 8, "quantity": 2}
+                ])
+                print(f"Venta #{sale_id} registrada exitosamente")
+            except ValueError as e:
+                print(f"Error: {e}")
+        
+        Note:
+            - Valida stock disponible para todos los productos antes de procesar
+            - Captura el precio actual de cada producto
+            - Crea un solo registro en 'sells' con múltiples 'details'
+            - Actualiza stock de todos los productos
+            - Todo en una sola transacción (commit/rollback automático)
+        """
+        
+        if not items:
+            raise ValueError("La lista de items no puede estar vacía")
+        
+        with self._cursor() as cur:
+            cur.execute("INSERT INTO sells (item_id) VALUES (?)", (items[0]["item_id"],))
+            sell_id = cur.lastrowid
+            
+            for item in items:
+                item_id = item["item_id"]
+                quantity = item["quantity"]
+                
+                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise DatabaseError(f"Producto con ID {item_id} no encontrado")
+                
+                price, current_qty = row
+                if current_qty < quantity:
+                    raise ValueError(f"Stock insuficiente para producto ID {item_id}")
+                
+                cur.execute(
+                    "INSERT INTO details (sell_id, item_id, quantity, price) VALUES (?, ?, ?, ?)",
+                    (sell_id, item_id, quantity, price)
+                )
+                
+                cur.execute(
+                    "UPDATE items SET quantity = ? WHERE id = ?",
+                    (current_qty - quantity, item_id)
+                )
+            
+            return sell_id
