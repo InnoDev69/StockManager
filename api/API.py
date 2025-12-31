@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request, session
 from bd.bdConector import BDConector
 from debug.pydebug import DebugLogger
 from bd.bdInstance import *
+from debug.logger import logger
+from data.validators import ItemValidator, UserValidator, ValidationError
 
 api_bp = Blueprint("api", __name__)
 debugger = DebugLogger()
@@ -66,7 +68,7 @@ def get_products():
     search = request.args.get("search", "")
     view_mode = request.args.get("view_mode", "all")
     
-    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE 1=1"
+    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE status = 1"
     params = []
     
     if search:
@@ -98,7 +100,7 @@ def get_products():
 @api_bp.route("/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
     """
-    Obtiene un producto específico por su ID.
+    Obtiene un producto específico por su ID (No muestra los deshabilitados).
     
     Requiere login: True.
     
@@ -196,6 +198,10 @@ def create_product():
             float(data["price"])
         )
         return jsonify({"message": "Producto creado exitosamente"}), 201
+    
+    except ValidationError as e:
+        # Error de validación → 400 Bad Request
+        return jsonify({"error": e.message, "field": e.field}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -283,12 +289,14 @@ def delete_product(product_id):
     
     auth_error = require_auth()
     if auth_error:
+        logger.error(f"Unauthorized delete attempt for product ID {product_id}")
         return auth_error
     
     if session.get("role") != "admin":
+        logger.warning(f"Forbidden delete attempt for product ID {product_id} by user ID {session.get('user_id')}")
         return jsonify({"error": "Permiso denegado"}), 403
     
-    db.execute_query("DELETE FROM items WHERE id = ?", (product_id,), fetch=False)
+    db.disable_item(product_id)
     return jsonify({"message": "Producto eliminado"}), 200
 
 @api_bp.route("/stats", methods=["GET"])

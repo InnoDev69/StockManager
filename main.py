@@ -2,6 +2,8 @@ from flask import Flask, redirect, render_template, session, request, url_for, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from api.API import *
 from bd.bdInstance import *
+from data.limits import Limits
+from debug.logger import logger
 import requests
 import csv
 import io
@@ -13,6 +15,11 @@ load_dotenv()
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
+
+# Context processor para hacer Limits disponible en todas las plantillas
+@app.context_processor
+def inject_limits():
+    return {'Limits': Limits}
 
 app.register_blueprint(api_bp, url_prefix="/api")
 
@@ -217,18 +224,57 @@ def product_new():
     
     if not session.get("user_id") or session.get("role") != "admin":
         return redirect(url_for("index"))
+    
+    empty_form = {
+        "barrs_code": "",
+        "name": "",
+        "description": "",
+        "quantity": 0,
+        "min_quantity": 0,
+        "price": "0.00"
+    }
+    
     if request.method == "GET":
-        return render_template("product_form.html")
+        return render_template("product_form.html", form_data=empty_form)
 
-    barrs_code = request.form.get("barrs_code", "").strip()
-    name = request.form.get("name", "").strip()
-    description = request.form.get("description", "").strip()
-    quantity = int(request.form.get("quantity", "0"))
-    min_quantity = int(request.form.get("min_quantity", "0"))
-    price = float(request.form.get("price", "0"))
-    db.add_item(barrs_code, description, name, quantity, min_quantity, price)
-    flash("Producto agregado")
-    return redirect(url_for("index"))
+    form_data = {
+        "barrs_code": request.form.get("barrs_code", "").strip(),
+        "name": request.form.get("name", "").strip(),
+        "description": request.form.get("description", "").strip(),
+        "quantity": request.form.get("quantity", "0"),
+        "min_quantity": request.form.get("min_quantity", "0"),
+        "price": request.form.get("price", "0")
+    }
+    
+    try:
+        quantity = int(form_data["quantity"])
+        min_quantity = int(form_data["min_quantity"])
+        price = float(form_data["price"])
+        
+        db.add_item(
+            form_data["barrs_code"],
+            form_data["description"],
+            form_data["name"],
+            quantity,
+            min_quantity,
+            price
+        )
+        flash("Producto agregado")
+        return redirect(url_for("index"))
+    
+    except ValidationError as e:
+        return render_template(
+            "product_form.html",
+            error=e.message,
+            error_field=e.field,
+            form_data=form_data
+        )
+    except (ValueError, TypeError) as e:
+        return render_template(
+            "product_form.html",
+            error="Valor numérico inválido",
+            form_data=form_data
+        )
 
 @app.route("/product_form")
 #Compatibilidad
@@ -301,7 +347,7 @@ def settings():
     if user_data:
         user = {"username": user_data[0][0], "email": user_data[0][1]}
     
-    return render_template("settings.html", user=user)
+    return render_template("settings.html", user=user, show_back=False)
 
 @app.route("/settings/profile", methods=["POST"])
 def update_profile():
@@ -542,10 +588,23 @@ def page_not_found(e):
     Returns:
         Template: 404.html con código de estado 404
     """
-    
+    logger.warning(f"404 - Ruta no encontrada: {request.path}")
     return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    """Manejador de error 500 - Error interno del servidor."""
+    logger.exception(f"500 - Error interno: {request.path}")
+    return render_template("404.html"), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Manejador global de excepciones no capturadas."""
+    logger.exception(f"Excepción no capturada en {request.path}: {str(e)}")
+    return render_template("404.html"), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
+    logger.info(f"Iniciando servidor en puerto {port}")
     app.run(host="127.0.0.1", port=port, debug=True if 
             os.environ.get("FLASK_ENV", "production") == "development" else False)
