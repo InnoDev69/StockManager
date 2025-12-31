@@ -424,15 +424,15 @@ def create_sales_bulk():
           - quantity (int): Cantidad a vender
     
     Returns:
-        JSON: Resultado de la operación bulk
-        - ok (bool): True si al menos una venta fue exitosa
-        - items (array): Lista de ventas exitosas con detalles
-        - errors (array): Lista de errores encontrados
+        JSON: Resultado de la operación
+        - ok (bool): True si la venta fue exitosa
+        - sale_id (int): ID de la venta creada
+        - items (array): Lista de productos vendidos con detalles
+        - total (float): Total de la venta
     
     Status Codes:
-        200: Todas las ventas procesadas exitosamente
-        207: Algunas ventas fallaron (procesamiento parcial)
-        400: Formato inválido o todas las ventas fallaron
+        201: Venta creada exitosamente
+        400: Formato inválido o error en los datos
         401: No autorizado
     """
     
@@ -445,44 +445,53 @@ def create_sales_bulk():
     if not isinstance(items, list) or not items:
         return jsonify({"error": "Formato inválido: items[] requerido"}), 400
 
+    validated_items = []
     resultados = []
-    errores = []
-
+    total = 0
+    
     for idx, it in enumerate(items):
         try:
             item_id = int(it.get("item_id"))
             qty = int(it.get("quantity"))
         except (TypeError, ValueError):
-            errores.append({"index": idx, "error": "item_id/cantidad inválidos"})
-            continue
+            return jsonify({"error": f"item_id/cantidad inválidos en índice {idx}"}), 400
 
         row = db.execute_query("SELECT name, quantity, price FROM items WHERE id = ?", (item_id,))
         if not row:
-            errores.append({"index": idx, "error": "Producto no encontrado"})
-            continue
+            return jsonify({"error": f"Producto con ID {item_id} no encontrado"}), 400
 
         name, stock, price = row[0]
         if stock < qty:
-            errores.append({"index": idx, "error": "Stock insuficiente", "name": name, "requested": qty, "stock": stock})
-            continue
+            return jsonify({
+                "error": "Stock insuficiente",
+                "product": name,
+                "requested": qty,
+                "available": stock
+            }), 400
 
-        try:
-            db.record_product_sale(item_id, qty)
-        except Exception as e:
-            errores.append({"index": idx, "error": str(e)})
-            continue
-
+        validated_items.append({"item_id": item_id, "quantity": qty})
+        subtotal = round(price * qty, 2)
         resultados.append({
             "item_id": item_id,
             "name": name,
             "quantity": qty,
             "unit_price": price,
-            "total": round(price * qty, 2)
+            "subtotal": subtotal
         })
+        total += subtotal
 
-    status = 200 if not errores else (207 if resultados else 400)
-    return jsonify({"ok": bool(resultados), "items": resultados, "errors": errores}), status
-    
+    try:
+        sale_id = db.record_bulk_sale(validated_items)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({
+        "ok": True,
+        "sale_id": sale_id,
+        "items": resultados,
+        "total": round(total, 2)
+    }), 201
+
 @api_bp.route("/sales", methods=["GET"])
 def list_sales():
     """

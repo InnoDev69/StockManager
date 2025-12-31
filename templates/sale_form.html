@@ -345,8 +345,8 @@ function renderSuggestions(items) {
   items.slice(0,8).forEach(it => {
     const div = document.createElement('div');
     div.className = 'suggestion-item';
-    const stockBadge = it.quantity > 0 
-      ? `<span class="badge success" style="background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">${it.quantity} en stock</span>`
+    const stockBadge = it.stock > 0 
+      ? `<span class="badge success" style="background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">${it.stock} en stock</span>`
       : `<span class="badge danger" style="background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">Sin stock</span>`;
     div.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
