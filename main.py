@@ -52,6 +52,13 @@ def api_call(endpoint, method="GET", data=None):
         elif method == "DELETE":
             return client.delete(url)
 
+@app.route("/product_management")
+def under_development():
+    """Página de funcionalidad en desarrollo."""
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    return render_template("under_development.html")
+
 @app.route("/")
 def index():
     """
