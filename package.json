@@ -26,13 +26,6 @@
       "!dist/stock-manager-server*",
       "!.github"
     ],
-    "extraResources": [
-      {
-        "from": "dist/stock-manager-server",
-        "to": "server/stock-manager-server",
-        "filter": ["**/*"]
-      }
-    ],
     "win": {
       "target": [
         {
@@ -78,7 +71,13 @@
         "GenericName": "Inventory Management",
         "Comment": "Gestión de inventario y ventas",
         "Categories": "Office;Finance;"
-      }
+      },
+      "extraResources": [
+        {
+          "from": "dist/stock-manager-server",
+          "to": "server/stock-manager-server"
+        }
+      ]
     }
   },
   "devDependencies": {

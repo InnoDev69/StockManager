@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+
+{% block title %}Administrar Productos - Stock Manager{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header style="margin-bottom: 1.5rem;">
+  <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">Administrar Productos</h1>
+  <p class="text-muted" style="margin: 0;">Edita, elimina o gestiona el inventario completo</p>
+</header>
+
+<!-- Barra de búsqueda y filtros -->
+<section class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+    <!-- Búsqueda -->
+    <div style="flex: 1; min-width: 250px;">
+      <label for="search" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Buscar producto</label>
+      <div style="position: relative;">
+        <input 
+          id="search" 
+          type="search" 
+          placeholder="Nombre, código de barras o descripción..." 
+          style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem;">
+        <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; opacity: 0.5; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Filtro de stock -->
+    <div style="min-width: 180px;">
+      <label for="filter-stock" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Estado de stock</label>
+      <select id="filter-stock" style="width: 100%;">
+        <option value="all">Todos</option>
+        <option value="in_stock">En stock</option>
+        <option value="low_stock">Stock bajo</option>
+        <option value="out_of_stock">Sin stock</option>
+      </select>
+    </div>
+
+    <!-- Ordenar por -->
+    <div style="min-width: 160px;">
+      <label for="sort-by" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Ordenar por</label>
+      <select id="sort-by" style="width: 100%;">
+        <option value="name_asc">Nombre A-Z</option>
+        <option value="name_desc">Nombre Z-A</option>
+        <option value="stock_asc">Stock (menor)</option>
+        <option value="stock_desc">Stock (mayor)</option>
+        <option value="price_asc">Precio (menor)</option>
+        <option value="price_desc">Precio (mayor)</option>
+      </select>
+    </div>
+
+    <!-- Botones de acción -->
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('product_new') }}" class="btn">
+        <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Nuevo producto
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats rápidos -->
+<section class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+    <div style="text-align: center; padding: 0.75rem;">
+      <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Total Productos</div>
+      <div id="stat-total" class="mono" style="font-size: 1.5rem; font-weight: 700; color: var(--brand);">0</div>
+    </div>
+    <div style="text-align: center; padding: 0.75rem;">
+      <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">En Stock</div>
+      <div id="stat-in-stock" class="mono" style="font-size: 1.5rem; font-weight: 700; color: var(--success);">0</div>
+    </div>
+    <div style="text-align: center; padding: 0.75rem;">
+      <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Stock Bajo</div>
+      <div id="stat-low-stock" class="mono" style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">0</div>
+    </div>
+    <div style="text-align: center; padding: 0.75rem;">
+      <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Sin Stock</div>
+      <div id="stat-out-stock" class="mono" style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">0</div>
+    </div>
+  </div>
+</section>
+
+<!-- Tabla de productos -->
+<section class="card" style="padding: 0; overflow: hidden;">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+    <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Lista de Productos</h3>
+    <span id="products-count" class="text-muted" style="font-size: 0.875rem;">0 productos</span>
+  </div>
+  
+  <div class="table-responsive" style="overflow-x: auto;">
+    <table class="table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: var(--panel-2); border-bottom: 1px solid var(--border);">
+          <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+          <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Producto</th>
+          <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Stock</th>
+          <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Mín.</th>
+          <th style="padding: 0.875rem 1rem; text-align: right; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Precio</th>
+          <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Estado</th>
+          <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="products-table-body">
+        <!-- Productos se cargan dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estado vacío -->
+  <div id="empty-state" style="display: none; padding: 4rem 2rem; text-align: center;">
+    <svg style="width: 64px; height: 64px; margin: 0 auto 1rem; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+    </svg>
+    <h3 style="margin: 0 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
+    <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros o agrega un nuevo producto.</p>
+    <a href="{{ url_for('product_new') }}" class="btn">Agregar producto</a>
+  </div>
+
+  <!-- Estado de carga -->
+  <div id="loading-state" style="padding: 3rem 2rem; text-align: center;">
+    <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p class="text-muted" style="margin-top: 1rem;">Cargando productos...</p>
+  </div>
+
+  <!-- Estado de error -->
+  <div id="error-state" style="display: none; padding: 4rem 2rem; text-align: center;">
+    <svg style="width: 64px; height: 64px; margin: 0 auto 1rem; color: var(--danger); opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+    </svg>
+    <h3 style="margin: 0 0 0.5rem 0; font-weight: 600; color: var(--danger);">Error al cargar</h3>
+    <p id="error-message" class="text-muted" style="margin: 0 0 1.5rem 0;">No se pudieron cargar los productos.</p>
+    <button onclick="loadProducts()" class="btn">Reintentar</button>
+  </div>
+</section>
+
+<!-- Modal de edición -->
+<div id="edit-modal" class="modal" style="display: none;" aria-hidden="true">
+  <div class="overlay" onclick="closeEditModal()"></div>
+  <div class="dialog card" style="width: min(560px, 90vw); max-height: 90vh; overflow-y: auto;">
+    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Editar Producto</h3>
+      <button class="btn-ghost close-btn" onclick="closeEditModal()" style="padding: 0.5rem;">✕</button>
+    </header>
+    <form id="edit-form" style="padding: 1.25rem; display: grid; gap: 1rem;">
+      <input type="hidden" id="edit-id">
+      
+      <div class="field">
+        <label class="label" for="edit-barcode">Código de barras</label>
+        <input type="text" id="edit-barcode" name="barcode" readonly style="opacity: 0.7; cursor: not-allowed;">
+      </div>
+      
+      <div class="field">
+        <label class="label" for="edit-name">Nombre *</label>
+        <input type="text" id="edit-name" name="name" required maxlength="100">
+      </div>
+      
+      <div class="field">
+        <label class="label" for="edit-description">Descripción</label>
+        <textarea id="edit-description" name="description" rows="3" maxlength="255" style="resize: vertical;"></textarea>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+        <div class="field">
+          <label class="label" for="edit-quantity">Stock *</label>
+          <input type="number" id="edit-quantity" name="quantity" min="0" required>
+        </div>
+        <div class="field">
+          <label class="label" for="edit-min-quantity">Stock mínimo</label>
+          <input type="number" id="edit-min-quantity" name="min_quantity" min="0">
+        </div>
+        <div class="field">
+          <label class="label" for="edit-price">Precio *</label>
+          <input type="number" id="edit-price" name="price" min="0" step="0.01" required>
+        </div>
+      </div>
+      
+      <div id="edit-error" class="alert-error" style="display: none; margin-top: 0.5rem;"></div>
+      
+      <div class="form-actions" style="margin-top: 0.5rem;">
+        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancelar</button>
+        <button type="submit" class="btn">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div id="delete-modal" class="modal" style="display: none;" aria-hidden="true">
+  <div class="overlay" onclick="closeDeleteModal()"></div>
+  <div class="dialog card" style="width: min(420px, 90vw); text-align: center;">
+    <div style="padding: 2rem;">
+      <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+        <svg style="width: 32px; height: 32px; color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600;">Eliminar producto</h3>
+      <p class="text-muted" style="margin: 0 0 1.5rem 0;">¿Estás seguro de eliminar <strong id="delete-product-name"></strong>? Esta acción no se puede deshacer.</p>
+      <input type="hidden" id="delete-product-id">
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancelar</button>
+        <button class="btn" onclick="confirmDelete()" style="--btn-bg: var(--danger); --btn-bg-2: #dc2626;">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de ajuste rápido de stock -->
+<div id="stock-modal" class="modal" style="display: none;" aria-hidden="true">
+  <div class="overlay" onclick="closeStockModal()"></div>
+  <div class="dialog card" style="width: min(380px, 90vw);">
+    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Ajustar Stock</h3>
+      <button class="btn-ghost close-btn" onclick="closeStockModal()" style="padding: 0.5rem;">✕</button>
+    </header>
+    <div style="padding: 1.25rem;">
+      <p class="text-muted" style="margin: 0 0 1rem 0;">Producto: <strong id="stock-product-name"></strong></p>
+      <p style="margin: 0 0 1rem 0;">Stock actual: <span class="mono" id="stock-current">0</span></p>
+      <input type="hidden" id="stock-product-id">
+      
+      <div class="field" style="margin-bottom: 1rem;">
+        <label class="label" for="stock-adjustment">Nuevo stock</label>
+        <input type="number" id="stock-adjustment" min="0" value="0">
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeStockModal()">Cancelar</button>
+        <button class="btn" onclick="saveStockAdjustment()">Actualizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.15s ease;
+  }
+
+  .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .status-badge.in-stock {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .status-badge.low-stock {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .status-badge.out-of-stock {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .action-btn {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .action-btn.edit { color: var(--brand); }
+  .action-btn.stock { color: var(--success); }
+  .action-btn.delete { color: var(--danger); }
+
+  .action-btn:hover.edit { background: rgba(79, 70, 229, 0.1); }
+  .action-btn:hover.stock { background: rgba(16, 185, 129, 0.1); }
+  .action-btn:hover.delete { background: rgba(239, 68, 68, 0.1); }
+
+  .modal .dialog {
+    animation: modalSlideIn 0.2s ease;
+  }
+
+  @keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    .table th:nth-child(4), .table td:nth-child(4) { display: none; }
+  }
+
+  @media (max-width: 640px) {
+    .table th:nth-child(1), .table td:nth-child(1) { display: none; }
+  }
+</style>
+
+<script>
+(function() {
+  'use strict';
+  
+  let allProducts = [];
+  let filteredProducts = [];
+
+  // ===== Utilidades =====
+  function $(id) { return document.getElementById(id); }
+  
+  function show(el) { if (el) el.style.display = ''; }
+  function hide(el) { if (el) el.style.display = 'none'; }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ===== Cargar productos =====
+  async function loadProducts() {
+    const loadingState = $('loading-state');
+    const emptyState = $('empty-state');
+    const errorState = $('error-state');
+    const tableBody = $('products-table-body');
+    
+    show(loadingState);
+    hide(emptyState);
+    hide(errorState);
+    tableBody.innerHTML = '';
+
+    try {
+      const response = await fetch('/api/products', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      allProducts = Array.isArray(data) ? data : [];
+      
+      hide(loadingState);
+      applyFilters();
+      updateStats();
+      
+    } catch (error) {
+      console.error('Error cargando productos:', error);
+      hide(loadingState);
+      $('error-message').textContent = error.message || 'No se pudieron cargar los productos.';
+      show(errorState);
+    }
+  }
+
+  // ===== Filtros =====
+  function applyFilters() {
+    const searchTerm = ($('search').value || '').toLowerCase();
+    const stockFilter = $('filter-stock').value;
+    const sortBy = $('sort-by').value;
+
+    filteredProducts = allProducts.filter(product => {
+      const matchesSearch = !searchTerm || 
+        (product.name && product.name.toLowerCase().includes(searchTerm)) ||
+        (product.barcode && product.barcode.toLowerCase().includes(searchTerm)) ||
+        (product.description && product.description.toLowerCase().includes(searchTerm));
+
+      let matchesStock = true;
+      const stock = product.stock || 0;
+      const minStock = product.min_stock || 0;
+      
+      if (stockFilter === 'in_stock') {
+        matchesStock = stock > minStock;
+      } else if (stockFilter === 'low_stock') {
+        matchesStock = stock > 0 && stock <= minStock;
+      } else if (stockFilter === 'out_of_stock') {
+        matchesStock = stock === 0;
+      }
+
+      return matchesSearch && matchesStock;
+    });
+
+    // Ordenar
+    const [field, direction] = sortBy.split('_');
+    filteredProducts.sort((a, b) => {
+      let valueA, valueB;
+      
+      if (field === 'name') {
+        valueA = (a.name || '').toLowerCase();
+        valueB = (b.name || '').toLowerCase();
+      } else if (field === 'stock') {
+        valueA = a.stock || 0;
+        valueB = b.stock || 0;
+      } else if (field === 'price') {
+        valueA = a.price || 0;
+        valueB = b.price || 0;
+      }
+
+      if (direction === 'asc') {
+        return valueA > valueB ? 1 : -1;
+      } else {
+        return valueA < valueB ? 1 : -1;
+      }
+    });
+
+    renderProducts();
+  }
+
+  // ===== Renderizar productos =====
+  function renderProducts() {
+    const tableBody = $('products-table-body');
+    const emptyState = $('empty-state');
+    const productsCount = $('products-count');
+
+    productsCount.textContent = filteredProducts.length + ' producto' + (filteredProducts.length !== 1 ? 's' : '');
+
+    if (filteredProducts.length === 0) {
+      tableBody.innerHTML = '';
+      show(emptyState);
+      return;
+    }
+
+    hide(emptyState);
+    
+    let html = '';
+    for (let i = 0; i < filteredProducts.length; i++) {
+      const product = filteredProducts[i];
+      const status = getStockStatus(product);
+      const name = escapeHtml(product.name);
+      const desc = product.description ? escapeHtml(product.description.substring(0, 50)) + (product.description.length > 50 ? '...' : '') : '';
+      const price = (product.price || 0).toFixed(2);
+      
+      html += '<tr data-id="' + product.id + '">' +
+        '<td style="padding: 0.875rem 1rem;"><span class="mono" style="font-size: 0.85rem; color: var(--text-muted);">' + (product.barcode || '—') + '</span></td>' +
+        '<td style="padding: 0.875rem 1rem;"><div style="font-weight: 600;">' + name + '</div>' + 
+        (desc ? '<div class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">' + desc + '</div>' : '') + '</td>' +
+        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="mono" style="font-size: 1rem; font-weight: 600; color: ' + status.color + ';">' + (product.stock || 0) + '</span></td>' +
+        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="mono text-muted">' + (product.min_stock || 0) + '</span></td>' +
+        '<td style="padding: 0.875rem 1rem; text-align: right;"><span class="mono" style="font-weight: 600;">$' + price + '</span></td>' +
+        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="status-badge ' + status.cssClass + '">' + status.text + '</span></td>' +
+        '<td style="padding: 0.875rem 1rem; text-align: center;">' +
+          '<div style="display: flex; gap: 0.25rem; justify-content: center;">' +
+            '<button class="action-btn stock" data-action="stock" data-id="' + product.id + '" title="Ajustar stock">' +
+              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>' +
+            '</button>' +
+            '<button class="action-btn edit" data-action="edit" data-id="' + product.id + '" title="Editar">' +
+              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>' +
+            '</button>' +
+            '<button class="action-btn delete" data-action="delete" data-id="' + product.id + '" title="Eliminar">' +
+              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>' +
+            '</button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+    }
+    
+    tableBody.innerHTML = html;
+  }
+
+  function getStockStatus(product) {
+    const stock = product.stock || 0;
+    const minStock = product.min_stock || 0;
+    
+    if (stock === 0) {
+      return { cssClass: 'out-of-stock', text: 'Sin stock', color: 'var(--danger)' };
+    } else if (stock <= minStock) {
+      return { cssClass: 'low-stock', text: 'Stock bajo', color: 'var(--warning)' };
+    } else {
+      return { cssClass: 'in-stock', text: 'En stock', color: 'var(--success)' };
+    }
+  }
+
+  function updateStats() {
+    const total = allProducts.length;
+    let inStock = 0, lowStock = 0, outOfStock = 0;
+    
+    for (let i = 0; i < allProducts.length; i++) {
+      const p = allProducts[i];
+      const stock = p.stock || 0;
+      const minStock = p.min_stock || 0;
+      
+      if (stock === 0) outOfStock++;
+      else if (stock <= minStock) lowStock++;
+      else inStock++;
+    }
+
+    $('stat-total').textContent = total;
+    $('stat-in-stock').textContent = inStock;
+    $('stat-low-stock').textContent = lowStock;
+    $('stat-out-stock').textContent = outOfStock;
+  }
+
+  // ===== Modal de Edición =====
+  function openEditModal(productId) {
+    const product = allProducts.find(function(p) { return p.id === productId; });
+    if (!product) return;
+
+    $('edit-id').value = product.id;
+    $('edit-barcode').value = product.barcode || '';
+    $('edit-name').value = product.name || '';
+    $('edit-description').value = product.description || '';
+    $('edit-quantity').value = product.stock || 0;
+    $('edit-min-quantity').value = product.min_stock || 0;
+    $('edit-price').value = product.price || 0;
+    hide($('edit-error'));
+
+    show($('edit-modal'));
+    $('edit-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeEditModal() {
+    hide($('edit-modal'));
+    $('edit-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    
+    const productId = $('edit-id').value;
+    const data = {
+      name: $('edit-name').value,
+      description: $('edit-description').value,
+      quantity: parseInt($('edit-quantity').value) || 0,
+      min_quantity: parseInt($('edit-min-quantity').value) || 0,
+      price: parseFloat($('edit-price').value) || 0
+    };
+
+    try {
+      const response = await fetch('/api/products/' + productId, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar');
+      }
+
+      closeEditModal();
+      showToast('Producto actualizado correctamente', 'success');
+      loadProducts();
+    } catch (error) {
+      $('edit-error').textContent = error.message;
+      show($('edit-error'));
+    }
+  }
+
+  // ===== Modal de Eliminación =====
+  function openDeleteModal(productId) {
+    const product = allProducts.find(function(p) { return p.id === productId; });
+    if (!product) return;
+    
+    $('delete-product-id').value = productId;
+    $('delete-product-name').textContent = product.name || 'este producto';
+    show($('delete-modal'));
+    $('delete-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeDeleteModal() {
+    hide($('delete-modal'));
+    $('delete-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function confirmDelete() {
+    const productId = $('delete-product-id').value;
+
+    try {
+      const response = await fetch('/api/products/' + productId, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar');
+      }
+
+      closeDeleteModal();
+      showToast('Producto eliminado correctamente', 'success');
+      loadProducts();
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  }
+
+  // ===== Modal de Stock =====
+  function openStockModal(productId) {
+    const product = allProducts.find(function(p) { return p.id === productId; });
+    if (!product) return;
+    
+    $('stock-product-id').value = productId;
+    $('stock-product-name').textContent = product.name || '';
+    $('stock-current').textContent = product.stock || 0;
+    $('stock-adjustment').value = product.stock || 0;
+    show($('stock-modal'));
+    $('stock-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeStockModal() {
+    hide($('stock-modal'));
+    $('stock-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function saveStockAdjustment() {
+    const productId = $('stock-product-id').value;
+    const newStock = parseInt($('stock-adjustment').value) || 0;
+
+    try {
+      const response = await fetch('/api/products/' + productId, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newStock })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar stock');
+      }
+
+      closeStockModal();
+      showToast('Stock actualizado correctamente', 'success');
+      loadProducts();
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  }
+
+  // ===== Toast =====
+  function showToast(message, type) {
+    const toast = $('toast');
+    if (!toast) return;
+    
+    toast.textContent = message;
+    toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+    toast.classList.remove('hidden');
+    toast.style.display = '';
+    
+    setTimeout(function() {
+      toast.classList.add('hidden');
+    }, 3000);
+  }
+
+  // ===== Event Delegation para acciones =====
+  function handleTableClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    
+    const action = btn.getAttribute('data-action');
+    const id = parseInt(btn.getAttribute('data-id'));
+    
+    if (action === 'edit') openEditModal(id);
+    else if (action === 'delete') openDeleteModal(id);
+    else if (action === 'stock') openStockModal(id);
+  }
+
+  // ===== Inicialización =====
+  function init() {
+    // Event listeners para filtros
+    $('search').addEventListener('input', debounce(applyFilters, 300));
+    $('filter-stock').addEventListener('change', applyFilters);
+    $('sort-by').addEventListener('change', applyFilters);
+    
+    // Form de edición
+    $('edit-form').addEventListener('submit', handleEditSubmit);
+    
+    // Event delegation para botones de acción en la tabla
+    $('products-table-body').addEventListener('click', handleTableClick);
+    
+    // Cerrar modales con Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeEditModal();
+        closeDeleteModal();
+        closeStockModal();
+      }
+    });
+
+    // Cargar productos
+    loadProducts();
+  }
+
+  // Exponer funciones globalmente para onclick en HTML
+  window.loadProducts = loadProducts;
+  window.closeEditModal = closeEditModal;
+  window.closeDeleteModal = closeDeleteModal;
+  window.closeStockModal = closeStockModal;
+  window.confirmDelete = confirmDelete;
+  window.saveStockAdjustment = saveStockAdjustment;
+
+  // Iniciar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+{% endblock %}

@@ -52,7 +52,7 @@ def api_call(endpoint, method="GET", data=None):
         elif method == "DELETE":
             return client.delete(url)
 
-@app.route("/product_management")
+#@app.route("/product_management")
 def under_development():
     """Página de funcionalidad en desarrollo."""
     if not session.get("user_id"):
@@ -609,6 +609,28 @@ def handle_exception(e):
     """Manejador global de excepciones no capturadas."""
     logger.exception(f"Excepción no capturada en {request.path}: {str(e)}")
     return render_template("404.html"), 500
+
+@app.route("/product_management")
+def product_management():
+    """
+    Página de administración de productos.
+    
+    Permite ver, editar y eliminar productos del inventario.
+    Solo accesible para usuarios autenticados.
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: product_management.html con la interfaz de gestión
+    """
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    role = session.get("role", "user")
+    if role != "admin":
+        pass
+    
+    return render_template("product_management.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
