@@ -179,6 +179,14 @@
         </div>
       </div>
       
+      <div class="field" style="display: flex; align-items: center; gap: 0.75rem;">
+        <label class="switch">
+          <input type="checkbox" id="edit-status" name="status">
+          <span class="slider"></span>
+        </label>
+        <label for="edit-status" style="cursor: pointer; font-weight: 500;">Producto habilitado</label>
+      </div>
+      
       <div id="edit-error" class="alert-error" style="display: none; margin-top: 0.5rem;"></div>
       
       <div class="form-actions" style="margin-top: 0.5rem;">
@@ -323,6 +331,53 @@
   @media (max-width: 640px) {
     .table th:nth-child(1), .table td:nth-child(1) { display: none; }
   }
+
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border);
+    transition: 0.2s;
+    border-radius: 24px;
+  }
+
+  .switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+
+  .switch input:checked + .slider {
+    background-color: var(--success);
+  }
+
+  .switch input:checked + .slider:before {
+    transform: translateX(20px);
+  }
 </style>
 
 <script>
@@ -366,7 +421,7 @@
     tableBody.innerHTML = '';
 
     try {
-      const response = await fetch('/api/products', {
+      const response = await fetch('/api/products_all', {
         method: 'GET',
         credentials: 'same-origin',
         headers: {
@@ -472,7 +527,7 @@
       const product = filteredProducts[i];
       const status = getStockStatus(product);
       const name = escapeHtml(product.name);
-      const desc = product.description ? escapeHtml(product.description.substring(0, 50)) + (product.description.length > 50 ? '...' : '') : '';
+      const desc = product.description ? escapeHtml(product.description.substring(0, 20)) + (product.description.length > 50 ? '...' : '') : '';
       const price = (product.price || 0).toFixed(2);
       
       html += '<tr data-id="' + product.id + '">' +
@@ -506,6 +561,9 @@
     const stock = product.stock || 0;
     const minStock = product.min_stock || 0;
     
+    if (product.status === 0) {
+      return { cssClass: 'out-of-stock', text: 'Deshabilitado', color: 'var(--danger)' };
+    }
     if (stock === 0) {
       return { cssClass: 'out-of-stock', text: 'Sin stock', color: 'var(--danger)' };
     } else if (stock <= minStock) {
@@ -547,6 +605,7 @@
     $('edit-quantity').value = product.stock || 0;
     $('edit-min-quantity').value = product.min_stock || 0;
     $('edit-price').value = product.price || 0;
+    $('edit-status').checked = product.status === 1;
     hide($('edit-error'));
 
     show($('edit-modal'));
@@ -567,7 +626,8 @@
       description: $('edit-description').value,
       quantity: parseInt($('edit-quantity').value) || 0,
       min_quantity: parseInt($('edit-min-quantity').value) || 0,
-      price: parseFloat($('edit-price').value) || 0
+      price: parseFloat($('edit-price').value) || 0,
+      status: $('edit-status').checked ? 1 : 0
     };
 
     try {

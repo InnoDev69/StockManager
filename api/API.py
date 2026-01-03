@@ -35,8 +35,8 @@ def health():
     """
     return jsonify({"status": "ok"}), 200
 
-@api_bp.route("/products", methods=["GET"])
-def get_products():
+@api_bp.route("/products_all", methods=["GET"])
+def get_all_products():
     """
     Obtiene todos los productos del inventario con filtros opcionales.
     
@@ -55,6 +55,7 @@ def get_products():
         - stock (int): Cantidad disponible
         - min_stock (int): Stock mínimo
         - price (float): Precio de venta
+        - status (int): Estado del producto (1=activo, 0=deshabilitado)
     
     Status Codes:
         200: Éxito
@@ -68,7 +69,7 @@ def get_products():
     search = request.args.get("search", "")
     view_mode = request.args.get("view_mode", "all")
     
-    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE status = 1"
+    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price, status FROM items WHERE 1=1"
     params = []
     
     if search:
@@ -90,7 +91,72 @@ def get_products():
             "description": row[3],
             "stock": row[4],
             "min_stock": row[5],
-            "price": row[6]
+            "price": row[6],
+            "status": row[7]
+        }
+        for row in rows
+    ]
+    
+    return jsonify(products), 200
+
+@api_bp.route("/products", methods=["GET"])
+def get_products():
+    """
+    Obtiene todos los productos del inventario con filtros opcionales.
+    
+    Requiere login: True.
+    
+    Query Parameters:
+        search (str, optional): Búsqueda por nombre o código de barras
+        view_mode (str, optional): Filtro por stock ("all", "in_stock", "out_of_stock")
+    
+    Returns:
+        JSON: Lista de productos con sus detalles
+        - id (int): ID del producto
+        - barcode (str): Código de barras
+        - name (str): Nombre del producto
+        - description (str): Descripción
+        - stock (int): Cantidad disponible
+        - min_stock (int): Stock mínimo
+        - price (float): Precio de venta
+        - status (int): Estado del producto (1=activo, 0=deshabilitado)
+    
+    Status Codes:
+        200: Éxito
+        401: No autorizado
+    """
+    
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    search = request.args.get("search", "")
+    view_mode = request.args.get("view_mode", "all")
+    
+    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price, status FROM items WHERE status = 1"
+    params = []
+    
+    if search:
+        query += " AND (name LIKE ? OR barrs_code LIKE ?)"
+        params.extend([f"%{search}%", f"%{search}%"])
+    
+    if view_mode == "in_stock":
+        query += " AND quantity > 0"
+    elif view_mode == "out_of_stock":
+        query += " AND quantity = 0"
+    
+    rows = db.execute_query(query, tuple(params))
+    
+    products = [
+        {
+            "id": row[0],
+            "barcode": row[1],
+            "name": row[2],
+            "description": row[3],
+            "stock": row[4],
+            "min_stock": row[5],
+            "price": row[6],
+            "status": row[7]
         }
         for row in rows
     ]
@@ -222,6 +288,7 @@ def update_product(product_id):
         quantity (int, optional): Nueva cantidad en stock
         min_quantity (int, optional): Nuevo stock mínimo
         price (float, optional): Nuevo precio
+        status (int, optional): Nuevo estado (1=activo, 0=deshabilitado)
     
     Returns:
         JSON: {"message": "Producto actualizado"}
@@ -250,7 +317,8 @@ def update_product(product_id):
         "description": "description",
         "quantity": "quantity",
         "min_quantity": "min_quantity",
-        "price": "price"
+        "price": "price",
+        "status": "status"
     }
     
     for key, db_field in field_mapping.items():
