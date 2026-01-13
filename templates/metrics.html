@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Métricas - Stock Manager{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<header style="margin-bottom: 1.5rem;">
+  <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">Métricas del Negocio</h1>
+  <p class="text-muted" style="margin: 0;">Analiza el rendimiento de tu negocio con datos en tiempo real</p>
+</header>
+
+<!-- Selector de Período -->
+<section class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button class="period-btn active" data-period="7">7 días</button>
+      <button class="period-btn" data-period="30">30 días</button>
+      <button class="period-btn" data-period="90">3 meses</button>
+      <button class="period-btn" data-period="365">1 año</button>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <label class="text-muted" style="font-size: 0.875rem;">Rango personalizado:</label>
+      <input type="date" id="date-from" style="padding: 0.5rem; font-size: 0.875rem;">
+      <span class="text-muted">—</span>
+      <input type="date" id="date-to" style="padding: 0.5rem; font-size: 0.875rem;">
+      <button class="btn btn-ghost" id="apply-range" style="padding: 0.5rem 0.75rem;">Aplicar</button>
+    </div>
+  </div>
+</section>
+
+<!-- KPIs Principales -->
+<section class="metrics-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+  
+  <!-- Ingresos Totales -->
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ingresos Totales</p>
+        <h2 id="kpi-revenue" class="mono" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--success);">$0.00</h2>
+        <div id="kpi-revenue-change" class="kpi-change positive" style="margin-top: 0.5rem;">
+          <span class="change-icon">↑</span>
+          <span class="change-value">0%</span>
+          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 70%, #000)); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Ventas -->
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Total Ventas</p>
+        <h2 id="kpi-sales" class="mono" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--brand);">0</h2>
+        <div id="kpi-sales-change" class="kpi-change positive" style="margin-top: 0.5rem;">
+          <span class="change-icon">↑</span>
+          <span class="change-value">0%</span>
+          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="background: linear-gradient(135deg, var(--brand), var(--brand-2)); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Promedio -->
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ticket Promedio</p>
+        <h2 id="kpi-avg-ticket" class="mono" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #8b5cf6;">$0.00</h2>
+        <div id="kpi-ticket-change" class="kpi-change neutral" style="margin-top: 0.5rem;">
+          <span class="change-icon">→</span>
+          <span class="change-value">0%</span>
+          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Productos Vendidos -->
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Unidades Vendidas</p>
+        <h2 id="kpi-units" class="mono" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #f59e0b;">0</h2>
+        <div id="kpi-units-change" class="kpi-change positive" style="margin-top: 0.5rem;">
+          <span class="change-icon">↑</span>
+          <span class="change-value">0%</span>
+          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gráficos Principales -->
+<div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- Gráfico de Ventas por Tiempo -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div>
+        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Evolución de Ventas</h3>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Ingresos y número de ventas en el tiempo</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="chart-toggle active" data-chart="revenue">Ingresos</button>
+        <button class="chart-toggle" data-chart="count">Cantidad</button>
+      </div>
+    </div>
+    <div style="position: relative; height: 320px;">
+      <canvas id="salesChart"></canvas>
+    </div>
+  </section>
+</div>
+
+<!-- Gráficos Secundarios en Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- Productos más Vendidos -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Top 10 Productos</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos con más unidades vendidas</p>
+    </div>
+    <div style="position: relative; height: 300px;">
+      <canvas id="topProductsChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Distribución de Ventas por Día -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Ventas por Día de la Semana</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Identifica tus días más fuertes</p>
+    </div>
+    <div style="position: relative; height: 300px;">
+      <canvas id="weekdayChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Distribución por Hora -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Ventas por Hora</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Horarios de mayor actividad</p>
+    </div>
+    <div style="position: relative; height: 300px;">
+      <canvas id="hourlyChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Comparativa de Ingresos -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Comparativa Mensual</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Este mes vs mes anterior</p>
+    </div>
+    <div style="position: relative; height: 300px;">
+      <canvas id="comparisonChart"></canvas>
+    </div>
+  </section>
+</div>
+
+<!-- Tablas de Datos Detallados -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+  
+  <!-- Tabla Top Productos -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div>
+        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Productos Más Rentables</h3>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Por ingresos generados</p>
+      </div>
+      <button class="btn btn-ghost" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;" id="export-products">
+        <svg style="width: 14px; height: 14px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Exportar
+      </button>
+    </div>
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">#</th>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Producto</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Unidades</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ingresos</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">%</th>
+          </tr>
+        </thead>
+        <tbody id="top-products-table">
+          <!-- Datos dinámicos -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Alertas de Inventario -->
+  <section class="card" style="padding: 1.5rem;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Alertas de Inventario</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos que requieren atención</p>
+    </div>
+    
+    <div class="alerts-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <!-- Stock Crítico -->
+      <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;">
+        <div style="width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+          <svg style="width: 20px; height: 20px; color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <div style="flex: 1;">
+          <p style="margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--danger);">Stock Agotado</p>
+          <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="out-of-stock-count">0</span> productos sin existencias</p>
+        </div>
+        <a href="/product_management?filter=out_of_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+      </div>
+
+      <!-- Stock Bajo -->
+      <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px;">
+        <div style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+          <svg style="width: 20px; height: 20px; color: var(--warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+          </svg>
+        </div>
+        <div style="flex: 1;">
+          <p style="margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--warning);">Stock Bajo</p>
+          <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="low-stock-count">0</span> productos bajo mínimo</p>
+        </div>
+        <a href="/product_management?filter=low_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+      </div>
+
+      <!-- Productos Sin Movimiento -->
+      <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 8px;">
+        <div style="width: 40px; height: 40px; background: rgba(107, 114, 128, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+          <svg style="width: 20px; height: 20px; color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+          </svg>
+        </div>
+        <div style="flex: 1;">
+          <p style="margin: 0; font-weight: 600; font-size: 0.9rem;">Sin Movimiento</p>
+          <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="no-movement-count">0</span> productos sin ventas (30 días)</p>
+        </div>
+        <a href="/product_management?filter=no_sales" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Resumen de Rendimiento -->
+<section class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+  <div style="margin-bottom: 1.25rem;">
+    <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Insights Automáticos</h3>
+    <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Análisis inteligente de tu negocio</p>
+  </div>
+  
+  <div class="insights-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+    
+    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.25rem;"></span>
+        <span style="font-weight: 600; font-size: 0.9rem;">Mejor Día</span>
+      </div>
+      <p id="insight-best-day" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
+    </div>
+
+    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.25rem;"></span>
+        <span style="font-weight: 600; font-size: 0.9rem;">Hora Pico</span>
+      </div>
+      <p id="insight-peak-hour" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
+    </div>
+
+    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.25rem;"></span>
+        <span style="font-weight: 600; font-size: 0.9rem;">Producto Estrella</span>
+      </div>
+      <p id="insight-top-product" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
+    </div>
+
+    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.25rem;"></span>
+        <span style="font-weight: 600; font-size: 0.9rem;">Tendencia</span>
+      </div>
+      <p id="insight-trend" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+// ============================================
+// CONFIGURACIÓN DE CHART.JS
+// ============================================
+const chartColors = {
+  primary: '#4f46e5',
+  primaryLight: 'rgba(79, 70, 229, 0.2)',
+  success: '#10b981',
+  successLight: 'rgba(16, 185, 129, 0.2)',
+  warning: '#f59e0b',
+  warningLight: 'rgba(245, 158, 11, 0.2)',
+  danger: '#ef4444',
+  purple: '#8b5cf6',
+  purpleLight: 'rgba(139, 92, 246, 0.2)',
+  gray: '#64748b',
+  text: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#e7eaf0',
+  textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#a8b0bf',
+  border: 'rgba(255, 255, 255, 0.08)'
+};
+
+Chart.defaults.color = chartColors.textMuted;
+Chart.defaults.borderColor = chartColors.border;
+Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, sans-serif';
+
+// ============================================
+// VARIABLES GLOBALES
+// ============================================
+let currentPeriod = 7;
+let salesChart, topProductsChart, weekdayChart, hourlyChart, comparisonChart;
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+document.addEventListener('DOMContentLoaded', async () => {
+  initPeriodButtons();
+  initCharts();
+  await loadMetricsData();
+});
+
+// ============================================
+// MANEJO DE PERÍODO
+// ============================================
+function initPeriodButtons() {
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPeriod = parseInt(btn.dataset.period);
+      await loadMetricsData();
+    });
+  });
+
+  document.getElementById('apply-range')?.addEventListener('click', async () => {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    if (from && to) {
+      await loadMetricsData(from, to);
+    }
+  });
+}
+
+// ============================================
+// CARGA DE DATOS
+// ============================================
+async function loadMetricsData(dateFrom = null, dateTo = null) {
+  try {
+    // Construir URL con parámetros
+    let url = `/api/metrics?period=${currentPeriod}`;
+    if (dateFrom && dateTo) {
+      url = `/api/metrics?from=${dateFrom}&to=${dateTo}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Error al cargar métricas');
+    
+    const data = await response.json();
+    
+    updateKPIs(data.kpis);
+    updateCharts(data);
+    updateTables(data.topProducts);
+    updateAlerts(data.alerts);
+    updateInsights(data.insights);
+    
+  } catch (error) {
+    console.error('Error cargando métricas:', error);
+    Notify.error('Error al cargar las métricas');
+  }
+}
+
+// ============================================
+// ACTUALIZACIÓN DE KPIs
+// ============================================
+function updateKPIs(kpis) {
+  if (!kpis) return;
+  
+  document.getElementById('kpi-revenue').textContent = formatCurrency(kpis.revenue || 0);
+  document.getElementById('kpi-sales').textContent = formatNumber(kpis.totalSales || 0);
+  document.getElementById('kpi-avg-ticket').textContent = formatCurrency(kpis.avgTicket || 0);
+  document.getElementById('kpi-units').textContent = formatNumber(kpis.unitsSold || 0);
+
+  // Actualizar cambios porcentuales
+  updateChangeIndicator('kpi-revenue-change', kpis.revenueChange);
+  updateChangeIndicator('kpi-sales-change', kpis.salesChange);
+  updateChangeIndicator('kpi-ticket-change', kpis.ticketChange);
+  updateChangeIndicator('kpi-units-change', kpis.unitsChange);
+}
+
+function updateChangeIndicator(elementId, change) {
+  const el = document.getElementById(elementId);
+  if (!el || change === undefined) return;
+
+  const isPositive = change > 0;
+  const isNeutral = change === 0;
+  
+  el.className = `kpi-change ${isPositive ? 'positive' : isNeutral ? 'neutral' : 'negative'}`;
+  el.querySelector('.change-icon').textContent = isPositive ? '↑' : isNeutral ? '→' : '↓';
+  el.querySelector('.change-value').textContent = `${Math.abs(change).toFixed(1)}%`;
+}
+
+// ============================================
+// INICIALIZACIÓN DE GRÁFICOS
+// ============================================
+function initCharts() {
+  // Gráfico de Ventas (Línea/Área)
+  const salesCtx = document.getElementById('salesChart')?.getContext('2d');
+  if (salesCtx) {
+    salesChart = new Chart(salesCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Ingresos',
+          data: [],
+          borderColor: chartColors.success,
+          backgroundColor: chartColors.successLight,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { weight: '600' },
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (val) => formatCurrency(val, true) }
+          }
+        }
+      }
+    });
+  }
+
+  // Gráfico Top Productos (Barras Horizontales)
+  const topCtx = document.getElementById('topProductsChart')?.getContext('2d');
+  if (topCtx) {
+    topProductsChart = new Chart(topCtx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Unidades vendidas',
+          data: [],
+          backgroundColor: [
+            chartColors.primary,
+            chartColors.success,
+            chartColors.purple,
+            chartColors.warning,
+            '#06b6d4',
+            '#ec4899',
+            '#14b8a6',
+            '#f97316',
+            '#6366f1',
+            '#84cc16'
+          ],
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+            padding: 12,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { display: false } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Gráfico por Día de la Semana (Barras)
+  const weekdayCtx = document.getElementById('weekdayChart')?.getContext('2d');
+  if (weekdayCtx) {
+    weekdayChart = new Chart(weekdayCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+        datasets: [{
+          label: 'Ventas',
+          data: [0, 0, 0, 0, 0, 0, 0],
+          backgroundColor: chartColors.primaryLight,
+          borderColor: chartColors.primary,
+          borderWidth: 2,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.95)', padding: 12, cornerRadius: 8 }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Gráfico por Hora (Área)
+  const hourlyCtx = document.getElementById('hourlyChart')?.getContext('2d');
+  if (hourlyCtx) {
+    hourlyChart = new Chart(hourlyCtx, {
+      type: 'line',
+      data: {
+        labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+        datasets: [{
+          label: 'Ventas',
+          data: new Array(24).fill(0),
+          borderColor: chartColors.purple,
+          backgroundColor: chartColors.purpleLight,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.95)', padding: 12, cornerRadius: 8 }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Gráfico Comparativa (Doughnut)
+  const compCtx = document.getElementById('comparisonChart')?.getContext('2d');
+  if (compCtx) {
+    comparisonChart = new Chart(compCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Este período', 'Período anterior'],
+        datasets: [{
+          data: [0, 0],
+          backgroundColor: [chartColors.success, chartColors.gray],
+          borderColor: ['transparent', 'transparent'],
+          borderWidth: 0,
+          cutout: '70%'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${formatCurrency(ctx.parsed)}`
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+// ============================================
+// ACTUALIZACIÓN DE GRÁFICOS
+// ============================================
+function updateCharts(data) {
+  if (!data) return;
+
+  // Actualizar gráfico de ventas
+  if (salesChart && data.salesOverTime) {
+    salesChart.data.labels = data.salesOverTime.labels;
+    salesChart.data.datasets[0].data = data.salesOverTime.revenue;
+    salesChart.update();
+  }
+
+  // Actualizar top productos
+  if (topProductsChart && data.topProducts) {
+    const top10 = data.topProducts.slice(0, 10);
+    topProductsChart.data.labels = top10.map(p => truncateText(p.name, 20));
+    topProductsChart.data.datasets[0].data = top10.map(p => p.units);
+    topProductsChart.update();
+  }
+
+  // Actualizar ventas por día
+  if (weekdayChart && data.salesByWeekday) {
+    weekdayChart.data.datasets[0].data = data.salesByWeekday;
+    weekdayChart.update();
+  }
+
+  // Actualizar ventas por hora
+  if (hourlyChart && data.salesByHour) {
+    hourlyChart.data.datasets[0].data = data.salesByHour;
+    hourlyChart.update();
+  }
+
+  // Actualizar comparativa
+  if (comparisonChart && data.comparison) {
+    comparisonChart.data.datasets[0].data = [data.comparison.current, data.comparison.previous];
+    comparisonChart.update();
+  }
+}
+
+// ============================================
+// ACTUALIZACIÓN DE TABLAS
+// ============================================
+function updateTables(products) {
+  const tbody = document.getElementById('top-products-table');
+  if (!tbody || !products) return;
+
+  const totalRevenue = products.reduce((sum, p) => sum + (p.revenue || 0), 0);
+
+  tbody.innerHTML = products.slice(0, 10).map((product, index) => {
+    const percentage = totalRevenue > 0 ? ((product.revenue / totalRevenue) * 100).toFixed(1) : 0;
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
+        <td style="padding: 0.75rem;">
+          <div style="font-weight: 500;">${escapeHtml(product.name)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${product.sku || 'Sin SKU'}</div>
+        </td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(product.units)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--success);">${formatCurrency(product.revenue)}</td>
+        <td style="padding: 0.75rem; text-align: right;">
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
+            <div style="width: 60px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden;">
+              <div style="width: ${percentage}%; height: 100%; background: var(--brand); border-radius: 3px;"></div>
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); min-width: 40px;">${percentage}%</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ============================================
+// ACTUALIZACIÓN DE ALERTAS
+// ============================================
+function updateAlerts(alerts) {
+  if (!alerts) return;
+  
+  document.getElementById('out-of-stock-count').textContent = alerts.outOfStock || 0;
+  document.getElementById('low-stock-count').textContent = alerts.lowStock || 0;
+  document.getElementById('no-movement-count').textContent = alerts.noMovement || 0;
+}
+
+// ============================================
+// ACTUALIZACIÓN DE INSIGHTS
+// ============================================
+function updateInsights(insights) {
+  if (!insights) return;
+
+  document.getElementById('insight-best-day').textContent = 
+    insights.bestDay ? `${insights.bestDay.name} con ${formatCurrency(insights.bestDay.revenue)} en ventas` : 'Sin datos suficientes';
+  
+  document.getElementById('insight-peak-hour').textContent = 
+    insights.peakHour ? `${insights.peakHour}:00 - ${insights.peakHour + 1}:00 es tu hora más activa` : 'Sin datos suficientes';
+  
+  document.getElementById('insight-top-product').textContent = 
+    insights.topProduct ? `"${insights.topProduct.name}" con ${insights.topProduct.units} unidades vendidas` : 'Sin datos suficientes';
+  
+  document.getElementById('insight-trend').textContent = 
+    insights.trend ? insights.trend : 'Necesitas más datos para ver tendencias';
+}
+
+// ============================================
+// UTILIDADES
+// ============================================
+function formatCurrency(value, short = false) {
+  if (short && value >= 1000) {
+    return '$' + (value / 1000).toFixed(1) + 'k';
+  }
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('es-MX').format(value);
+}
+
+function truncateText(text, maxLength) {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  
+  toast.textContent = message;
+  toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+  toast.classList.remove('hidden');
+  
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Toggle entre gráficos de ingresos y cantidad
+document.querySelectorAll('.chart-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Aquí podrías cambiar los datos del gráfico según el toggle
+  });
+});
+
+// Exportar datos
+document.getElementById('export-products')?.addEventListener('click', () => {
+  Notify.info('Función de exportación en desarrollo');
+});
+</script>
+{% endblock %}

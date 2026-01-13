@@ -872,3 +872,136 @@ a, h1, h2, h3, h4, h5, h6, p, label, small, span { font-family: inherit; }
     width: 100%;
   }
 }
+
+/* ============================================
+   ESTILOS PARA PÁGINA DE MÉTRICAS
+   ============================================ */
+
+/* Botones de período */
+.period-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-btn:hover {
+  background: var(--panel);
+  border-color: var(--brand);
+  color: var(--text);
+}
+
+.period-btn.active {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+/* Toggle de gráficos */
+.chart-toggle {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chart-toggle:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.chart-toggle.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+}
+
+/* KPI Cards */
+.kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Indicadores de cambio */
+.kpi-change {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.kpi-change.positive { color: var(--success); }
+.kpi-change.negative { color: var(--danger); }
+.kpi-change.neutral { color: var(--text-muted); }
+
+.kpi-change .change-icon {
+  font-weight: bold;
+}
+
+.kpi-change .change-value {
+  font-weight: 600;
+}
+
+/* Tabla de datos */
+.data-table tr:hover {
+  background: var(--panel-2);
+}
+
+.data-table td, .data-table th {
+  vertical-align: middle;
+}
+
+/* Tarjetas de insight */
+.insight-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Alertas animadas */
+.alert-item {
+  transition: transform 0.2s ease;
+}
+
+.alert-item:hover {
+  transform: translateX(4px);
+}
+
+/* Responsive para métricas */
+@media (max-width: 768px) {
+  .metrics-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .period-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
