@@ -632,6 +632,25 @@ def product_management():
     
     return render_template("product_management.html")
 
+@app.route("/metrics")
+def metrics():
+    """
+    Página de métricas y análisis.
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: metrics.html con gráficos e indicadores
+    """
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    role = session.get("role", "user")
+    if role != "admin":
+        pass
+    
+    return render_template("metrics.html")
+
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))
     logger.info(f"Iniciando servidor en puerto {port}")
