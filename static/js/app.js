@@ -50,6 +50,7 @@ async function loadProducts(filters = {}) {
     
   } catch (error) {
     console.error('Error cargando productos:', error);
+    Notify.error('Error al cargar los productos.');
     if (loadingMsg) loadingMsg.hidden = true;
     if (emptyMsg) emptyMsg.hidden = false;
   }
@@ -144,7 +145,7 @@ async function viewProduct(id) {
     openProductModal(product);
   } catch (error) {
     console.error('Error:', error);
-    showToast('No se pudo cargar el producto', true);
+    Notify.error('No se pudo cargar el producto');
   }
 }
 
@@ -155,15 +156,15 @@ async function deleteProduct(id) {
     const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
     
     if (response.ok) {
-      showToast('Producto eliminado exitosamente');
+      Notify.success('Producto eliminado exitosamente');
       loadProducts();
     } else {
       const error = await response.json();
-      showToast(error.error || 'Error al eliminar', true);
+      Notify.error(error.error || 'Error al eliminar');
     }
   } catch (error) {
     console.error('Error:', error);
-    showToast('Error al eliminar producto', true);
+    Notify.error('Error al eliminar producto');
   }
 }
 

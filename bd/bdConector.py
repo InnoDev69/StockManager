@@ -284,7 +284,7 @@ class BDConector:
             fetch=False
         )
         
-    def add_item(self, barrs_code, description, name, quantity, min_quantity, price:float):
+    def add_item(self, barrs_code:str, description, name, quantity, min_quantity, price:float):
         """
         Agrega un nuevo producto al inventario.
         
@@ -309,7 +309,7 @@ class BDConector:
             Si barrs_code es una cadena vacía, se convierte a None
         """
         
-        barrs_code = barrs_code.strip() if barrs_code else None
+        barrs_code = str(barrs_code).strip() if barrs_code else None
         
         validated = ItemValidator.validate(
             barrs_code, description, name, quantity, min_quantity, price

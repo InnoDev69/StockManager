@@ -2,65 +2,44 @@
 {% block content %}
 <div class="card" style="max-width:720px; margin:1rem auto;">
   <h2>Agregar Producto</h2>
-  {% if error and not error_field %}
-    <div class="alert alert-error">{{ error }}</div>
-  {% endif %}
-  <form method="POST" action="/products/new">
+  <form id="product-form">
     <div class="field">
       <label class="label">Código de barras</label>
       <div style="display:flex; gap:0.5rem;">
         <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
-               value="{{ form_data.barrs_code or '' }}" maxlength="{{Limits.ITEM_BARCODE_MAX}}"
-               class="{{ 'input-error' if error_field == 'Código de barras' else '' }}" />
+               value="{{ form_data.barrs_code or '' }}" maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
       </div>
-      {% if error_field == 'Código de barras' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+      <span class="field-error" data-field="Código de barras"></span>
     </div>
     <div class="field">
       <label class="label">Nombre</label>
       <input name="name" required maxlength="{{Limits.ITEM_NAME_MAX}}"
-             value="{{ form_data.name or '' }}"
-             class="{{ 'input-error' if error_field == 'Nombre' else '' }}" />
-      {% if error_field == 'Nombre' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+             value="{{ form_data.name or '' }}" />
+      <span class="field-error" data-field="Nombre"></span>
     </div>
     <div class="field">
       <label class="label">Descripción</label>
       <input name="description" maxlength="{{Limits.ITEM_DESCRIPTION_MAX}}"
-             value="{{ form_data.description or '' }}"
-             class="{{ 'input-error' if error_field == 'Descripción' else '' }}" />
-      {% if error_field == 'Descripción' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+             value="{{ form_data.description or '' }}" />
+      <span class="field-error" data-field="Descripción"></span>
     </div>
     <div class="field">
       <label class="label">Stock</label>
       <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
-             value="{{ form_data.quantity or 0 }}"
-             class="{{ 'input-error' if error_field == 'Cantidad' else '' }}" />
-      {% if error_field == 'Cantidad' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+             value="{{ form_data.quantity or 0 }}" />
+      <span class="field-error" data-field="Cantidad"></span>
     </div>
     <div class="field">
       <label class="label">Stock mínimo</label>
       <input type="number" name="min_quantity" min="0" max="{{Limits.ITEM_MIN_QUANTITY_MAX}}"
-             value="{{ form_data.min_quantity or 0 }}"
-             class="{{ 'input-error' if error_field == 'Cantidad mínima' else '' }}" />
-      {% if error_field == 'Cantidad mínima' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+             value="{{ form_data.min_quantity or 0 }}" />
+      <span class="field-error" data-field="Cantidad mínima"></span>
     </div>
     <div class="field">
       <label class="label">Precio</label>
       <input type="number" step="0.01" name="price" min="0" max="{{Limits.ITEM_PRICE_MAX}}"
-             value="{{ form_data.price or '0.00' }}"
-             class="{{ 'input-error' if error_field == 'Precio' else '' }}" />
-      {% if error_field == 'Precio' %}
-        <span class="field-error">{{ error }}</span>
-      {% endif %}
+             value="{{ form_data.price or '0.00' }}" />
+      <span class="field-error" data-field="Precio"></span>
     </div>
     <div class="form-actions">
       <a href="/" class="btn btn-ghost">Cancelar</a>
@@ -69,6 +48,7 @@
   </form>
 </div>
 <script>
+// Limitar valores numéricos
 document.querySelectorAll('input[type="number"][max]').forEach(input => {
   input.addEventListener('input', function() {
     const max = parseFloat(this.max);
@@ -78,6 +58,52 @@ document.querySelectorAll('input[type="number"][max]').forEach(input => {
     if (value > max) this.value = max;
     if (value < min) this.value = min;
   });
+});
+
+// Envío del formulario via API
+document.getElementById('product-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  // Limpiar errores previos
+  document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+  document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+  
+  const form = e.target;
+  const data = {
+    barcode: form.barrs_code.value.trim(),
+    name: form.name.value.trim(),
+    description: form.description.value.trim(),
+    quantity: parseInt(form.quantity.value) || 0,
+    min_quantity: parseInt(form.min_quantity.value) || 0,
+    price: parseFloat(form.price.value) || 0
+  };
+  
+  try {
+    const response = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      Notify.success('Producto agregado exitosamente');
+      setTimeout(() => window.location.href = '/', 1500);
+    } else {
+      if (result.field) {
+        const errorSpan = document.querySelector(`.field-error[data-field="${result.field}"]`);
+        const input = errorSpan?.closest('.field')?.querySelector('input');
+        if (errorSpan) errorSpan.textContent = result.error;
+        if (input) input.classList.add('input-error');
+      } else {
+        Notify.error(result.error || 'Error al agregar producto');
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    Notify.error('Error de conexión al servidor');
+  }
 });
 </script>
 {% endblock %}

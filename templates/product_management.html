@@ -447,6 +447,7 @@
       
     } catch (error) {
       console.error('Error cargando productos:', error);
+      Notify.error('Error al cargar los productos.');
       hide(loadingState);
       $('error-message').textContent = error.message || 'No se pudieron cargar los productos.';
       show(errorState);
@@ -644,7 +645,7 @@
       }
 
       closeEditModal();
-      showToast('Producto actualizado correctamente', 'success');
+      Notify.success('Producto actualizado correctamente');
       loadProducts();
     } catch (error) {
       $('edit-error').textContent = error.message;
@@ -683,10 +684,10 @@
       }
 
       closeDeleteModal();
-      showToast('Producto eliminado correctamente', 'success');
+      Notify.success('Producto eliminado correctamente');
       loadProducts();
     } catch (error) {
-      showToast(error.message, 'error');
+      Notify.error(error.message || 'Error al eliminar producto');
     }
   }
 
@@ -726,26 +727,11 @@
       }
 
       closeStockModal();
-      showToast('Stock actualizado correctamente', 'success');
+      Notify.success('Stock actualizado correctamente');
       loadProducts();
     } catch (error) {
-      showToast(error.message, 'error');
+      Notify.error(error.message || 'Error al actualizar stock');
     }
-  }
-
-  // ===== Toast =====
-  function showToast(message, type) {
-    const toast = $('toast');
-    if (!toast) return;
-    
-    toast.textContent = message;
-    toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
-    toast.classList.remove('hidden');
-    toast.style.display = '';
-    
-    setTimeout(function() {
-      toast.classList.add('hidden');
-    }, 3000);
   }
 
   // ===== Event Delegation para acciones =====
