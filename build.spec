@@ -8,6 +8,18 @@ block_cipher = None
 exe_extension = '.exe' if sys.platform == 'win32' else ''
 exe_name = 'stock-manager-server' + exe_extension
 
+# Incluye el .env si existe
+datas_list = [
+    ('templates', 'templates'),
+    ('static', 'static'),
+    ('bd', 'bd'),
+    ('api', 'api'),
+]
+
+# Agrega .env si existe
+if os.path.exists('.env'):
+    datas_list.append(('.env', '.'))
+
 a = Analysis(
     ['main.py'],  # Cambiado: ahora está en la raíz
     pathex=[],
