@@ -10,11 +10,12 @@
 <!-- Barra de Acceso Rápido -->
 <section class="card quick-access-bar" aria-label="Acceso rápido" style="margin-bottom: 1.5rem; padding: 1.25rem;">
   <h2 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Acceso Rápido</h2>
-  <div class="quick-access-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+  <div class="quick-access-grid"
+     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
     
     <!-- Nueva Venta -->
     <a href="/sales/new" class="quick-access-item" style="text-decoration: none;">
-      <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 80%, #000));">
+      <div class="quick-access-icon" style="--qa-accent: var(--success);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
@@ -364,7 +365,7 @@
 
   .quick-access-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
   }
 

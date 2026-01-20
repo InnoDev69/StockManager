@@ -299,19 +299,6 @@
 const cart = new Map();
 let searchTimer;
 
-function showNotification(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = 'toast' + (type === 'error' ? ' error' : '');
-  toast.innerHTML = `
-    <div style="display:flex; align-items:center; gap:10px;">
-      <strong>${type === 'error' ? 'Error' : 'OK'}</strong>
-      <span>${message}</span>
-    </div>
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
 function updateClock() {
   const now = new Date();
   document.getElementById('currentTime').textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -373,12 +360,26 @@ function hideSuggestions() {
 function addToCart(item, qty=1) {
   const existing = cart.get(item.id);
   const newQty = existing ? existing.quantity + qty : qty;
-  cart.set(item.id, {
-    id: item.id,
-    name: item.name,
-    unit_price: item.price,
-    quantity: newQty
-  });
+  const maxStock = item.stock || 999;
+  
+  if (newQty > maxStock) {
+    Notify.warning(`Stock insuficiente. Disponible: ${maxStock}`);
+    cart.set(item.id, {
+      id: item.id,
+      name: item.name,
+      unit_price: item.price,
+      quantity: maxStock,
+      max_stock: maxStock
+    });
+  } else {
+    cart.set(item.id, {
+      id: item.id,
+      name: item.name,
+      unit_price: item.price,
+      quantity: newQty,
+      max_stock: maxStock
+    });
+  }
   renderCart();
 }
 
@@ -407,7 +408,7 @@ function renderCart() {
     tr.innerHTML = `
       <td style="font-weight: 600;">${row.name}</td>
       <td style="text-align: center;">
-        <input type="number" min="1" value="${row.quantity}" class="qty-input" data-id="${row.id}">
+        <input type="number" min="1" max="${row.max_stock}" value="${row.quantity}" class="qty-input" data-id="${row.id}">
       </td>
       <td style="text-align: right; color: var(--text-muted);">$${row.unit_price.toFixed(2)}</td>
       <td style="text-align: right; font-weight: 700;">$${lineTotal.toFixed(2)}</td>
@@ -524,9 +525,9 @@ document.getElementById('confirmSale').addEventListener('click', async () => {
     renderCart();
     renderSales(await fetchSales(currentFilterParams()));
     focusSearch();
-    showNotification('Venta registrada exitosamente', 'success');
+    Notify.success('Venta registrada exitosamente');
   } else {
-    showNotification('Error al registrar venta', );
+    Notify.error('Error al registrar venta');
   }
   
   btn.disabled = false;

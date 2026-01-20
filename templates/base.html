@@ -10,7 +10,7 @@
 <body>
   <header class="app-header">
     <div class="header-inner container">
-      <h1 class="brand">Stock Manager</h1>
+      <h1 class="brand"><a href="{{ url_for('index') }}" style="text-decoration:none; color:inherit;">Stock Manager</a></h1>
       <div class="nav-actions" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
         {% if session.get('user_id') %}
         <div style="display:flex; align-items:center; gap:0.5rem;">
