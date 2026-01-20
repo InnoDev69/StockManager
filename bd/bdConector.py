@@ -1,5 +1,7 @@
 import sqlite3
 import contextlib
+
+from flask import jsonify
 from bd.bdErrors import *
 from debug.logger import logger
 from data.validators import ItemValidator, UserValidator, ValidationError
@@ -311,15 +313,9 @@ class BDConector:
         
         barrs_code = str(barrs_code).strip() if barrs_code else None
         
-        validated = ItemValidator.validate(
-            barrs_code, description, name, quantity, min_quantity, price
-        )
-        
         self.execute_query(
             "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
-            (validated["barrs_code"], validated["description"], validated["name"], 
-             validated["quantity"], validated["min_quantity"], validated["price"]),
-            fetch=False
+            (barrs_code, description, name, quantity, min_quantity, price)
         )
         
     def get_item_by_barcode(self, barcode):
@@ -638,3 +634,46 @@ class BDConector:
             (item_id,)
         )
         return rows[0][0] if rows else None
+    
+    def get_item_details(self, item_id):
+        """
+        Obtiene los detalles completos de un producto por su ID.
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Args:
+            item_id (int): ID del producto
+        
+        Returns:
+            dict|None: Detalles del producto o None si no existe
+                - id (int)
+                - barrs_code (str|None)
+                - description (str)
+                - name (str)
+                - quantity (int)
+                - min_quantity (int)
+                - price (float)
+                - status (int)
+                
+        Example:
+            details = db.get_item_details(5)
+        
+        """
+        rows = self.execute_query(
+            "SELECT barrs_code, description, name, quantity, min_quantity, price, status FROM items WHERE id = ?",
+            (item_id,)
+        )
+        if not rows:
+            return None
+        
+        row = rows[0]
+        return {
+            "barrs_code": row[0],
+            "description": row[1],
+            "name": row[2],
+            "quantity": row[3],
+            "min_quantity": row[4],
+            "price": row[5],
+            "status": row[6]
+        }

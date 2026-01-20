@@ -1,110 +1,439 @@
 {% extends "base.html" %}
 
-{% block title %}Importar Datos{% endblock %}
+{% block title %}Importar CSV{% endblock %}
 
 {% block content %}
-<h1>Importar Datos</h1>
-<p>Sube un archivo CSV para importar productos.</p>
+<header style="margin-bottom: 1.5rem;">
+  <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">Importar productos</h1>
+  <p class="text-muted" style="margin: 0;">Sube un CSV, previsualiza y mapea columnas antes de importar.</p>
+</header>
 
-<form id="importForm" action="{{ url_for('import_preview') }}" method="POST" enctype="multipart/form-data" class="mb-4">
-  <div class="mb-3">
-    <label for="file" class="form-label">Archivo CSV</label>
-    <input class="form-control" type="file" id="file" name="file" accept=".csv" required>
+<div id="importAlerts"></div>
+
+<form id="importForm" action="{{ url_for('import_preview') }}" method="POST" enctype="multipart/form-data" class="card" autocomplete="off" novalidate>
+  <h2 style="margin: 0 0 6px 0; font-size: 1rem; font-weight: 600;">Archivo</h2>
+  <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.92rem;">Selecciona el CSV y configura cómo debe interpretarse.</p>
+
+  <label class="field">
+    <span class="label">Archivo CSV</span>
+    <input type="file" id="file" name="file" accept=".csv" required class="file-input">
+    <small id="fileHint" class="text-muted" style="font-size: 0.85rem;">No hay archivo seleccionado.</small>
+  </label>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <label class="field">
+      <span class="label">Delimitador</span>
+      <input type="text" id="delimiter" name="delimiter" value="," maxlength="1" inputmode="text" autocomplete="off">
+      <small class="text-muted" style="font-size: 0.85rem;">Ej: <strong>,</strong> o <strong>;</strong> (1 carácter)</small>
+    </label>
+
+    <label class="field" style="gap: 10px;">
+      <span class="label">Encabezados</span>
+      <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2);">
+        <input type="checkbox" value="1" id="has_header" name="has_header" checked style="width: auto;">
+        <span class="status-text">Primera fila tiene encabezados</span>
+      </label>
+      <small class="text-muted" style="font-size: 0.85rem;">Si no hay encabezados, el sistema mostrará columnas por índice.</small>
+    </label>
   </div>
-  <div class="mb-3">
-    <label for="delimiter" class="form-label">Delimitador</label>
-    <input type="text" class="form-control" id="delimiter" name="delimiter" value="," maxlength="1">
+
+  <div class="form-actions">
+    <button type="submit" class="btn" id="btnPreview">Previsualizar</button>
   </div>
-  <div class="form-check mb-3">
-    <input class="form-check-input" type="checkbox" value="1" id="has_header" name="has_header" checked>
-    <label class="form-check-label" for="has_header">Primera fila tiene encabezados</label>
-  </div>
-  <button type="submit" class="btn btn-primary">Previsualizar</button>
 </form>
 
-<div id="previewSection" class="d-none">
-  <h2>Previsualización</h2>
-  <div class="table-responsive">
-    <table class="table table-sm table-striped" id="previewTable">
+<form id="confirmForm" class="card hidden" action="{{ url_for('confirm_import') }}" method="POST" style="margin-top: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+    <div>
+      <h2 style="margin: 0; font-size: 1rem; font-weight: 600;">Previsualización</h2>
+      <p class="text-muted" style="margin: 6px 0 0 0; font-size: 0.92rem;">Revisa las primeras filas para confirmar el formato.</p>
+    </div>
+    <div id="previewMeta" class="text-muted" style="font-size: 0.9rem;"></div>
+  </div>
+
+  <input type="hidden" name="temp_key" id="temp_key">
+  <div id="previewAlerts" style="margin-top: 12px;"></div>
+
+  <div style="margin-top: 12px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel);">
+    <table id="previewTable" style="width: 100%; border-collapse: collapse;">
       <thead></thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <h3>Mapeo de columnas</h3>
-  <form id="confirmForm" action="{{ url_for('confirm_import') }}" method="POST">
-    <input type="hidden" name="temp_key" id="temp_key">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label">Código Barras</label>
-        <select class="form-select" name="col_barcode" id="col_barcode" required></select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Nombre</label>
-        <select class="form-select" name="col_name" id="col_name" required></select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Descripción</label>
-        <select class="form-select" name="col_description" id="col_description"></select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Cantidad</label>
-        <select class="form-select" name="col_quantity" id="col_quantity" required></select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Cantidad mínima</label>
-        <select class="form-select" name="col_min_quantity" id="col_min_quantity"></select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Precio</label>
-        <select class="form-select" name="col_price" id="col_price" required></select>
-      </div>
-    </div>
-    <div class="mt-3">
-      <button type="submit" class="btn btn-success">Importar</button>
-      <button type="button" class="btn btn-secondary" id="cancelPreview">Cancelar</button>
-    </div>
-  </form>
-</div>
+  <div class="hr"></div>
 
+  <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Mapeo de columnas</h3>
+  <p class="text-muted" style="margin: 6px 0 0 0; font-size: 0.92rem;">Asigna qué columna del CSV corresponde a cada campo.</p>
+
+  <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+    <label class="field">
+      <span class="label">Código de barras *</span>
+      <select name="col_barcode" id="col_barcode" required></select>
+    </label>
+
+    <label class="field">
+      <span class="label">Nombre *</span>
+      <select name="col_name" id="col_name" required></select>
+    </label>
+
+    <label class="field">
+      <span class="label">Descripción</span>
+      <select name="col_description" id="col_description"></select>
+    </label>
+
+    <label class="field">
+      <span class="label">Cantidad *</span>
+      <select name="col_quantity" id="col_quantity" required></select>
+    </label>
+
+    <label class="field">
+      <span class="label">Cantidad mínima</span>
+      <select name="col_min_quantity" id="col_min_quantity"></select>
+    </label>
+
+    <label class="field">
+      <span class="label">Precio *</span>
+      <select name="col_price" id="col_price" required></select>
+    </label>
+  </div>
+
+  <div class="form-actions" style="margin-top: 14px;">
+    <button type="button" class="btn btn-ghost" id="cancelPreview">Cancelar</button>
+    <button type="submit" class="btn" id="btnImport" style="--btn-bg: var(--success); --btn-bg-2: var(--success);">Importar</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
 <script>
-document.getElementById('importForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const res = await fetch('{{ url_for("import_preview") }}', { method: 'POST', body: formData });
-  if (!res.ok) { alert('Error al procesar el archivo'); return; }
-  const data = await res.json();
-  buildPreview(data);
-});
+(function () {
+  'use strict';
 
-function buildPreview(data) {
-  document.getElementById('previewSection').classList.remove('d-none');
-  document.getElementById('temp_key').value = data.temp_key;
-  const thead = document.querySelector('#previewTable thead');
-  const tbody = document.querySelector('#previewTable tbody');
-  thead.innerHTML = '';
-  tbody.innerHTML = '';
-  const hr = document.createElement('tr');
-  data.headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
-  thead.appendChild(hr);
-  data.rows.slice(0, 10).forEach(r => {
-    const tr = document.createElement('tr');
-    r.forEach(cell => { const td = document.createElement('td'); td.textContent = cell; tr.appendChild(td); });
-    tbody.appendChild(tr);
-  });
-  ['col_barcode','col_name','col_description','col_quantity','col_min_quantity','col_price'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '<option value="" disabled selected>-- Selecciona --</option>';
-    data.headers.forEach((h,i) => {
-      const opt = document.createElement('option');
-      opt.value = i; opt.textContent = h + ' (' + i + ')';
-      sel.appendChild(opt);
+  const importForm = document.getElementById('importForm');
+  const confirmForm = document.getElementById('confirmForm');
+
+  const fileInput = document.getElementById('file');
+  const fileHint = document.getElementById('fileHint');
+  const delimiterInput = document.getElementById('delimiter');
+
+  const btnPreview = document.getElementById('btnPreview');
+  const btnImport = document.getElementById('btnImport');
+
+  const importAlerts = document.getElementById('importAlerts');
+  const previewAlerts = document.getElementById('previewAlerts');
+
+  const previewMeta = document.getElementById('previewMeta');
+  const previewTable = document.getElementById('previewTable');
+  const thead = previewTable.querySelector('thead');
+  const tbody = previewTable.querySelector('tbody');
+
+  const tempKeyInput = document.getElementById('temp_key');
+
+  const selectIds = [
+    'col_barcode',
+    'col_name',
+    'col_description',
+    'col_quantity',
+    'col_min_quantity',
+    'col_price'
+  ];
+
+  const requiredIds = ['col_barcode', 'col_name', 'col_quantity', 'col_price'];
+  const optionalIds = ['col_description', 'col_min_quantity'];
+
+  function clearNode(node) {
+    if (!node) return;
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function addInlineAlert(container, message, type) {
+    if (!container) return;
+
+    if (window.NotificationManager && typeof window.NotificationManager.createInlineAlert === 'function') {
+      const el = window.NotificationManager.createInlineAlert(message, { type: type || 'info', dismissible: true });
+      container.appendChild(el);
+      return;
+    }
+
+    // Fallback (por si notifications.js no está cargado)
+    const div = document.createElement('div');
+    div.className = 'alert-error';
+    div.textContent = message;
+    container.appendChild(div);
+  }
+
+  function setPreviewVisible(visible) {
+    if (visible) {
+      confirmForm.classList.remove('hidden');
+      confirmForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      confirmForm.classList.add('hidden');
+    }
+  }
+
+  function setLoadingPreview(isLoading) {
+    btnPreview.disabled = isLoading;
+    btnPreview.textContent = isLoading ? 'Procesando…' : 'Previsualizar';
+    fileInput.disabled = isLoading;
+    delimiterInput.disabled = isLoading;
+    document.getElementById('has_header').disabled = isLoading;
+  }
+
+  function setLoadingImport(isLoading) {
+    btnImport.disabled = isLoading;
+    btnImport.textContent = isLoading ? 'Importando…' : 'Importar';
+  }
+
+  function normalizeText(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  function guessIndex(headers, synonyms) {
+    const normHeaders = headers.map(h => normalizeText(h));
+    for (let i = 0; i < normHeaders.length; i++) {
+      const h = normHeaders[i];
+      for (const syn of synonyms) {
+        if (h.includes(normalizeText(syn))) return i;
+      }
+    }
+    return null;
+  }
+
+  function fillSelects(headers) {
+    selectIds.forEach((id) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+
+      sel.innerHTML = '';
+
+      if (optionalIds.includes(id)) {
+        const optNone = document.createElement('option');
+        optNone.value = '';
+        optNone.textContent = '— No importar —';
+        optNone.selected = true;
+        sel.appendChild(optNone);
+      } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '— Selecciona —';
+        opt.disabled = true;
+        opt.selected = true;
+        sel.appendChild(opt);
+      }
+
+      headers.forEach((h, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `${h} (${i})`;
+        sel.appendChild(opt);
+      });
     });
-  });
-}
+  }
 
-document.getElementById('cancelPreview').addEventListener('click', () => {
-  document.getElementById('previewSection').classList.add('d-none');
-});
+  function autoMap(headers) {
+    const mapping = {
+      col_barcode: ['codigo de barras', 'código de barras', 'barras', 'barcode', 'ean', 'upc'],
+      col_name: ['nombre', 'name', 'producto', 'product'],
+      col_description: ['descripcion', 'descripción', 'detalle', 'desc'],
+      col_quantity: ['cantidad', 'stock', 'qty', 'quantity', 'existencia'],
+      col_min_quantity: ['min', 'minimo', 'mínimo', 'min stock', 'stock minimo', 'stock mínimo'],
+      col_price: ['precio', 'price', 'valor', 'costo', 'cost']
+    };
+
+    const picked = new Set();
+
+    Object.keys(mapping).forEach((id) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+
+      const idx = guessIndex(headers, mapping[id]);
+      if (idx === null) return;
+
+      // Evitar que campos requeridos queden duplicados automáticamente
+      if (requiredIds.includes(id) && picked.has(String(idx))) return;
+
+      sel.value = String(idx);
+      if (requiredIds.includes(id)) picked.add(String(idx));
+    });
+  }
+
+  function validateMapping(showAlerts) {
+    clearNode(previewAlerts);
+
+    const values = {};
+    selectIds.forEach(id => {
+      const sel = document.getElementById(id);
+      values[id] = sel ? sel.value : '';
+    });
+
+    // Requeridos
+    const missing = requiredIds.filter(id => !values[id]);
+    if (missing.length) {
+      if (showAlerts) addInlineAlert(previewAlerts, 'Completa el mapeo de los campos obligatorios (*).', 'warning');
+      return false;
+    }
+
+    // Duplicados en requeridos
+    const seen = new Map();
+    const duplicates = [];
+    requiredIds.forEach(id => {
+      const v = values[id];
+      if (seen.has(v)) duplicates.push([seen.get(v), id, v]);
+      else seen.set(v, id);
+    });
+
+    if (duplicates.length) {
+      if (showAlerts) addInlineAlert(previewAlerts, 'No uses la misma columna en dos campos obligatorios (código/nombre/cantidad/precio).', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  function buildTable(headers, rows) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const headerTr = document.createElement('tr');
+    headerTr.style.background = 'var(--panel-2)';
+    headerTr.style.borderBottom = '1px solid var(--border)';
+
+    headers.forEach((h) => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.padding = '0.875rem 1rem';
+      th.style.textAlign = 'left';
+      th.style.fontWeight = '600';
+      th.style.fontSize = '0.8rem';
+      th.style.textTransform = 'uppercase';
+      th.style.letterSpacing = '0.05em';
+      th.style.color = 'var(--text-muted)';
+      headerTr.appendChild(th);
+    });
+    thead.appendChild(headerTr);
+
+    rows.slice(0, 10).forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--border)';
+
+      (Array.isArray(r) ? r : []).forEach((cell) => {
+        const td = document.createElement('td');
+        td.textContent = (cell === null || cell === undefined) ? '' : String(cell);
+        td.style.padding = '0.75rem 1rem';
+        td.style.color = 'var(--text)';
+        td.style.fontSize = '0.92rem';
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function resetPreview() {
+    setPreviewVisible(false);
+    clearNode(previewAlerts);
+    previewMeta.textContent = '';
+    tempKeyInput.value = '';
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    selectIds.forEach((id) => {
+      const sel = document.getElementById(id);
+      if (sel) sel.innerHTML = '';
+    });
+
+    setLoadingImport(false);
+  }
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    fileHint.textContent = f ? `Seleccionado: ${f.name}` : 'No hay archivo seleccionado.';
+  });
+
+  delimiterInput.addEventListener('input', () => {
+    const v = delimiterInput.value || '';
+    if (v.length > 1) delimiterInput.value = v.slice(0, 1);
+  });
+
+  selectIds.forEach((id) => {
+    const sel = document.getElementById(id);
+    if (sel) sel.addEventListener('change', () => validateMapping(false));
+  });
+
+  importForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearNode(importAlerts);
+
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) {
+      addInlineAlert(importAlerts, 'Selecciona un archivo CSV antes de previsualizar.', 'warning');
+      return;
+    }
+
+    // Normalizar delimitador (si está vacío -> coma)
+    let d = (delimiterInput.value || '').trim();
+    if (!d) d = ',';
+    if (d.length > 1) d = d.slice(0, 1);
+    delimiterInput.value = d;
+
+    setLoadingPreview(true);
+
+    try {
+      const formData = new FormData(importForm);
+      const res = await fetch('{{ url_for("import_preview") }}', { method: 'POST', body: formData });
+
+      if (!res.ok) {
+        addInlineAlert(importAlerts, 'No se pudo procesar el archivo. Verifica el delimitador y el formato del CSV.', 'error');
+        if (window.NotificationManager) window.NotificationManager.error('Error al previsualizar el CSV.');
+        return;
+      }
+
+      const data = await res.json();
+
+      const headers = Array.isArray(data.headers) ? data.headers.map(h => String(h)) : [];
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+
+      if (!data || !data.temp_key) {
+        addInlineAlert(importAlerts, 'La previsualización no devolvió una clave temporal. Intenta nuevamente.', 'error');
+        return;
+      }
+
+      tempKeyInput.value = data.temp_key;
+
+      previewMeta.textContent = headers.length ? `Columnas: ${headers.length} · Mostrando hasta 10 filas` : 'Mostrando hasta 10 filas';
+      buildTable(headers, rows);
+      fillSelects(headers);
+      autoMap(headers);
+
+      setPreviewVisible(true);
+      validateMapping(false);
+
+      if (window.NotificationManager) window.NotificationManager.success('Previsualización lista.');
+    } catch (err) {
+      addInlineAlert(importAlerts, 'Ocurrió un error inesperado al previsualizar. Intenta de nuevo.', 'error');
+      if (window.NotificationManager) window.NotificationManager.error('Error al previsualizar el CSV.');
+    } finally {
+      setLoadingPreview(false);
+    }
+  });
+
+  confirmForm.addEventListener('submit', (e) => {
+    if (!validateMapping(true)) {
+      e.preventDefault();
+      return;
+    }
+    // Evitar doble submit
+    setLoadingImport(true);
+  });
+
+  document.getElementById('cancelPreview').addEventListener('click', () => {
+    resetPreview();
+  });
+})();
 </script>
 {% endblock %}

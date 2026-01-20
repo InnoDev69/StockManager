@@ -89,7 +89,8 @@ def index():
     
     role = session.get("role", "Vendedor")
     return render_template('dashboard.html', stats=stats, role=role,
-                           low_stock_list=low_stock_list, products=[], show_back=False)
+                       low_stock_list=low_stock_list, products=[], show_back=False,
+                       DEBUG=1 if os.getenv("DEBUG", "0") == "1" else 0)
 
 @app.route("/login", methods=["GET"])
 def login():

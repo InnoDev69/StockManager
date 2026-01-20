@@ -3,7 +3,7 @@ class Limits:
     """Límites de caracteres y valores para validación."""
     
     # Items/Productos
-    ITEM_NAME_MAX = 50
+    ITEM_NAME_MAX = 25
     ITEM_DESCRIPTION_MAX = 200
     ITEM_BARCODE_MAX = 20
     ITEM_QUANTITY_MAX = 10000

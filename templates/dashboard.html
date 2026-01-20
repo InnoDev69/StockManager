@@ -56,22 +56,6 @@
       {% endif %}
     </a>
 
-    <!-- Bajo Stock -->
-    <a href="#alerts" class="quick-access-item" style="text-decoration: none;">
-      <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 80%, #000));">
-        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
-      </div>
-      <div class="quick-access-content">
-        <div class="quick-access-title">Alertas</div>
-        <div class="quick-access-subtitle">Productos bajo stock</div>
-      </div>
-      {% if stats.low_stock > 0 %}
-      <span class="quick-access-badge" style="background: var(--warning); color: white;">{{ stats.low_stock }}</span>
-      {% endif %}
-    </a>
-
     {% if role == 'admin' %}
     <!-- Importar CSV -->
     <a href="/import" class="quick-access-item" style="text-decoration: none;">
@@ -130,13 +114,16 @@
 
 <!-- KPIs Section -->
 <section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Estado API</div>
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <div id="health-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: var(--glass);"></div>
-      <div id="health" class="mono" style="font-size: 1.25rem; font-weight: 600;">Verificando...</div>
+  <!-- DEBUG: {{ DEBUG }} -->
+  {% if DEBUG %}
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Estado API</div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div id="health-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: var(--glass);"></div>
+        <div id="health" class="mono" style="font-size: 1.25rem; font-weight: 600;">Verificando...</div>
+      </div>
     </div>
-  </div>
+  {% endif %}
 
   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Productos</div>
@@ -344,8 +331,6 @@
         </div>
       </div>
 
-      <!-- Actions -->
-      
     </div>
   </article>
 </template>
@@ -552,6 +537,8 @@
   async function checkAPIHealth() {
     const healthEl = document.getElementById('health');
     const indicatorEl = document.getElementById('health-indicator');
+    
+    if (!healthEl || !indicatorEl) return;
     
     try {
       const response = await fetch('/api/health');

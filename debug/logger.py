@@ -1,7 +1,26 @@
 import logging
 import os
+import sys
 from datetime import datetime
 
+def get_log_dir():
+    """
+    Retorna el directorio de logs:
+    - Desarrollo: ./logs (relativo al proyecto)
+    - Producción (empaquetado): directorio de datos del usuario
+    """
+    # Si está congelado (PyInstaller), usar directorio de usuario
+
+    if getattr(sys, 'frozen', False):
+        if sys.platform == "win32":  # Windows
+            base_dir = os.path.join(os.getenv("APPDATA"), "StockManager", "logs")
+        else:  # macOS y Linux
+            base_dir = os.path.join(os.path.expanduser("~"), ".stock_manager", "logs")
+    else:
+        base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+    
+    return base_dir
+    
 class AppLogger:
     """
     Logger centralizado para la aplicación.
@@ -28,24 +47,22 @@ class AppLogger:
         self._logger = logging.getLogger("StockManager")
         self._logger.setLevel(logging.DEBUG)
         
-        # Evitar duplicar handlers
+        #evita duplicar handlers
         if self._logger.handlers:
             return
         
-        # Formato del log
+        # formato del log
         formatter = logging.Formatter(
             fmt="[%(asctime)s] %(levelname)s - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )
         
-        # Handler para consola (solo errores y warnings)
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.WARNING)
         console_handler.setFormatter(formatter)
         self._logger.addHandler(console_handler)
         
-        # Handler para archivo (todos los niveles)
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
+        log_dir = get_log_dir()
         os.makedirs(log_dir, exist_ok=True)
         
         log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y%m%d')}.log")
@@ -75,5 +92,4 @@ class AppLogger:
         self._logger.exception(message)
 
 
-# Instancia global para importar directamente
 logger = AppLogger()

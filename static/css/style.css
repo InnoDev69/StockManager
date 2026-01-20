@@ -1005,3 +1005,39 @@ a, h1, h2, h3, h4, h5, h6, p, label, small, span { font-family: inherit; }
     grid-template-columns: 1fr !important;
   }
 }
+
+.file-input{
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.file-input::file-selector-button{
+  margin-right: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--btn-bg, #2f6feb);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-input::file-selector-button:hover{
+  filter: brightness(1.05);
+}
+
+/* Fallback (algunos navegadores) */
+.file-input::-webkit-file-upload-button{
+  margin-right: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--btn-bg, #2f6feb);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}

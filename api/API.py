@@ -31,9 +31,9 @@ def health():
     Requiere login: False.
     
     Returns:
-        JSON: {"status": "ok"} con código 200
+        JSON: {"status": "Ok"} con código 200
     """
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "Ok"}), 200
 
 @api_bp.route("/products_all", methods=["GET"])
 def get_all_products():
@@ -255,19 +255,23 @@ def create_product():
         return jsonify({"error": "Faltan campos requeridos"}), 400
     
     try:
+        data = ItemValidator.validate(data.get("barcode", ""), data.get("description", ""), data.get("name", ""), 
+                                    data.get("quantity"), data.get("min_quantity"), 
+                                    data.get("price"), 1)
+    except ValidationError as e:
+        return jsonify({"error": e.field + ": " + e.message}), 400
+    
+    try:
         db.add_item(
-            data["barcode"],
+            data.get("barrs_code", ""),
             data.get("description", ""),
             data["name"],
-            int(data["quantity"]),
-            int(data["min_quantity"]),
-            float(data["price"])
+            data["quantity"],
+            data["min_quantity"],
+            data["price"]
         )
         return jsonify({"message": "Producto creado exitosamente"}), 201
     
-    except ValidationError as e:
-        # Error de validación → 400 Bad Request
-        return jsonify({"error": e.message, "field": e.field}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -320,6 +324,12 @@ def update_product(product_id):
         "price": "price",
         "status": "status"
     }
+    try:
+        data = ItemValidator.validate("0", data.get("description", ""), data.get("name", ""), 
+                                    data.get("quantity"), data.get("min_quantity"), 
+                                    data.get("price"), data.get("status"))
+    except ValidationError as e:
+        return jsonify({"error": e.field + ": " + e.message}), 400
     
     for key, db_field in field_mapping.items():
         if key in data:
