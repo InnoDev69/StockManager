@@ -9,7 +9,9 @@ import csv
 import io
 import uuid
 import os
+import sys
 from dotenv import load_dotenv
+import signal
 
 load_dotenv()
 
@@ -651,6 +653,13 @@ def metrics():
         pass
     
     return render_template("metrics.html")
+
+def signal_handler(sig, frame):
+    logger.info("Señal de terminación recibida, cerrando servidor...")
+    sys.exit(0)
+    
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
     port = int(os.environ.get("FLASK_PORT", 5000))

@@ -1,5 +1,5 @@
 const { app } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const findFreePort = require('find-free-port');
@@ -8,6 +8,7 @@ class PythonServer {
   constructor() {
     this.child = null;
     this.port = null;
+    this.pid = null;
   }
 
   async start() {
@@ -15,12 +16,10 @@ class PythonServer {
 
     this.port = await this._getPort();
 
-    // Usa .exe en Windows
     const binName = process.platform === 'win32'
       ? 'stock-manager-server.exe'
       : 'stock-manager-server';
 
-    // En dev: usa dist/<binario>; en producción: resources/server/<binario>
     const binPath = app.isPackaged
       ? path.join(process.resourcesPath, 'server', binName)
       : path.join(__dirname, '..', 'dist', binName);
@@ -30,15 +29,25 @@ class PythonServer {
     }
 
     this.child = spawn(binPath, ['--port', String(this.port)], {
-      stdio: 'inherit',
+      stdio: 'ignore',  // Cambiado: evita problemas con stdio en Windows
       windowsHide: true,
       shell: false
     });
 
-    this.child.on('exit', () => { this.child = null; });
+    this.pid = this.child.pid;
+    console.log(`Servidor iniciado con PID: ${this.pid}`);
 
-    // Espera breve a que el server esté listo; sustituye por un healthcheck si tienes endpoint
-    await new Promise(r => setTimeout(r, 800));
+    this.child.on('exit', (code) => {
+      console.log(`Servidor terminó (código: ${code})`);
+      this.child = null;
+      this.pid = null;
+    });
+
+    this.child.on('error', (err) => {
+      console.error('Error en servidor:', err);
+    });
+
+    await new Promise(r => setTimeout(r, 1000));
     return this.url();
   }
 
@@ -47,10 +56,34 @@ class PythonServer {
   }
 
   stop() {
-    if (this.child) {
-      this.child.kill();
-      this.child = null;
+    if (!this.pid) return;
+
+    console.log(`Deteniendo servidor (PID: ${this.pid})...`);
+
+    if (process.platform === 'win32') {
+      // Windows: taskkill con /T mata todo el arbol
+      exec(`taskkill /PID ${this.pid} /T /F`, (err) => {
+        if (err) {
+          console.error('Error taskkill:', err.message);
+        } else {
+          console.log('Servidor detenido correctamente');
+        }
+      });
+    } else {
+      // Linux/macOS
+      try {
+        process.kill(this.pid, 'SIGTERM');
+        setTimeout(() => {
+          try {
+            process.kill(this.pid, 0);
+            process.kill(this.pid, 'SIGKILL');
+          } catch (e) {}
+        }, 500);
+      } catch (e) {}
     }
+
+    this.child = null;
+    this.pid = null;
   }
 
   async _getPort() {
