@@ -117,6 +117,26 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: warn
       
+      - name: Compress Linux unpacked directory
+        if: matrix.platform == 'linux'
+        run: |
+          cd dist
+          if [ -d "linux-unpacked" ]; then
+            tar -czf linux-unpacked.tar.gz linux-unpacked/
+            echo "Compressed linux-unpacked directory"
+          else
+            echo "linux-unpacked directory not found"
+          fi
+        shell: bash
+      
+      - name: Upload Linux unpacked
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-Unpacked
+          path: dist/linux-unpacked.tar.gz
+          if-no-files-found: warn
+      
       # Un solo upload para todos los .exe de Windows
       - name: Upload Windows EXE files
         if: matrix.platform == 'windows'
@@ -165,6 +185,7 @@ jobs:
             artifacts/**/*.AppImage
             artifacts/**/*.deb
             artifacts/**/*.exe
+            artifacts/**/*-Unpacked/*.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -177,6 +198,7 @@ jobs:
             ### Linux
             - **stock-manager.AppImage** - Portable para cualquier distribución
             - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
+            - **linux-unpacked.tar.gz** - Versión sin empaquetar (desarrollo/debug)
 
             ## Instalación
 
@@ -195,6 +217,13 @@ jobs:
             ```bash
             sudo dpkg -i stock-manager_*.deb
             sudo apt-get install -f
+            ```
+
+            **Linux (unpacked):**
+            ```bash
+            tar -xzf linux-unpacked.tar.gz
+            cd linux-unpacked
+            ./stock-manager
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

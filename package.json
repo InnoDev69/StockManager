@@ -75,8 +75,12 @@
       "extraResources": [
         {
           "from": "dist/stock-manager-server",
-          "to": "server/stock-manager-server"
+          "to": "server/stock-manager-server",
+          "permissions": "0755"
         }
+      ],
+      "asarUnpack": [
+        "**/*.node"
       ]
     }
   },
