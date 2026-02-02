@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 from PyInstaller.utils.hooks import collect_data_files
+import os
 
 block_cipher = None
 
@@ -43,7 +44,7 @@ a = Analysis(
         'datetime',
         'decimal',
         'requests',
-        'python-dotenv',
+        'dotenv',
     ],
     hookspath=[],
     hooksconfig={},
