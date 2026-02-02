@@ -1,6 +1,6 @@
 {
   "name": "stock-manager",
-  "version": "1.1.0",
+  "version": "1.1.7",
   "description": "Sistema de gestión de inventario y ventas",
   "main": "electron/main.js",
   "author": {
@@ -75,8 +75,7 @@
       "extraResources": [
         {
           "from": "dist/stock-manager-server",
-          "to": "server/stock-manager-server",
-          "permissions": "0755"
+          "to": "server/stock-manager-server"
         }
       ],
       "asarUnpack": [
