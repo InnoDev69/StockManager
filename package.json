@@ -41,7 +41,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "static/icon.ico",
+      "icon": "static/app/icon.ico",
       "publisherName": "InnoDev69",
       "extraResources": [
         {
