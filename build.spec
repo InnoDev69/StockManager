@@ -1,25 +1,45 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
-from PyInstaller.utils.hooks import collect_data_files
+import os
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, copy_metadata
 
 block_cipher = None
 
 exe_extension = '.exe' if sys.platform == 'win32' else ''
 exe_name = 'stock-manager-server' + exe_extension
 
-# Collect webview data files
 webview_datas = collect_data_files('webview')
+
+# Recoger typelibs y libs de gi en Linux
+gi_datas = []
+gi_binaries = []
+if sys.platform == 'linux':
+    gi_datas = collect_data_files('gi')
+    gi_binaries = collect_dynamic_libs('gi')
+    
+    # Incluir GObject introspection typelibs
+    typelib_dirs = [
+        '/usr/lib/x86_64-linux-gnu/girepository-1.0',
+        '/usr/lib/girepository-1.0',
+        '/usr/lib64/girepository-1.0',
+    ]
+    for td in typelib_dirs:
+        if os.path.isdir(td):
+            for f in os.listdir(td):
+                if f.endswith('.typelib'):
+                    gi_datas.append((os.path.join(td, f), 'gi_typelibs'))
+            break
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=[] + gi_binaries,
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
         ('bd', 'bd'),
         ('api', 'api'),
-    ] + webview_datas,
+    ] + webview_datas + gi_datas,
     hiddenimports=[
         'flask',
         'werkzeug.security',
@@ -38,6 +58,20 @@ a = Analysis(
         'webview.platforms.gtk',
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
+        # GObject/GTK
+        'gi',
+        'gi.repository',
+        'gi.repository.Gtk',
+        'gi.repository.Gdk',
+        'gi.repository.GdkPixbuf',
+        'gi.repository.GLib',
+        'gi.repository.GObject',
+        'gi.repository.Gio',
+        'gi.repository.Pango',
+        'gi.repository.WebKit2',
+        'cairo',
+        'gi._gi',
+        'gi._gi_cairo',
     ],
     hookspath=[],
     hooksconfig={},
@@ -65,7 +99,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # False = sin ventana de consola (app con GUI)
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
