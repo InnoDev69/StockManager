@@ -162,11 +162,6 @@ class BDConector:
         """
         
         with self._cursor() as cur:
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_date ON sells(date)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_items_status ON items(status)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barrs_code)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_details_sell_id ON details(sell_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_details_item_id ON details(item_id)")
             
             cur.execute(users_table_query)  
             cur.execute(items_table_query)
