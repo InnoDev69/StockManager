@@ -12,6 +12,8 @@ import os
 import sys
 from dotenv import load_dotenv
 import signal
+import time
+import webview
 
 load_dotenv()
 
@@ -24,35 +26,6 @@ def inject_limits():
     return {'Limits': Limits}
 
 app.register_blueprint(api_bp, url_prefix="/api")
-
-def api_call(endpoint, method="GET", data=None):
-    """
-    Realiza llamadas internas a la API REST.
-    Requiere login: True.
-    
-    Args:
-        endpoint (str): Endpoint de la API (ej. '/items', '/sales')
-        method (str): Método HTTP ('GET', 'POST', 'PUT', 'DELETE')
-        data (dict, optional): Datos para enviar en métodos POST/PUT
-    
-    Returns:
-        Response: Objeto de respuesta de Flask con el resultado de la API
-    
-    Ejemplo:
-        response = api_call('/items', 'POST', {'name': 'Producto'})
-    """
-    base_url = request.url_root.rstrip('/')
-    url = f"{base_url}/api{endpoint}"
-    
-    with app.test_client() as client:
-        if method == "GET":
-            return client.get(url)
-        elif method == "POST":
-            return client.post(url, json=data)
-        elif method == "PUT":
-            return client.put(url, json=data)
-        elif method == "DELETE":
-            return client.delete(url)
 
 #@app.route("/product_management")
 def under_development():
@@ -474,6 +447,22 @@ def sales():
     return render_template("sales.html", sales=sales)
 
 temp_imports = {}
+TEMP_IMPORT_MAX_AGE = 1800  # 30 minutos
+TEMP_IMPORT_MAX_ENTRIES = 20
+
+def cleanup_temp_imports():
+    """Elimina importaciones temporales expiradas (>30 min) o si hay demasiadas."""
+    now = time.time()
+    expired = [k for k, v in temp_imports.items()
+               if now - v.get("created_at", 0) > TEMP_IMPORT_MAX_AGE]
+    for k in expired:
+        del temp_imports[k]
+    
+    # Si aún hay demasiadas, eliminar las más antiguas
+    if len(temp_imports) > TEMP_IMPORT_MAX_ENTRIES:
+        sorted_keys = sorted(temp_imports, key=lambda k: temp_imports[k].get("created_at", 0))
+        for k in sorted_keys[:len(temp_imports) - TEMP_IMPORT_MAX_ENTRIES]:
+            del temp_imports[k]
 
 @app.route("/import", methods=["GET"])
 def import_preview():
@@ -513,11 +502,14 @@ def import_preview():
     headers = rows[0] if has_header else [f"Col{i}" for i in range(len(rows[0]))]
     data_rows = rows[1:] if has_header else rows
     
+    cleanup_temp_imports()
+    
     temp_key = str(uuid.uuid4())
     temp_imports[temp_key] = {
         'headers': headers,
         'rows': data_rows,
-        'delimiter': delimiter
+        'delimiter': delimiter,
+        'created_at': time.time()
     }
     
     return {
@@ -662,7 +654,18 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
+    
+    if sys.platform == "linux":
+        os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
+        os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
+        
     port = int(os.environ.get("FLASK_PORT", 5000))
     logger.info(f"Iniciando servidor en puerto {port}")
-    app.run(host="127.0.0.1", port=port, debug=True if 
-            os.environ.get("FLASK_ENV", "production") == "development" else False)
+    
+    window = webview.create_window(
+        'Stock Manager',
+        app,
+        width=1200,
+        height=800
+    )
+    webview.start()

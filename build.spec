@@ -1,28 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 from PyInstaller.utils.hooks import collect_data_files
-import os
 
 block_cipher = None
 
-# Determinar extensión según OS
 exe_extension = '.exe' if sys.platform == 'win32' else ''
 exe_name = 'stock-manager-server' + exe_extension
 
-# Incluye el .env si existe
-datas_list = [
-    ('templates', 'templates'),
-    ('static', 'static'),
-    ('bd', 'bd'),
-    ('api', 'api'),
-]
-
-# Agrega .env si existe
-if os.path.exists('.env'):
-    datas_list.append(('.env', '.'))
+# Collect webview data files
+webview_datas = collect_data_files('webview')
 
 a = Analysis(
-    ['main.py'],  # Cambiado: ahora está en la raíz
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -30,7 +19,7 @@ a = Analysis(
         ('static', 'static'),
         ('bd', 'bd'),
         ('api', 'api'),
-    ],
+    ] + webview_datas,
     hiddenimports=[
         'flask',
         'werkzeug.security',
@@ -45,6 +34,10 @@ a = Analysis(
         'decimal',
         'requests',
         'dotenv',
+        'webview',
+        'webview.platforms.gtk',
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
     ],
     hookspath=[],
     hooksconfig={},
@@ -72,7 +65,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,  # False = sin ventana de consola (app con GUI)
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

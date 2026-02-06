@@ -1,12 +1,11 @@
 from flask import Blueprint, jsonify, request, session
 from bd.bdConector import BDConector
-from debug.pydebug import DebugLogger
+from datetime import datetime, timedelta
 from bd.bdInstance import *
 from debug.logger import logger
 from data.validators import ItemValidator, UserValidator, ValidationError
 
 api_bp = Blueprint("api", __name__)
-debugger = DebugLogger()
 
 def require_auth():
     """
@@ -774,7 +773,6 @@ def get_metrics():
     Returns:
         JSON: Métricas completas del negocio
     """
-    from datetime import datetime, timedelta
     
     auth_error = require_auth()
     if auth_error:
@@ -799,36 +797,18 @@ def get_metrics():
     prev_end_date = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
     prev_start_date = (start_dt - timedelta(days=period_days)).strftime('%Y-%m-%d')
     
-    # ============================================
-    # KPIs DEL PERIODO ACTUAL
-    # ============================================
+    data = db.get_metrics_data(start_date, end_date, prev_start_date, prev_end_date)
     
-    kpi_query = """
-        SELECT 
-            COALESCE(SUM(d.quantity * d.price), 0) as revenue,
-            COUNT(DISTINCT s.id) as total_sales,
-            COALESCE(SUM(d.quantity), 0) as units_sold
-        FROM sells s
-        JOIN details d ON s.id = d.sell_id
-        WHERE DATE(s.date) BETWEEN ? AND ?
-    """
-    kpi_result = db.execute_query(kpi_query, (start_date, end_date))
-    revenue = float(kpi_result[0][0]) if kpi_result else 0
-    total_sales = int(kpi_result[0][1]) if kpi_result else 0
-    units_sold = int(kpi_result[0][2]) if kpi_result else 0
+    revenue = float(data["kpis"][0])
+    total_sales = int(data["kpis"][1])
+    units_sold = int(data["kpis"][2])
     avg_ticket = round(revenue / total_sales, 2) if total_sales > 0 else 0
     
-    # ============================================
-    # KPIs DEL PERÍODO ANTERIOR (para comparación)
-    # ============================================
-    
-    prev_kpi_result = db.execute_query(kpi_query, (prev_start_date, prev_end_date))
-    prev_revenue = float(prev_kpi_result[0][0]) if prev_kpi_result else 0
-    prev_total_sales = int(prev_kpi_result[0][1]) if prev_kpi_result else 0
-    prev_units_sold = int(prev_kpi_result[0][2]) if prev_kpi_result else 0
+    prev_revenue = float(data["prev_kpis"][0])
+    prev_total_sales = int(data["prev_kpis"][1])
     prev_avg_ticket = round(prev_revenue / prev_total_sales, 2) if prev_total_sales > 0 else 0
+    prev_units_sold = int(data["prev_kpis"][2])
     
-    # Calcula cambios porcentuales
     def calc_change(current, previous):
         if previous == 0:
             return 100.0 if current > 0 else 0.0
@@ -839,202 +819,57 @@ def get_metrics():
     ticket_change = calc_change(avg_ticket, prev_avg_ticket)
     units_change = calc_change(units_sold, prev_units_sold)
     
-    # ============================================
-    # VENTAS EN EL TIEMPO (xdia)
-    # ============================================
-    
-    sales_over_time_query = """
-        SELECT 
-            DATE(s.date) as sale_date,
-            COALESCE(SUM(d.quantity * d.price), 0) as daily_revenue,
-            COUNT(DISTINCT s.id) as daily_sales
-        FROM sells s
-        JOIN details d ON s.id = d.sell_id
-        WHERE DATE(s.date) BETWEEN ? AND ?
-        GROUP BY DATE(s.date)
-        ORDER BY sale_date ASC
-    """
-    sales_over_time = db.execute_query(sales_over_time_query, (start_date, end_date))
-    
     date_range = {}
     current_dt = datetime.strptime(start_date, '%Y-%m-%d')
     end_dt = datetime.strptime(end_date, '%Y-%m-%d')
     while current_dt <= end_dt:
-        date_str = current_dt.strftime('%Y-%m-%d')
-        date_range[date_str] = {"revenue": 0, "sales": 0}
+        date_range[current_dt.strftime('%Y-%m-%d')] = {"revenue": 0, "sales": 0}
         current_dt += timedelta(days=1)
     
-    for row in sales_over_time:
+    for row in data["sales_over_time"]:
         date_str = row[0] if isinstance(row[0], str) else row[0].strftime('%Y-%m-%d')
         if date_str in date_range:
-            date_range[date_str]["revenue"] = float(row[1])
-            date_range[date_str]["sales"] = int(row[2])
+            date_range[date_str] = {"revenue": float(row[1]), "sales": int(row[2])}
     
-    labels = []
-    revenues = []
-    sales_counts = []
-    for date_str in sorted(date_range.keys()):
+    days_es = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    labels, revenues, sales_counts = [], [], []
+    for date_str in sorted(date_range):
         dt = datetime.strptime(date_str, '%Y-%m-%d')
-        if period_days <= 7:
-            days_es = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-            labels.append(days_es[dt.weekday()])
-        elif period_days <= 31:
-            labels.append(dt.strftime('%d/%m'))
-        else:
-            labels.append(dt.strftime('%d/%m'))
+        labels.append(days_es[dt.weekday()] if period_days <= 7 else dt.strftime('%d/%m'))
         revenues.append(date_range[date_str]["revenue"])
         sales_counts.append(date_range[date_str]["sales"])
     
-    # ============================================
-    # TOP PRODUCTOS
-    # ============================================
-    
-    top_products_query = """
-        SELECT 
-            i.id,
-            i.name,
-            i.barrs_code,
-            SUM(d.quantity) as units,
-            SUM(d.quantity * d.price) as revenue
-        FROM details d
-        JOIN items i ON d.item_id = i.id
-        JOIN sells s ON d.sell_id = s.id
-        WHERE DATE(s.date) BETWEEN ? AND ?
-        GROUP BY i.id, i.name, i.barrs_code
-        ORDER BY units DESC
-        LIMIT 10
-    """
-    top_products_result = db.execute_query(top_products_query, (start_date, end_date))
     top_products = [
-        {
-            "id": row[0],
-            "name": row[1],
-            "sku": row[2] or "Sin SKU",
-            "units": int(row[3]),
-            "revenue": float(row[4])
-        }
-        for row in top_products_result
+        {"id": r[0], "name": r[1], "sku": r[2] or "Sin SKU", "units": int(r[3]), "revenue": float(r[4])}
+        for r in data["top_products"]
     ]
     
-    # ============================================
-    # VENTAS POR DIA DE LA SEMANA
-    # ============================================
-    
-    weekday_query = """
-        SELECT 
-            CAST(strftime('%w', s.date) AS INTEGER) as weekday,
-            COUNT(DISTINCT s.id) as sales_count
-        FROM sells s
-        WHERE DATE(s.date) BETWEEN ? AND ?
-        GROUP BY weekday
-    """
-    weekday_result = db.execute_query(weekday_query, (start_date, end_date))
-    
-    # SQLite: 0=Domingo, 1=Lunes, etc
-    # Convierte en el sig formato: 0=Lunes, 1=Martes, ... 6=Domingo
-    sales_by_weekday = [0, 0, 0, 0, 0, 0, 0]  # lun, mar, mie, jue, vie, sab, dom
-    for row in weekday_result:
-        sqlite_weekday = int(row[0])  # 0=Dom, 1=Lun, ...
-        # Convierte en el sig formato: Dom(0)->6, Lun(1)->0, Mar(2)->1, ...
-        adjusted_weekday = (sqlite_weekday - 1) if sqlite_weekday > 0 else 6
-        sales_by_weekday[adjusted_weekday] = int(row[1])
-    
-    # ============================================
-    # VENTAS POR HORA
-    # ============================================
-    
-    hourly_query = """
-        SELECT 
-            CAST(strftime('%H', s.date) AS INTEGER) as hour,
-            COUNT(DISTINCT s.id) as sales_count
-        FROM sells s
-        WHERE DATE(s.date) BETWEEN ? AND ?
-        GROUP BY hour
-    """
-    hourly_result = db.execute_query(hourly_query, (start_date, end_date))
+    sales_by_weekday = [0] * 7
+    for row in data["weekday_sales"]:
+        sqlite_wd = int(row[0])
+        adjusted = (sqlite_wd - 1) if sqlite_wd > 0 else 6
+        sales_by_weekday[adjusted] = int(row[1])
     
     sales_by_hour = [0] * 24
-    for row in hourly_result:
-        hour = int(row[0])
-        sales_by_hour[hour] = int(row[1])
+    for row in data["hourly_sales"]:
+        sales_by_hour[int(row[0])] = int(row[1])
     
-    # ============================================
-    # COMPARATIVA (período actual vs anterior)
-    # ============================================
+    out_of_stock = int(data["alerts"][0] or 0)
+    low_stock = int(data["alerts"][1] or 0)
+    no_movement = int(data["alerts"][2] or 0)
     
-    comparison = {
-        "current": round(revenue, 2),
-        "previous": round(prev_revenue, 2)
-    }
-    
-    # ============================================
-    # ALERTAS DE INVENTARIO
-    # ============================================
-    
-    # Productos agotados
-    out_of_stock = db.execute_query(
-        "SELECT COUNT(*) FROM items WHERE quantity = 0 AND status = 1"
-    )[0][0]
-    
-    # Productos con stock bajo
-    low_stock = db.execute_query(
-        "SELECT COUNT(*) FROM items WHERE quantity > 0 AND quantity <= min_quantity AND status = 1"
-    )[0][0]
-    
-    # Productos sin movimientos
-    no_movement_query = """
-        SELECT COUNT(*) FROM items i
-        WHERE i.status = 1
-        AND i.id NOT IN (
-            SELECT DISTINCT d.item_id 
-            FROM details d
-            JOIN sells s ON d.sell_id = s.id
-            WHERE DATE(s.date) >= DATE('now', '-30 days')
-        )
-    """
-    no_movement = db.execute_query(no_movement_query)[0][0]
-    
-    # ============================================
-    # INSIGHTS
-    # ============================================
+    days_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     
     best_day = None
-    if sales_by_weekday:
-        days_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-        max_idx = sales_by_weekday.index(max(sales_by_weekday))
-        
-        best_day_revenue_query = """
-            SELECT COALESCE(SUM(d.quantity * d.price), 0)
-            FROM sells s
-            JOIN details d ON s.id = d.sell_id
-            WHERE DATE(s.date) BETWEEN ? AND ?
-            AND CAST(strftime('%w', s.date) AS INTEGER) = ?
-        """
-        sqlite_day = (max_idx + 1) % 7  # Lun(0)->1, Dom(6)->0
-        best_day_revenue = db.execute_query(
-            best_day_revenue_query, 
-            (start_date, end_date, sqlite_day)
-        )[0][0]
-        
+    if data["best_weekday_idx"] is not None:
         best_day = {
-            "name": days_names[max_idx],
-            "revenue": float(best_day_revenue) if best_day_revenue else 0
+            "name": days_names[data["best_weekday_idx"]],
+            "revenue": data["best_day_revenue"]
         }
     
-    # Hora pico
-    peak_hour = None
-    if any(sales_by_hour):
-        peak_hour = sales_by_hour.index(max(sales_by_hour))
+    peak_hour = sales_by_hour.index(max(sales_by_hour)) if any(sales_by_hour) else None
+    top_product = {"name": top_products[0]["name"], "units": top_products[0]["units"]} if top_products else None
     
-    # Producto mas vendidos/populares
-    top_product = None
-    if top_products:
-        top_product = {
-            "name": top_products[0]["name"],
-            "units": top_products[0]["units"]
-        }
-    
-    # Tendencia
     if prev_revenue > 0:
         if revenue_change > 10:
             trend = f"Las ventas aumentaron {revenue_change}% respecto al período anterior. ¡Excelente trabajo!"
@@ -1066,7 +901,10 @@ def get_metrics():
         "topProducts": top_products,
         "salesByWeekday": sales_by_weekday,
         "salesByHour": sales_by_hour,
-        "comparison": comparison,
+        "comparison": {
+            "current": round(revenue, 2),
+            "previous": round(prev_revenue, 2)
+        },
         "alerts": {
             "outOfStock": out_of_stock,
             "lowStock": low_stock,
