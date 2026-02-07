@@ -44,7 +44,7 @@ jobs:
             pkg-config python3-dev meson \
             file fuse libfuse2 \
             libwebkit2gtk-4.1-0 libgtk-3-0 \
-            desktop-file-utils
+            desktop-file-utils imagemagick
       
       - name: Install Python dependencies
         run: |
@@ -94,13 +94,31 @@ jobs:
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
           
           # Copiar el ejecutable
           cp dist/stock-manager-server AppDir/usr/bin/
           chmod +x AppDir/usr/bin/stock-manager-server
           
-          # Crear archivo .desktop
-          cat > AppDir/usr/share/applications/stock-manager.desktop << 'EOF'
+          # Crear un ícono PNG válido
+          if [ -f "static/icon.png" ]; then
+            convert static/icon.png -resize 256x256 AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
+          else
+            # Crear un ícono PNG con ImageMagick
+            convert -size 256x256 xc:'#2196F3' \
+              -gravity center \
+              -pointsize 120 \
+              -font DejaVu-Sans-Bold \
+              -fill white \
+              -annotate +0+0 'SM' \
+              AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
+          fi
+          
+          # Copiar el ícono a la raíz de AppDir
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png AppDir/stock-manager.png
+          
+          # Crear archivo .desktop en la raíz de AppDir
+          cat > AppDir/stock-manager.desktop << 'EOF'
           [Desktop Entry]
           Name=Stock Manager
           Exec=stock-manager-server
@@ -111,23 +129,8 @@ jobs:
           Terminal=false
           EOF
           
-          # Crear un ícono placeholder
-          if [ -f "static/icon.png" ]; then
-            cp static/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
-          else
-            # Crear un ícono SVG simple
-            cat > AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.svg << 'SVGEOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
-            <rect width="256" height="256" fill="#2196F3"/>
-            <text x="128" y="150" font-size="100" fill="white" text-anchor="middle" font-family="sans-serif" font-weight="bold">SM</text>
-          </svg>
-          SVGEOF
-            # Para compatibilidad, crear también PNG
-            convert AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.svg \
-              AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || \
-              touch AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
-          fi
+          # Copiar el .desktop también a /usr/share/applications
+          cp AppDir/stock-manager.desktop AppDir/usr/share/applications/
           
           # Crear AppRun con configuración de entorno
           cat > AppDir/AppRun << 'EOF'
@@ -178,7 +181,7 @@ jobs:
             --desktop-file AppDir/usr/share/applications/stock-manager.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || true
           
-          # Crear el AppImage
+          # Crear el AppImage con appimagetool
           ARCH=x86_64 ./appimagetool --no-appstream AppDir StockManager-x86_64.AppImage
           
           # Mover a dist
