@@ -49,7 +49,7 @@ jobs:
         with:
           node-version: '20'
       
-      # ============ NUEVO: Instalar dependencias del sistema para Linux ============
+      # Instalar dependencias del sistema para Linux
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
@@ -58,9 +58,8 @@ jobs:
             python3-gi \
             python3-gi-cairo \
             gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.0 \
+            gir1.2-webkit2-4.1 \
             libgirepository1.0-dev
-      # ============================================================================
       
       - name: Install Python dependencies
         run: |
@@ -150,7 +149,6 @@ jobs:
           path: dist/linux-unpacked.tar.gz
           if-no-files-found: warn
       
-      # Un solo upload para todos los .exe de Windows
       - name: Upload Windows EXE files
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
@@ -181,7 +179,6 @@ jobs:
       - name: Display structure
         run: ls -R artifacts/
       
-      # Eliminar duplicados antes de crear release
       - name: Remove duplicate files
         run: |
           cd artifacts
