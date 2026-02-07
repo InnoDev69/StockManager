@@ -66,3 +66,70 @@ Si la app inicia pero luego falla al navegar:
 - Revisar el log del día.
 - Errores comunes: `BuildError` por `url_for()` apuntando a un endpoint inexistente.
 
+## Errores de QT/GTK con pywebview (modo standalone)
+
+**Síntomas:**
+```
+[pywebview] QT cannot be loaded
+ModuleNotFoundError: No module named 'qtpy'
+[pywebview] GTK cannot be loaded
+ValueError: Namespace Gtk not available
+webview.errors.WebViewException: You must have either QT or GTK with Python extensions installed
+```
+
+**Contexto:**
+- Este error ocurre al usar el launcher standalone con pywebview (`launcher_pywebview.py`)
+- **NO afecta** al modo Electron normal (la distribución estándar de StockManager)
+- pywebview requiere un backend gráfico: PyQt5 o GTK
+
+**Solución 1: Usar AppImage (recomendado)**
+
+El AppImage standalone incluye todas las dependencias:
+
+```bash
+# Descargar el AppImage desde releases
+chmod +x StockManager-*.AppImage
+./StockManager-*.AppImage
+```
+
+**Solución 2: Instalar dependencias manualmente**
+
+Para PyQt5 (recomendado):
+```bash
+# Arch Linux
+sudo pacman -S python-pyqt5 python-pyqt5-webengine
+
+# Ubuntu/Debian
+sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine
+
+# Con pip (cualquier distro)
+pip install PyQt5 PyQtWebEngine pywebview
+```
+
+Para GTK (alternativa):
+```bash
+# Arch Linux
+sudo pacman -S python-gobject gtk3 webkit2gtk
+
+# Ubuntu/Debian
+sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.0
+
+# Con pip (requiere dependencias del sistema)
+pip install PyGObject pywebview
+```
+
+**Solución 3: Usar el modo Electron (por defecto)**
+
+La distribución estándar usa Electron, no pywebview:
+```bash
+# Descargar el instalador/AppImage desde releases
+# Electron incluye todo lo necesario sin dependencias extra
+```
+
+**Verificar instalación:**
+
+```bash
+python3 -c "import webview; print('pywebview:', webview.__version__)"
+python3 -c "from PyQt5 import QtCore; print('PyQt5 OK')"
+```
+

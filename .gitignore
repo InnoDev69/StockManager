@@ -65,6 +65,11 @@ build/
 *.dmg
 *.app
 
+# AppImage build artifacts
+build_appimage/
+squashfs-root/
+test_extract/
+
 # Electron-builder / Forge config outputs
 electron-builder.yml
 dist-electron/

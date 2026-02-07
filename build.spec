@@ -15,6 +15,8 @@ datas_list = [
     ('static', 'static'),
     ('bd', 'bd'),
     ('api', 'api'),
+    ('data', 'data'),
+    ('debug', 'debug'),
 ]
 
 # Agrega .env si existe
@@ -25,13 +27,9 @@ a = Analysis(
     ['main.py'],  # Cambiado: ahora está en la raíz
     pathex=[],
     binaries=[],
-    datas=[
-        ('templates', 'templates'),
-        ('static', 'static'),
-        ('bd', 'bd'),
-        ('api', 'api'),
-    ],
+    datas=datas_list,
     hiddenimports=[
+        # Flask y dependencias core
         'flask',
         'werkzeug.security',
         'werkzeug.serving',
@@ -45,11 +43,24 @@ a = Analysis(
         'decimal',
         'requests',
         'dotenv',
+        # Dependencias opcionales para pywebview (si se usa launcher_pywebview.py)
+        # Estas NO son requeridas para el modo Electron normal
+        # 'webview',
+        # 'pywebview',
+        # 'PyQt5',
+        # 'PyQt5.QtCore',
+        # 'PyQt5.QtGui',
+        # 'PyQt5.QtWidgets',
+        # 'PyQt5.QtWebEngineWidgets',
+        # 'qtpy',
+        # 'gi',
+        # 'gi.repository',
+        # 'gi.repository.Gtk',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy'],
+    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'IPython', 'notebook'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

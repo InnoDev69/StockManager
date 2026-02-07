@@ -65,6 +65,53 @@ Notas relevantes para dev:
 - El binario del servidor debe ser ejecutable dentro del bundle. Por eso se fuerza `permissions: "0755"` en `extraResources`.
 - Si el servidor necesita escribir (DB/logs), debe hacerlo en rutas escribibles del usuario (ver [bd/bdInstance.py](../../bd/bdInstance.py) y [debug/logger.py](../../debug/logger.py)).
 
+### AppImage Standalone con pywebview
+
+Además del AppImage basado en Electron (distribución principal), existe un modo alternativo que usa pywebview:
+
+**¿Cuándo usar cada uno?**
+
+- **Electron AppImage (por defecto)**: Incluye todo lo necesario, más pesado (~150MB) pero funciona en todas las distros sin dependencias.
+- **pywebview AppImage**: Alternativa más ligera para usuarios que prefieren un binario Python puro con UI nativa Qt/GTK.
+
+**Construcción del AppImage standalone:**
+
+```bash
+# Desde la raíz del proyecto
+./build_scripts/build_appimage.sh
+```
+
+Este script:
+1. Crea un entorno Python virtual
+2. Instala Flask, pywebview, PyQt5 y todas las dependencias
+3. Construye con PyInstaller usando `build_appimage.spec`
+4. Empaqueta todo en un AppImage con `linuxdeploy` y `appimagetool`
+5. Incluye las librerías de QT necesarias
+
+**Salida:**
+- `StockManager-{version}-x86_64.AppImage`
+
+**Pruebas:**
+
+```bash
+# Ejecutar script de test
+./test_appimage.sh
+
+# O ejecutar manualmente
+chmod +x StockManager-*.AppImage
+./StockManager-*.AppImage
+```
+
+**Archivos relevantes:**
+- `build_scripts/build_appimage.sh` - Script de construcción
+- `build_appimage.spec` - Configuración PyInstaller para pywebview
+- `launcher_pywebview.py` - Launcher Python con pywebview
+- `StockManager.desktop` - Desktop entry
+- `test_appimage.sh` - Script de pruebas
+
+**Nota:** El AppImage standalone requiere que las dependencias de QT/GTK estén incluidas en el bundle. El script de construcción se encarga de esto automáticamente.
+
+
 ## CI/CD (GitHub Actions)
 
 El pipeline vive en [.github/workflows/build.yml](../../.github/workflows/build.yml) y corre cuando se pushea un tag `v*.*.*`.

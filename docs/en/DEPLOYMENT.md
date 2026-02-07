@@ -65,6 +65,53 @@ Dev notes:
 - The server binary must be executable inside the bundle. That is why `permissions: "0755"` is set under `extraResources`.
 - If the server needs to write (DB/logs), it must use user-writable paths (see [bd/bdInstance.py](../../bd/bdInstance.py) and [debug/logger.py](../../debug/logger.py)).
 
+### Standalone AppImage with pywebview
+
+In addition to the Electron-based AppImage (main distribution), there is an alternative mode that uses pywebview:
+
+**When to use each?**
+
+- **Electron AppImage (default)**: Includes everything needed, heavier (~150MB) but works on all distros without dependencies.
+- **pywebview AppImage**: Lighter alternative for users who prefer a pure Python binary with native Qt/GTK UI.
+
+**Building the standalone AppImage:**
+
+```bash
+# From the project root
+./build_scripts/build_appimage.sh
+```
+
+This script:
+1. Creates a Python virtual environment
+2. Installs Flask, pywebview, PyQt5 and all dependencies
+3. Builds with PyInstaller using `build_appimage.spec`
+4. Packages everything into an AppImage with `linuxdeploy` and `appimagetool`
+5. Includes necessary QT libraries
+
+**Output:**
+- `StockManager-{version}-x86_64.AppImage`
+
+**Testing:**
+
+```bash
+# Run test script
+./test_appimage.sh
+
+# Or run manually
+chmod +x StockManager-*.AppImage
+./StockManager-*.AppImage
+```
+
+**Relevant files:**
+- `build_scripts/build_appimage.sh` - Build script
+- `build_appimage.spec` - PyInstaller config for pywebview
+- `launcher_pywebview.py` - Python launcher with pywebview
+- `StockManager.desktop` - Desktop entry
+- `test_appimage.sh` - Test script
+
+**Note:** The standalone AppImage requires QT/GTK dependencies to be included in the bundle. The build script handles this automatically.
+
+
 ## CI/CD (GitHub Actions)
 
 The pipeline is in [.github/workflows/build.yml](../../.github/workflows/build.yml) and runs when pushing a `v*.*.*` tag.

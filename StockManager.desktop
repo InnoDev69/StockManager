@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stock Manager
+GenericName=Inventory Management System
+Comment=Sistema de gestión de inventario y ventas
+Exec=StockManager
+Icon=stockmanager
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true
+StartupWMClass=StockManager
