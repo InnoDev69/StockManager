@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             platform: linux
             artifact_name: StockManager-Linux
             targets: "AppImage deb"
@@ -49,6 +49,7 @@ jobs:
         with:
           node-version: '20'
       
+      # ============ MEJORADO: Instalar dependencias del sistema para Linux ============
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
@@ -60,12 +61,14 @@ jobs:
             gir1.2-webkit2-4.0 \
             libgirepository1.0-dev \
             gobject-introspection \
-            libcairo2-dev
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev
+      # ============================================================================
       
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask werkzeug pyinstaller requests python-dotenv pywebview
+          pip install flask werkzeug pyinstaller requests python-dotenv pywebview PyGObject
       
       - name: Install Node dependencies
         run: npm ci
@@ -207,7 +210,7 @@ jobs:
             - **Stock Manager Setup.exe** - Instalador para Windows 10/11
 
             ### Linux
-            - **stock-manager.AppImage** - Portable para cualquier distribución
+            - **stock-manager.AppImage** - Portable para cualquier distribución (incluye todas las dependencias)
             - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
             - **linux-unpacked.tar.gz** - Versión sin empaquetar (desarrollo/debug)
 
@@ -218,7 +221,7 @@ jobs:
             Ejecuta el instalador y sigue las instrucciones
             ```
 
-            **Linux (AppImage):**
+            **Linux (AppImage) - RECOMENDADO para Arch/Manjaro:**
             ```bash
             chmod +x stock-manager-*.AppImage
             ./stock-manager-*.AppImage
@@ -230,11 +233,28 @@ jobs:
             sudo apt-get install -f
             ```
 
-            **Linux (unpacked):**
+            **Arch Linux (si AppImage no funciona):**
             ```bash
+            # Instalar dependencias necesarias
+            sudo pacman -S python-gobject gtk3 webkit2gtk
+            # Luego ejecutar la versión unpacked
             tar -xzf linux-unpacked.tar.gz
             cd linux-unpacked
             ./stock-manager
             ```
+
+            **Linux (unpacked):**
+            ```bash
+                        tar -xzf linux-unpacked.tar.gz
+                        cd linux-unpacked
+                        ./stock-manager
+            ```
+
+            ## Solución de problemas
+
+            Si en Linux obtienes errores sobre GTK o QT faltantes:
+            - **AppImage debería funcionar sin dependencias adicionales**
+            - Si no funciona, instala: `sudo pacman -S python-gobject gtk3 webkit2gtk` (Arch)
+            - O: `sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.0` (Debian/Ubuntu)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
