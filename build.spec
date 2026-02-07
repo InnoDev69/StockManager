@@ -55,6 +55,7 @@ a = Analysis(
         'requests',
         'dotenv',
         'webview',
+        'webview.platforms',
         'webview.platforms.gtk',
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
