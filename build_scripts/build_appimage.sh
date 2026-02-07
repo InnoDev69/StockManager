@@ -81,15 +81,15 @@ elif [ -f "static/app/icon.png" ]; then
     cp static/app/icon.png "${APPDIR}/usr/share/icons/hicolor/256x256/apps/stockmanager.png"
     cp static/app/icon.png "${APPDIR}/stockmanager.png"
 else
-    echo -e "${YELLOW}Advertencia: No se encontró icono, creando icono placeholder${NC}"
-    # Crear un icono SVG simple como placeholder
-    cat > "${APPDIR}/stockmanager.png" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="256" height="256" fill="#4CAF50"/>
-  <text x="128" y="140" font-size="72" text-anchor="middle" fill="white">SM</text>
-</svg>
-EOF
+    echo -e "${YELLOW}Advertencia: No se encontró icono, usando icono placeholder${NC}"
+    # Crear un PNG simple de 256x256 usando ImageMagick si está disponible
+    if command -v convert &> /dev/null; then
+        convert -size 256x256 xc:#4CAF50 -gravity center -pointsize 72 -fill white -annotate +0+0 'SM' "${APPDIR}/stockmanager.png"
+        cp "${APPDIR}/stockmanager.png" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/stockmanager.png"
+    else
+        echo -e "${YELLOW}ImageMagick no disponible, no se creará icono${NC}"
+        # Si no hay ImageMagick, simplemente no incluir icono
+    fi
 fi
 
 # Crear symlinks requeridos por AppImage

@@ -196,9 +196,17 @@ jobs:
             - **Stock Manager Setup.exe** - Instalador para Windows 10/11
 
             ### Linux
-            - **stock-manager.AppImage** - Portable para cualquier distribución
+            - **stock-manager.AppImage** - AppImage basado en Electron (recomendado)
             - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
             - **linux-unpacked.tar.gz** - Versión sin empaquetar (desarrollo/debug)
+
+            ### AppImage Standalone (alternativa)
+            Para construir una versión standalone con pywebview (más ligera):
+            ```bash
+            git clone https://github.com/InnoDev69/StockManager.git
+            cd StockManager
+            ./build_scripts/build_appimage.sh
+            ```
 
             ## Instalación
 
@@ -225,5 +233,10 @@ jobs:
             cd linux-unpacked
             ./stock-manager
             ```
+
+            ## Troubleshooting
+
+            Si encuentras errores de QT/GTK en Linux, consulta la [documentación de troubleshooting](docs/es/TROUBLESHOOTING.md#errores-de-qtgtk-con-pywebview-modo-standalone).
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

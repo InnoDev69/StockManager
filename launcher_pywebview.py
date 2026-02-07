@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import signal
+import requests
 from flask import Flask
 
 # Importar la aplicación Flask existente
@@ -55,13 +56,16 @@ def main():
     max_attempts = 30
     for i in range(max_attempts):
         try:
-            import requests
             response = requests.get(url, timeout=1)
             if response.status_code:
                 print("Servidor Flask listo!")
                 break
-        except:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            # Servidor aún no está listo, continuar esperando
             pass
+        except Exception as e:
+            # Otros errores inesperados durante health check
+            print(f"Warning: Error verificando servidor: {e}")
         time.sleep(0.5)
         if should_exit:
             return
