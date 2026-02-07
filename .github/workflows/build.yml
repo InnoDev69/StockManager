@@ -42,7 +42,9 @@ jobs:
             gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
             libgirepository-2.0-dev gcc libcairo2-dev \
             pkg-config python3-dev meson \
-            file fuse libfuse2
+            file fuse libfuse2 \
+            libwebkit2gtk-4.1-0 libgtk-3-0 \
+            desktop-file-utils
       
       - name: Install Python dependencies
         run: |
@@ -81,7 +83,10 @@ jobs:
       - name: Create AppImage (Linux)
         if: matrix.platform == 'linux'
         run: |
-          # Descargar appimagetool
+          # Descargar herramientas necesarias
+          wget -O linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy
+          
           wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           
@@ -92,9 +97,10 @@ jobs:
           
           # Copiar el ejecutable
           cp dist/stock-manager-server AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/stock-manager-server
           
-          # Crear archivo .desktop en la raíz de AppDir
-          cat > AppDir/stock-manager.desktop << 'EOF'
+          # Crear archivo .desktop
+          cat > AppDir/usr/share/applications/stock-manager.desktop << 'EOF'
           [Desktop Entry]
           Name=Stock Manager
           Exec=stock-manager-server
@@ -105,34 +111,75 @@ jobs:
           Terminal=false
           EOF
           
-          # Copiar el .desktop también a /usr/share/applications
-          cp AppDir/stock-manager.desktop AppDir/usr/share/applications/
-          
-          # Crear un ícono simple (placeholder - puedes reemplazar con tu propio ícono)
-          # Si tienes un ícono en el repositorio, cópialo aquí
+          # Crear un ícono placeholder
           if [ -f "static/icon.png" ]; then
             cp static/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
           else
-            # Crear un ícono placeholder
-            convert -size 256x256 xc:blue -fill white -pointsize 72 -gravity center \
-              -annotate +0+0 'SM' AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || \
+            # Crear un ícono SVG simple
+            cat > AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.svg << 'SVGEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#2196F3"/>
+            <text x="128" y="150" font-size="100" fill="white" text-anchor="middle" font-family="sans-serif" font-weight="bold">SM</text>
+          </svg>
+          SVGEOF
+            # Para compatibilidad, crear también PNG
+            convert AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.svg \
+              AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || \
               touch AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
           fi
           
-          # Copiar ícono a la raíz también
-          cp AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png AppDir/stock-manager.png 2>/dev/null || true
-          
-          # Crear AppRun
+          # Crear AppRun con configuración de entorno
           cat > AppDir/AppRun << 'EOF'
           #!/bin/bash
           HERE="$(dirname "$(readlink -f "${0}")")"
+          
+          # Configurar variables de entorno para GTK/GI
           export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          export GI_TYPELIB_PATH="${HERE}/usr/lib/girepository-1.0:${GI_TYPELIB_PATH}"
+          export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
+          
+          # Indicar que estamos en un AppImage
+          export APPIMAGE_RUNNING=1
+          
+          # Ejecutar la aplicación
           exec "${HERE}/usr/bin/stock-manager-server" "$@"
           EOF
           chmod +x AppDir/AppRun
           
+          # Copiar bibliotecas GTK y WebKit necesarias
+          mkdir -p AppDir/usr/lib
+          
+          # Copiar libraries de sistema necesarias
+          for lib in \
+            /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so* \
+            /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.1.so* \
+            /usr/lib/x86_64-linux-gnu/libgtk-3.so* \
+            /usr/lib/x86_64-linux-gnu/libgdk-3.so* \
+            /usr/lib/x86_64-linux-gnu/libsoup-*.so* \
+            /usr/lib/x86_64-linux-gnu/libwebkit*.so*
+          do
+            if [ -f "$lib" ] || [ -L "$lib" ]; then
+              cp -P "$lib" AppDir/usr/lib/ 2>/dev/null || true
+            fi
+          done
+          
+          # Copiar typelibs de GObject Introspection
+          mkdir -p AppDir/usr/lib/girepository-1.0
+          for typelib in WebKit2-4.1 Gtk-3.0 Gdk-3.0 GdkPixbuf-2.0 Soup-3.0
+          do
+            find /usr/lib -name "${typelib}.typelib" -exec cp {} AppDir/usr/lib/girepository-1.0/ \; 2>/dev/null || true
+          done
+          
+          # Usar linuxdeploy para copiar dependencias automáticamente
+          ./linuxdeploy --appdir AppDir \
+            --executable AppDir/usr/bin/stock-manager-server \
+            --desktop-file AppDir/usr/share/applications/stock-manager.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || true
+          
           # Crear el AppImage
-          ARCH=x86_64 ./appimagetool AppDir StockManager-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool --no-appstream AppDir StockManager-x86_64.AppImage
           
           # Mover a dist
           mv StockManager-x86_64.AppImage dist/
@@ -188,7 +235,7 @@ jobs:
             
             ### Linux
             - **StockManager-x86_64.AppImage** - AppImage universal para Linux (recomendado)
-            - **StockManager-linux-x64.tar.gz** - Ejecutable standalone para Linux
+            - **StockManager-linux-x64.tar.gz** - Ejecutable standalone para Linux (requiere dependencias GTK/WebKit instaladas)
             
             ## Instalación
             **Windows:**
@@ -203,7 +250,12 @@ jobs:
             ```
             
             **Linux (Tarball):**
+            Requiere dependencias del sistema:
             ```bash
+            # Ubuntu/Debian
+            sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+            
+            # Ejecutar
             tar -xzf StockManager-linux-x64.tar.gz
             chmod +x stock-manager-server
             ./stock-manager-server
