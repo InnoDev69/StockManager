@@ -18,243 +18,192 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             artifact_name: StockManager-Linux
-            targets: "AppImage deb"
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
-            targets: "nsis"
-    
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Sync app version with tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG_NAME="${GITHUB_REF##*/}"
-          VERSION="${TAG_NAME#v}"
-          echo "Setting package.json version to ${VERSION}"
-          npm version --no-git-tag-version "${VERSION}"
-        shell: bash
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      # ============ MEJORADO: Instalar dependencias del sistema para Linux ============
+
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-gi \
-            python3-gi-cairo \
-            gir1.2-gtk-3.0 \
-            gir1.2-webkit2-4.0 \
-            libgirepository1.0-dev \
-            gobject-introspection \
-            libgtk-3-dev \
-            libwebkit2gtk-4.0-dev
-      # ============================================================================
+            python3-gi python3-gi-cairo \
+            gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+            libgirepository-2.0-dev gcc libcairo2-dev \
+            pkg-config python3-dev meson \
+            file fuse libfuse2
       
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask werkzeug pyinstaller requests python-dotenv pywebview PyGObject
+          pip install pyinstaller pyinstaller-hooks-contrib pywebview
+          pip install flask werkzeug requests python-dotenv
       
-      - name: Install Node dependencies
-        run: npm ci
-      
-      - name: Build Python server
+      - name: Install PyGObject (Linux)
+        if: matrix.platform == 'linux'
+        run: pip install PyGObject
+
+      - name: Build with PyInstaller
         run: pyinstaller build.spec
         shell: bash
-      
-      - name: Verify Python build
-        run: ls -la dist/
-        shell: bash
-      
-      - name: Clean Electron output directories (Linux)
-        if: matrix.platform == 'linux'
-        run: rm -rf dist/linux-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.blockmap 2>/dev/null || true
-        shell: bash
-      
-      - name: Clean Electron output directories (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          rm -rf dist/win-unpacked 2>/dev/null || true
-          rm -f dist/*.blockmap 2>/dev/null || true
-        shell: bash
-      
-      - name: Build Electron app (Linux)
-        if: matrix.platform == 'linux'
-        run: npm run build:linux -- --linux ${{ matrix.targets }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build Electron app (Windows)
-        if: matrix.platform == 'windows'
-        run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: List final artifacts
+
+      - name: Verify build
         run: ls -lh dist/
         shell: bash
-      
-      - name: Upload AppImage (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-AppImage
-          path: dist/*.AppImage
-          if-no-files-found: error
-      
-      - name: Upload DEB (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-DEB
-          path: dist/*.deb
-          if-no-files-found: warn
 
-      - name: Upload Linux TAR.GZ
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-TAR
-          path: dist/*.tar.gz
-          if-no-files-found: warn
-      
-      - name: Compress Linux unpacked directory
+      # --- Linux artifacts ---
+      - name: Create Linux tarball
         if: matrix.platform == 'linux'
         run: |
           cd dist
-          if [ -d "linux-unpacked" ]; then
-            tar -czf linux-unpacked.tar.gz linux-unpacked/
-            echo "Compressed linux-unpacked directory"
-          else
-            echo "linux-unpacked directory not found"
-          fi
+          tar -czf StockManager-linux-x64.tar.gz stock-manager-server
         shell: bash
-      
-      - name: Upload Linux unpacked
+
+      - name: Upload Linux tarball
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-Unpacked
-          path: dist/linux-unpacked.tar.gz
-          if-no-files-found: warn
-      
-      - name: Upload Windows EXE files
-        if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-EXE
-          path: dist/*.exe
+          name: ${{ matrix.artifact_name }}-tarball
+          path: dist/StockManager-linux-x64.tar.gz
           if-no-files-found: error
 
-      - name: Upload Windows ZIP
+      - name: Create AppImage (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          # Descargar appimagetool
+          wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          
+          # Crear estructura AppDir
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          
+          # Copiar el ejecutable
+          cp dist/stock-manager-server AppDir/usr/bin/
+          
+          # Crear archivo .desktop
+          cat > AppDir/stock-manager.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Stock Manager
+          Exec=stock-manager-server
+          Icon=stock-manager
+          Type=Application
+          Categories=Office;Finance;
+          Comment=Sistema de gestión de inventario y ventas
+          Terminal=false
+          EOF
+          
+          # Crear un ícono simple (placeholder - puedes reemplazar con tu propio ícono)
+          # Si tienes un ícono en el repositorio, cópialo aquí
+          if [ -f "static/icon.png" ]; then
+            cp static/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
+          else
+            # Crear un ícono placeholder
+            convert -size 256x256 xc:blue -fill white -pointsize 72 -gravity center \
+              -annotate +0+0 'SM' AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || \
+              touch AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
+          fi
+          
+          # Copiar el .desktop a la raíz de AppDir
+          cp AppDir/stock-manager.desktop AppDir/
+          
+          # Crear AppRun
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          exec "${HERE}/usr/bin/stock-manager-server" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # Crear el AppImage
+          ARCH=x86_64 ./appimagetool AppDir StockManager-x86_64.AppImage
+          
+          # Mover a dist
+          mv StockManager-x86_64.AppImage dist/
+        shell: bash
+
+      - name: Upload Linux AppImage
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-appimage
+          path: dist/StockManager-x86_64.AppImage
+          if-no-files-found: error
+
+      # --- Windows artifacts ---
+      - name: Upload Windows EXE
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-ZIP
-          path: dist/*.zip
-          if-no-files-found: warn
+          name: ${{ matrix.artifact_name }}
+          path: dist/*.exe
+          if-no-files-found: error
 
   release:
     needs: [build]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
+
       - name: Display structure
         run: ls -R artifacts/
-      
-      - name: Remove duplicate files
-        run: |
-          cd artifacts
-          find . -type f -name "*.exe" | sort | uniq -d | xargs -r rm -f
-          echo "Files to upload:"
-          find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" \)
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: |
+            artifacts/**/*.tar.gz
             artifacts/**/*.AppImage
-            artifacts/**/*.deb
             artifacts/**/*.exe
-            artifacts/**/*-Unpacked/*.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: false
           body: |
             ## Descargas
-
             ### Windows
-            - **Stock Manager Setup.exe** - Instalador para Windows 10/11
-
+            - **stock-manager-server.exe** - Ejecutable para Windows 10/11
+            
             ### Linux
-            - **stock-manager.AppImage** - Portable para cualquier distribución (incluye todas las dependencias)
-            - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
-            - **linux-unpacked.tar.gz** - Versión sin empaquetar (desarrollo/debug)
-
+            - **StockManager-x86_64.AppImage** - AppImage universal para Linux (recomendado)
+            - **StockManager-linux-x64.tar.gz** - Ejecutable standalone para Linux
+            
             ## Instalación
-
             **Windows:**
             ```
-            Ejecuta el instalador y sigue las instrucciones
+            Descarga y ejecuta stock-manager-server.exe
             ```
-
-            **Linux (AppImage) - RECOMENDADO para Arch/Manjaro:**
+            
+            **Linux (AppImage):**
             ```bash
-            chmod +x stock-manager-*.AppImage
-            ./stock-manager-*.AppImage
+            chmod +x StockManager-x86_64.AppImage
+            ./StockManager-x86_64.AppImage
             ```
-
-            **Debian/Ubuntu:**
+            
+            **Linux (Tarball):**
             ```bash
-            sudo dpkg -i stock-manager_*.deb
-            sudo apt-get install -f
+            tar -xzf StockManager-linux-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
             ```
-
-            **Arch Linux (si AppImage no funciona):**
-            ```bash
-            # Instalar dependencias necesarias
-            sudo pacman -S python-gobject gtk3 webkit2gtk
-            # Luego ejecutar la versión unpacked
-            tar -xzf linux-unpacked.tar.gz
-            cd linux-unpacked
-            ./stock-manager
-            ```
-
-            **Linux (unpacked):**
-            ```bash
-                        tar -xzf linux-unpacked.tar.gz
-                        cd linux-unpacked
-                        ./stock-manager
-            ```
-
-            ## Solución de problemas
-
-            Si en Linux obtienes errores sobre GTK o QT faltantes:
-            - **AppImage debería funcionar sin dependencias adicionales**
-            - Si no funciona, instala: `sudo pacman -S python-gobject gtk3 webkit2gtk` (Arch)
-            - O: `sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.0` (Debian/Ubuntu)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
