@@ -56,11 +56,19 @@ source "${BUILD_DIR}/venv/bin/activate"
 # Instalar dependencias Python
 echo -e "${YELLOW}[4/8] Instalando dependencias Python...${NC}"
 pip install --upgrade pip
-pip install PyInstaller
-pip install flask werkzeug python-dotenv requests
-pip install pywebview
-# Instalar backends de pywebview - PyQt5 es más estable
-pip install PyQt5 PyQtWebEngine
+
+# Instalar desde requirements-appimage.txt si existe, sino instalar manualmente
+if [ -f "requirements-appimage.txt" ]; then
+    echo "  Instalando desde requirements-appimage.txt"
+    pip install -r requirements-appimage.txt
+else
+    echo "  Instalando dependencias manualmente"
+    pip install PyInstaller
+    pip install flask werkzeug python-dotenv requests
+    pip install pywebview
+    # Instalar backends de pywebview - PyQt5 es más estable
+    pip install PyQt5 PyQtWebEngine
+fi
 
 # Construir con PyInstaller usando el spec modificado
 echo -e "${YELLOW}[5/8] Construyendo ejecutable con PyInstaller...${NC}"

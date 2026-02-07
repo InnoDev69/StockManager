@@ -1,0 +1,19 @@
+# Requirements for building StockManager AppImage with pywebview
+# Install with: pip install -r requirements-appimage.txt
+
+# Core dependencies (same as requirements.txt)
+Flask==3.0.0
+Werkzeug==3.0.1
+python-dotenv==1.0.0
+
+# Additional dependencies for AppImage build
+PyInstaller>=6.0.0
+requests>=2.31.0
+
+# pywebview and backends
+pywebview>=4.0.0
+PyQt5>=5.15.0
+PyQtWebEngine>=5.15.0
+
+# Optional GTK backend (alternative to PyQt5)
+# PyGObject>=3.42.0
