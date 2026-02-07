@@ -94,7 +94,8 @@ jobs:
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-          mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
+          mkdir -p AppDir/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1
+          mkdir -p AppDir/usr/lib/girepository-1.0
           
           # Copiar el ejecutable
           cp dist/stock-manager-server AppDir/usr/bin/
@@ -139,9 +140,12 @@ jobs:
           
           # Configurar variables de entorno para GTK/GI
           export PATH="${HERE}/usr/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
           export GI_TYPELIB_PATH="${HERE}/usr/lib/girepository-1.0:${GI_TYPELIB_PATH}"
           export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
+          
+          # Variables importantes para WebKitGTK
+          export WEBKIT_EXEC_PATH="${HERE}/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1"
           
           # Indicar que estamos en un AppImage
           export APPIMAGE_RUNNING=1
@@ -168,8 +172,12 @@ jobs:
             fi
           done
           
+          # Copiar procesos auxiliares de WebKit
+          if [ -d /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 ]; then
+            cp -r /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/* AppDir/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/ 2>/dev/null || true
+          fi
+          
           # Copiar typelibs de GObject Introspection
-          mkdir -p AppDir/usr/lib/girepository-1.0
           for typelib in WebKit2-4.1 Gtk-3.0 Gdk-3.0 GdkPixbuf-2.0 Soup-3.0
           do
             find /usr/lib -name "${typelib}.typelib" -exec cp {} AppDir/usr/lib/girepository-1.0/ \; 2>/dev/null || true
@@ -180,6 +188,13 @@ jobs:
             --executable AppDir/usr/bin/stock-manager-server \
             --desktop-file AppDir/usr/share/applications/stock-manager.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png 2>/dev/null || true
+          
+          # Copiar dependencias de los procesos de WebKit
+          for webkit_proc in AppDir/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/*Process*; do
+            if [ -f "$webkit_proc" ] && [ -x "$webkit_proc" ]; then
+              ./linuxdeploy --appdir AppDir --executable "$webkit_proc" 2>/dev/null || true
+            fi
+          done
           
           # Crear el AppImage con appimagetool
           ARCH=x86_64 ./appimagetool --no-appstream AppDir StockManager-x86_64.AppImage
