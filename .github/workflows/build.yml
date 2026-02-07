@@ -93,7 +93,7 @@ jobs:
           # Copiar el ejecutable
           cp dist/stock-manager-server AppDir/usr/bin/
           
-          # Crear archivo .desktop
+          # Crear archivo .desktop en la raíz de AppDir
           cat > AppDir/stock-manager.desktop << 'EOF'
           [Desktop Entry]
           Name=Stock Manager
@@ -104,6 +104,9 @@ jobs:
           Comment=Sistema de gestión de inventario y ventas
           Terminal=false
           EOF
+          
+          # Copiar el .desktop también a /usr/share/applications
+          cp AppDir/stock-manager.desktop AppDir/usr/share/applications/
           
           # Crear un ícono simple (placeholder - puedes reemplazar con tu propio ícono)
           # Si tienes un ícono en el repositorio, cópialo aquí
@@ -116,8 +119,8 @@ jobs:
               touch AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png
           fi
           
-          # Copiar el .desktop a la raíz de AppDir
-          cp AppDir/stock-manager.desktop AppDir/
+          # Copiar ícono a la raíz también
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/stock-manager.png AppDir/stock-manager.png 2>/dev/null || true
           
           # Crear AppRun
           cat > AppDir/AppRun << 'EOF'
