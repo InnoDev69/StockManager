@@ -106,4 +106,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='static/app/icon.ico' if sys.platform == 'win32' else 'static/app/icon.png',
 )
