@@ -15,7 +15,8 @@ gi_datas = []
 gi_binaries = []
 if sys.platform == 'linux':
     gi_datas = collect_data_files('gi')
-    gi_binaries = collect_dynamic_libs('gi')
+    # NO recoger binaries automáticamente para evitar conflictos
+    # gi_binaries = collect_dynamic_libs('gi')
     
     # Incluir GObject introspection typelibs
     typelib_dirs = [
@@ -33,7 +34,7 @@ if sys.platform == 'linux':
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[] + gi_binaries,
+    binaries=[],  # No incluir gi_binaries para evitar conflictos
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
