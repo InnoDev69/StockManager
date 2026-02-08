@@ -16,8 +16,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux
-            artifact_name: StockManager-Linux
+            platform: linux-ubuntu
+            artifact_name: StockManager-Ubuntu
+            distro_name: Ubuntu/Debian
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
@@ -33,8 +34,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies (Linux)
-        if: matrix.platform == 'linux'
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.platform == 'linux-ubuntu'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -50,7 +51,7 @@ jobs:
           pip install flask werkzeug requests python-dotenv
       
       - name: Install PyGObject (Linux)
-        if: matrix.platform == 'linux'
+        if: matrix.platform == 'linux-ubuntu'
         run: pip install PyGObject
 
       - name: Build with PyInstaller
@@ -61,20 +62,20 @@ jobs:
         run: ls -lh dist/
         shell: bash
 
-      # --- Linux artifacts ---
-      - name: Create Linux tarball
-        if: matrix.platform == 'linux'
+      # --- Ubuntu artifacts ---
+      - name: Create Ubuntu tarball
+        if: matrix.platform == 'linux-ubuntu'
         run: |
           cd dist
-          tar -czf StockManager-linux-x64.tar.gz stock-manager-server
+          tar -czf StockManager-ubuntu-x64.tar.gz stock-manager-server
         shell: bash
 
-      - name: Upload Linux tarball
-        if: matrix.platform == 'linux'
+      - name: Upload Ubuntu tarball
+        if: matrix.platform == 'linux-ubuntu'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/StockManager-linux-x64.tar.gz
+          path: dist/StockManager-ubuntu-x64.tar.gz
           if-no-files-found: error
 
       # --- Windows artifacts ---
@@ -86,8 +87,35 @@ jobs:
           path: dist/*.exe
           if-no-files-found: error
 
+  build-arch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build in Arch Linux container
+        uses: docker://archlinux:latest
+        with:
+          args: /bin/bash -c "
+            pacman -Syu --noconfirm &&
+            pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
+            pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv &&
+            cd /github/workspace &&
+            pyinstaller build.spec &&
+            cd dist &&
+            tar -czf StockManager-arch-x64.tar.gz stock-manager-server
+            "
+
+      - name: Upload Arch tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: StockManager-Arch
+          path: dist/StockManager-arch-x64.tar.gz
+          if-no-files-found: error
+
   release:
-    needs: [build]
+    needs: [build, build-arch]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
@@ -117,34 +145,52 @@ jobs:
             - **stock-manager-server.exe** - Ejecutable para Windows 10/11
             
             ### Linux
-            - **StockManager-linux-x64.tar.gz** - Ejecutable para Linux
+            - **StockManager-ubuntu-x64.tar.gz** - Para Ubuntu/Debian y derivados
+            - **StockManager-arch-x64.tar.gz** - Para Arch Linux/Manjaro y derivados
             
             ## Instalación
             **Windows:**
-            ```
-            Descarga y ejecuta stock-manager-server.exe
+            ```bash
+            # Descarga y ejecuta
+            stock-manager-server.exe
             ```
             
-            **Linux:**
-            Requiere dependencias del sistema instaladas:
+            **Ubuntu/Debian:**
             ```bash
-            # Ubuntu/Debian
+            # Instalar dependencias
             sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
             
-            # Fedora/RHEL
-            sudo dnf install python3-gobject gtk3 webkit2gtk4.1
+            # Extraer y ejecutar
+            tar -xzf StockManager-ubuntu-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
+            ```
             
-            # Arch Linux
+            **Arch Linux/Manjaro:**
+            ```bash
+            # Instalar dependencias
             sudo pacman -S python-gobject gtk3 webkit2gtk-4.1
             
-            # Ejecutar
-            tar -xzf StockManager-linux-x64.tar.gz
+            # Extraer y ejecutar
+            tar -xzf StockManager-arch-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
+            ```
+            
+            **Fedora/RHEL:**
+            ```bash
+            # Instalar dependencias
+            sudo dnf install python3-gobject gtk3 webkit2gtk4.1
+            
+            # Usar el tarball de Ubuntu
+            tar -xzf StockManager-ubuntu-x64.tar.gz
             chmod +x stock-manager-server
             ./stock-manager-server
             ```
             
             ## Notas
-            - **Linux**: La aplicación requiere que las bibliotecas GTK3 y WebKit2GTK estén instaladas en el sistema.
-            - **Windows**: No requiere dependencias adicionales, todo está incluido en el ejecutable.
+            - Descarga el archivo correspondiente a tu distribución Linux para mejor compatibilidad
+            - Si tu distro no está listada, prueba primero con el build de Ubuntu
+            - El ejecutable debe tener permisos de ejecución (`chmod +x`)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
