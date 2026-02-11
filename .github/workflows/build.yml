@@ -16,214 +16,181 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux
-            artifact_name: StockManager-Linux
-            targets: "AppImage deb"
+            platform: linux-ubuntu
+            artifact_name: StockManager-Ubuntu
+            distro_name: Ubuntu/Debian
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
-            targets: "nsis"
-    
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Sync app version with tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG_NAME="${GITHUB_REF##*/}"
-          VERSION="${TAG_NAME#v}"
-          echo "Setting package.json version to ${VERSION}"
-          npm version --no-git-tag-version "${VERSION}"
-        shell: bash
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.platform == 'linux-ubuntu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-gi python3-gi-cairo \
+            gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
+            libgirepository-2.0-dev gcc libcairo2-dev \
+            pkg-config python3-dev meson
       
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask werkzeug pyinstaller requests python-dotenv
+          pip install pyinstaller pyinstaller-hooks-contrib pywebview
+          pip install flask werkzeug requests python-dotenv
       
-      - name: Install Node dependencies
-        run: npm ci
-      
-      - name: Build Python server
+      - name: Install PyGObject (Linux)
+        if: matrix.platform == 'linux-ubuntu'
+        run: pip install PyGObject
+
+      - name: Build with PyInstaller
         run: pyinstaller build.spec
         shell: bash
-      
-      - name: Verify Python build
-        run: ls -la dist/
-        shell: bash
-      
-      - name: Clean Electron output directories (Linux)
-        if: matrix.platform == 'linux'
-        run: rm -rf dist/linux-unpacked dist/*.AppImage dist/*.deb dist/*.pacman dist/*.blockmap 2>/dev/null || true
-        shell: bash
-      
-      - name: Clean Electron output directories (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          rm -rf dist/win-unpacked 2>/dev/null || true
-          rm -f dist/*.blockmap 2>/dev/null || true
-        shell: bash
-      
-      - name: Build Electron app (Linux)
-        if: matrix.platform == 'linux'
-        run: npm run build:linux -- --linux ${{ matrix.targets }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build Electron app (Windows)
-        if: matrix.platform == 'windows'
-        run: npm run build:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: List final artifacts
+
+      - name: Verify build
         run: ls -lh dist/
         shell: bash
-      
-      - name: Upload AppImage (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-AppImage
-          path: dist/*.AppImage
-          if-no-files-found: error
-      
-      - name: Upload DEB (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-DEB
-          path: dist/*.deb
-          if-no-files-found: warn
 
-      - name: Upload Linux TAR.GZ
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-TAR
-          path: dist/*.tar.gz
-          if-no-files-found: warn
-      
-      - name: Compress Linux unpacked directory
-        if: matrix.platform == 'linux'
+      # --- Ubuntu artifacts ---
+      - name: Create Ubuntu tarball
+        if: matrix.platform == 'linux-ubuntu'
         run: |
           cd dist
-          if [ -d "linux-unpacked" ]; then
-            tar -czf linux-unpacked.tar.gz linux-unpacked/
-            echo "Compressed linux-unpacked directory"
-          else
-            echo "linux-unpacked directory not found"
-          fi
+          tar -czf StockManager-ubuntu-x64.tar.gz stock-manager-server
         shell: bash
-      
-      - name: Upload Linux unpacked
-        if: matrix.platform == 'linux'
+
+      - name: Upload Ubuntu tarball
+        if: matrix.platform == 'linux-ubuntu'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-Unpacked
-          path: dist/linux-unpacked.tar.gz
-          if-no-files-found: warn
-      
-      # Un solo upload para todos los .exe de Windows
-      - name: Upload Windows EXE files
+          name: ${{ matrix.artifact_name }}
+          path: dist/StockManager-ubuntu-x64.tar.gz
+          if-no-files-found: error
+
+      # --- Windows artifacts ---
+      - name: Upload Windows EXE
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-EXE
+          name: ${{ matrix.artifact_name }}
           path: dist/*.exe
           if-no-files-found: error
 
-      - name: Upload Windows ZIP
-        if: matrix.platform == 'windows'
+  build-arch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build in Arch Linux container
+        uses: docker://archlinux:latest
+        with:
+          args: /bin/bash -c "
+            pacman -Syu --noconfirm &&
+            pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
+            pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv &&
+            cd /github/workspace &&
+            pyinstaller build.spec &&
+            cd dist &&
+            tar -czf StockManager-arch-x64.tar.gz stock-manager-server
+            "
+
+      - name: Upload Arch tarball
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}-ZIP
-          path: dist/*.zip
-          if-no-files-found: warn
+          name: StockManager-Arch
+          path: dist/StockManager-arch-x64.tar.gz
+          if-no-files-found: error
 
   release:
-    needs: [build]
+    needs: [build, build-arch]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
+
       - name: Display structure
         run: ls -R artifacts/
-      
-      # Eliminar duplicados antes de crear release
-      - name: Remove duplicate files
-        run: |
-          cd artifacts
-          find . -type f -name "*.exe" | sort | uniq -d | xargs -r rm -f
-          echo "Files to upload:"
-          find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" \)
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: |
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
+            artifacts/**/*.tar.gz
             artifacts/**/*.exe
-            artifacts/**/*-Unpacked/*.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: false
           body: |
             ## Descargas
-
             ### Windows
-            - **Stock Manager Setup.exe** - Instalador para Windows 10/11
-
+            - **stock-manager-server.exe** - Ejecutable para Windows 10/11
+            
             ### Linux
-            - **stock-manager.AppImage** - Portable para cualquier distribución
-            - **stock-manager.deb** - Paquete para Debian/Ubuntu/Mint
-            - **linux-unpacked.tar.gz** - Versión sin empaquetar (desarrollo/debug)
-
+            - **StockManager-ubuntu-x64.tar.gz** - Para Ubuntu/Debian y derivados
+            - **StockManager-arch-x64.tar.gz** - Para Arch Linux/Manjaro y derivados
+            
             ## Instalación
-
             **Windows:**
-            ```
-            Ejecuta el instalador y sigue las instrucciones
-            ```
-
-            **Linux (AppImage):**
             ```bash
-            chmod +x stock-manager-*.AppImage
-            ./stock-manager-*.AppImage
+            # Descarga y ejecuta
+            stock-manager-server.exe
             ```
-
-            **Debian/Ubuntu:**
+            
+            **Ubuntu/Debian:**
             ```bash
-            sudo dpkg -i stock-manager_*.deb
-            sudo apt-get install -f
+            # Instalar dependencias
+            sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+            
+            # Extraer y ejecutar
+            tar -xzf StockManager-ubuntu-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
             ```
-
-            **Linux (unpacked):**
+            
+            **Arch Linux/Manjaro:**
             ```bash
-            tar -xzf linux-unpacked.tar.gz
-            cd linux-unpacked
-            ./stock-manager
+            # Instalar dependencias
+            sudo pacman -S python-gobject gtk3 webkit2gtk-4.1
+            
+            # Extraer y ejecutar
+            tar -xzf StockManager-arch-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
             ```
+            
+            **Fedora/RHEL:**
+            ```bash
+            # Instalar dependencias
+            sudo dnf install python3-gobject gtk3 webkit2gtk4.1
+            
+            # Usar el tarball de Ubuntu
+            tar -xzf StockManager-ubuntu-x64.tar.gz
+            chmod +x stock-manager-server
+            ./stock-manager-server
+            ```
+            
+            ## Notas
+            - Descarga el archivo correspondiente a tu distribución Linux para mejor compatibilidad
+            - Si tu distro no está listada, prueba primero con el build de Ubuntu
+            - El ejecutable debe tener permisos de ejecución (`chmod +x`)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
