@@ -6,6 +6,10 @@ asegurando que la ruta de la BD sea correcta según el entorno (desarrollo vs pr
 
 El uso de una instancia global simplifica el acceso a la BD desde cualquier parte
 de la aplicación sin necesidad de pasar el objeto como dependencia.
+
+Note:
+    Incluye correcciones específicas para AppImage en Linux, asegurando que
+    la base de datos se almacene en un directorio escribible del usuario.
 """
 import os
 import sys
@@ -20,7 +24,7 @@ def get_db_path():
     Determina la ruta apropiada para el archivo de base de datos según el entorno.
     
     La función detecta si la aplicación está ejecutándose como binario empaquetado
-    (PyInstaller) o en modo desarrollo, y retorna una ruta escribible apropiada.
+    (PyInstaller/AppImage) o en modo desarrollo, y retorna una ruta escribible apropiada.
     
     Returns:
         str: Ruta absoluta al archivo database.db
@@ -32,7 +36,8 @@ def get_db_path():
     
     Note:
         En producción, crea automáticamente los directorios necesarios si no existen.
-        Esto evita errores de permisos en directorios de instalación de solo lectura.
+        Esto evita errores de permisos en directorios de instalación de solo lectura,
+        particularmente importante para AppImage donde el contenido es de solo lectura.
     """
     if getattr(sys, 'frozen', False):
         appimage_path = os.environ.get('APPIMAGE')

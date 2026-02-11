@@ -87,5 +87,5 @@ class Scheduler:
         thread = threading.Thread(target=wrapper, daemon=True, name=f"Scheduler-{target_func.__name__}")
         thread.start()
 
-# Instancia global del scheduler        
+# Instancia global del scheduler
 SCHEDULER = Scheduler()
