@@ -1,3 +1,30 @@
+"""
+API REST Blueprint para StockManager.
+
+Este módulo implementa todos los endpoints JSON de la aplicación, proporcionando
+una interfaz programática para operaciones de inventario, ventas y estadísticas.
+
+La API está diseñada para ser consumida por el frontend JavaScript pero también
+puede ser utilizada por clientes externos (aplicaciones móviles, integraciones, etc.).
+
+Autenticación:
+    Todos los endpoints (excepto /health) requieren una sesión activa de Flask.
+    El helper require_auth() valida la presencia de session["user_id"].
+
+Autorización:
+    Algunos endpoints requieren rol "admin" (create, update, delete productos).
+    Los vendedores solo pueden consultar y registrar ventas.
+
+Formato de Respuesta:
+    - Éxito: JSON con datos + código HTTP apropiado (200, 201, etc.)
+    - Error: JSON {"error": "mensaje"} + código HTTP apropiado (400, 401, 404, etc.)
+
+Convenciones:
+    - GET: Consultas sin efectos secundarios
+    - POST: Crear nuevos recursos
+    - PUT: Actualizar recursos existentes
+    - DELETE: Eliminar/deshabilitar recursos
+"""
 from flask import Blueprint, jsonify, request, session
 from bd.bdConector import BDConector
 from datetime import datetime, timedelta
@@ -9,13 +36,27 @@ api_bp = Blueprint("api", __name__)
 
 def require_auth():
     """
-    Verifica si el usuario está autenticado.
-    Retorna un error JSON si no está autenticado.
+    Middleware de autenticación para endpoints protegidos.
     
-    Requiere login: True.
+    Valida que exista una sesión activa antes de permitir el acceso
+    a recursos protegidos. Centraliza la lógica de autenticación para
+    evitar duplicación en cada endpoint.
     
     Returns:
-        None si está autenticado, o una respuesta JSON de error si no lo está.
+        None: Si el usuario está autenticado (session["user_id"] existe)
+        tuple: (JSON error response, 401) si no está autenticado
+    
+    Example:
+        >>> @api_bp.route("/protected")
+        ... def protected_endpoint():
+        ...     auth_error = require_auth()
+        ...     if auth_error:
+        ...         return auth_error
+        ...     # Lógica del endpoint...
+    
+    Note:
+        No valida roles, solo autenticación básica.
+        Para validar roles, hacer check adicional de session["role"].
     """
     
     if not session.get("user_id"):
@@ -25,40 +66,54 @@ def require_auth():
 @api_bp.route("/health", methods=["GET"])
 def health():
     """
-    Endpoint de verificación de salud del servidor.
+    Endpoint de health check para monitoreo de disponibilidad.
     
-    Requiere login: False.
+    Útil para load balancers, sistemas de monitoreo y pruebas de conectividad.
+    No requiere autenticación para permitir verificación externa.
     
     Returns:
-        JSON: {"status": "Ok"} con código 200
+        JSON: {"status": "Ok"} con código HTTP 200
+    
+    Example:
+        >>> import requests
+        >>> response = requests.get("http://localhost:5000/api/health")
+        >>> response.json()
+        {"status": "Ok"}
     """
     return jsonify({"status": "Ok"}), 200
 
 @api_bp.route("/products_all", methods=["GET"])
 def get_all_products():
     """
-    Obtiene todos los productos del inventario con filtros opcionales.
+    Lista todos los productos incluyendo los deshabilitados.
     
-    Requiere login: True.
+    A diferencia de /products, este endpoint muestra también productos con status=0,
+    útil para interfaces de administración que necesitan ver el inventario completo.
     
     Query Parameters:
-        search (str, optional): Búsqueda por nombre o código de barras
-        view_mode (str, optional): Filtro por stock ("all", "in_stock", "out_of_stock")
+        search (str, optional): Filtro de búsqueda parcial por nombre o código de barras
+        view_mode (str, optional): Filtro de stock
+            - "all": Todos los productos (default)
+            - "in_stock": Solo productos con stock > 0
+            - "out_of_stock": Solo productos con stock = 0
     
     Returns:
-        JSON: Lista de productos con sus detalles
-        - id (int): ID del producto
-        - barcode (str): Código de barras
-        - name (str): Nombre del producto
-        - description (str): Descripción
-        - stock (int): Cantidad disponible
-        - min_stock (int): Stock mínimo
-        - price (float): Precio de venta
-        - status (int): Estado del producto (1=activo, 0=deshabilitado)
+        JSON: Array de productos, cada uno con:
+            - id (int): Identificador único
+            - barcode (str): Código de barras
+            - name (str): Nombre del producto
+            - description (str): Descripción
+            - stock (int): Cantidad disponible
+            - min_stock (int): Umbral de alerta de stock bajo
+            - price (float): Precio de venta
+            - status (int): 1=activo, 0=deshabilitado
     
     Status Codes:
         200: Éxito
-        401: No autorizado
+        401: No autorizado (sin sesión activa)
+    
+    Example:
+        GET /api/products_all?search=laptop&view_mode=in_stock
     """
     
     auth_error = require_auth()
