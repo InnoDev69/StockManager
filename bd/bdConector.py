@@ -1,9 +1,9 @@
 import sqlite3
 import contextlib
-
 from flask import jsonify
 from bd.bdErrors import *
-from debug.logger import logger
+from tools.timmer import measure_time
+from tools.logger import logger
 from data.validators import ItemValidator, UserValidator, ValidationError
 
 class BDConector:
@@ -195,6 +195,7 @@ class BDConector:
         with self._cursor() as cur:
             cur.execute(query)
     
+    @measure_time
     def execute_query(self, query, params=(), fetch=True):
         """
         Ejecuta una consulta SQL arbitraria con parámetros seguros.

@@ -3,7 +3,7 @@ import os
 import sys
 from bd.bdConector import BDConector
 from dotenv import load_dotenv
-from debug.logger import logger
+from tools.logger import logger
 
 load_dotenv()
 

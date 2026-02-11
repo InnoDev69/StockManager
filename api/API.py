@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, session
 from bd.bdConector import BDConector
 from datetime import datetime, timedelta
 from bd.bdInstance import *
-from debug.logger import logger
+from tools.logger import logger
 from data.validators import ItemValidator, UserValidator, ValidationError
 
 api_bp = Blueprint("api", __name__)

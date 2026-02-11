@@ -3,7 +3,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from api.API import *
 from bd.bdInstance import *
 from data.limits import Limits
-from debug.logger import logger
+from tools.logger import logger
+from tools.scheduler import SCHEDULER
 import requests
 import csv
 import io
@@ -654,13 +655,33 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
-    
+    SCHEDULER.add_task(86400, logger._cleanup_old_logs)
+    SCHEDULER.start()
+     
     if sys.platform == "linux":
         os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
         os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
+        os.environ["WEBKIT_USE_SINGLE_WEB_PROCESS"] = "1"
+        os.environ["WEBKIT_DISABLE_HARDWARE_ACCELERATION"] = "1"
+        os.environ["QT_OPENGL"] = "software"
+        for var in ["WEBKIT_DISABLE_COMPOSITING_MODE", "WEBKIT_DISABLE_DMABUF_RENDERER",
+                    "WEBKIT_USE_SINGLE_WEB_PROCESS", "WEBKIT_DISABLE_HARDWARE_ACCELERATION", "QT_OPENGL"]:
+            if var not in os.environ:
+                logger.warning(f"Variable de entorno {var} no establecida, podría afectar el rendimiento en Linux")
         
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 1800
+    
     port = int(os.environ.get("FLASK_PORT", 5000))
     logger.info(f"Iniciando servidor en puerto {port}")
+    
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    icon_path = os.path.join(base_path, 'static', 'app', 'icon.png')
     
     window = webview.create_window(
         'Stock Manager',
@@ -668,4 +689,10 @@ if __name__ == "__main__":
         width=1200,
         height=800
     )
-    webview.start()
+    
+    if sys.platform == "linux" and os.path.exists(icon_path):
+        try:
+            webview.start(icon=icon_path)
+        except Exception as e:
+            logger.warning(f"No se pudo establecer el ícono: {str(e)}")
+            webview.start()

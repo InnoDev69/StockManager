@@ -43,6 +43,24 @@ class AppLogger:
             cls._instance._setup_logger()
         return cls._instance
     
+    def _cleanup_old_logs(self, days_to_keep=3):
+        """Elimina archivos de log más antiguos que 'days_to_keep' días."""
+        log_dir = get_log_dir()
+        if not os.path.exists(log_dir):
+            return
+        
+        now = datetime.now()
+        for filename in os.listdir(log_dir):
+            if filename.startswith("app_") and filename.endswith(".log"):
+                file_path = os.path.join(log_dir, filename)
+                try:
+                    timestamp_str = filename[4:-4]  # Extrae la parte de la fecha
+                    file_date = datetime.strptime(timestamp_str, "%Y%m%d")
+                    if (now - file_date).days > days_to_keep:
+                        os.remove(file_path)
+                except Exception as e:
+                    self._logger.warning(f"No se pudo eliminar el log antiguo {filename}: {str(e)}")
+    
     def _setup_logger(self):
         self._logger = logging.getLogger("StockManager")
         self._logger.setLevel(logging.DEBUG)
