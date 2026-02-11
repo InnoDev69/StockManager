@@ -1,8 +1,30 @@
+"""
+Validadores de entrada para protección contra datos inválidos.
+
+Este módulo implementa validación exhaustiva de todos los datos de entrada
+antes de procesarlos o almacenarlos en la base de datos. La validación temprana
+previene errores, inconsistencias y posibles vulnerabilidades de seguridad.
+
+Las validaciones se aplican en el backend independientemente de la validación
+del frontend, siguiendo el principio de "never trust user input".
+"""
 from data.limits import Limits
 
 
 class ValidationError(Exception):
-    """Excepción para errores de validación."""
+    """
+    Excepción lanzada cuando la validación de un campo falla.
+    
+    Atributos adicionales permiten identificar qué campo falló y construir
+    mensajes de error específicos para el usuario.
+    
+    Attributes:
+        field (str): Nombre del campo que falló la validación
+        message (str): Descripción del error
+    
+    Example:
+        >>> raise ValidationError("email", "Formato de email inválido")
+    """
     def __init__(self, field: str, message: str):
         self.field = field
         self.message = message
@@ -11,29 +33,36 @@ class ValidationError(Exception):
 
 class Validator:
     """
-    Validador modular para campos de entrada.
+    Validador genérico con métodos estáticos para tipos comunes de datos.
     
-    Uso:
-        Validator.validate_string("nombre", value, Limits.ITEM_NAME_MAX)
-        Validator.validate_number("cantidad", value, max_val=Limits.ITEM_QUANTITY_MAX)
+    Centraliza la lógica de validación para evitar duplicación de código
+    y asegurar reglas consistentes en toda la aplicación.
+    
+    Example:
+        >>> cleaned = Validator.validate_string("nombre", user_input, 50)
+        >>> quantity = Validator.validate_number("cantidad", qty_str, min_val=1)
     """
     
     @staticmethod
     def validate_string(field: str, value: str, max_length: int, required: bool = True) -> str:
         """
-        Valida un campo de texto.
+        Valida y limpia un campo de texto.
         
         Args:
-            field: Nombre del campo (para mensajes de error)
-            value: Valor a validar
-            max_length: Longitud máxima permitida
-            required: Si el campo es obligatorio
+            field (str): Nombre del campo (para mensajes de error)
+            value (str): Valor a validar
+            max_length (int): Longitud máxima permitida en caracteres
+            required (bool): Si True, el campo no puede estar vacío
         
         Returns:
-            str: Valor limpio (stripped)
+            str: Valor limpio con espacios en blanco eliminados, o None si no es required
         
         Raises:
-            ValidationError: Si la validación falla
+            ValidationError: Si el valor es inválido según las reglas
+        
+        Note:
+            Aplica strip() automáticamente para eliminar espacios sobrantes.
+            Valores None son permitidos solo si required=False.
         """
         if value is None:
             if required:
@@ -57,21 +86,27 @@ class Validator:
     def validate_number(field: str, value, min_val: float = 0, max_val: float = None, 
                         allow_float: bool = False, required: bool = True):
         """
-        Valida un campo numérico.
+        Valida y convierte un campo numérico.
         
         Args:
-            field: Nombre del campo
-            value: Valor a validar
-            min_val: Valor mínimo permitido
-            max_val: Valor máximo permitido
-            allow_float: Si permite decimales
-            required: Si es obligatorio
+            field (str): Nombre del campo (para mensajes de error)
+            value: Valor a validar (puede ser str, int o float)
+            min_val (float): Valor mínimo permitido (inclusive)
+            max_val (float): Valor máximo permitido (inclusive), None = sin límite
+            allow_float (bool): Si True permite decimales, False solo enteros
+            required (bool): Si True, el campo no puede ser None
         
         Returns:
-            int|float: Valor validado
+            int|float: Valor numérico validado y convertido al tipo apropiado
         
         Raises:
-            ValidationError: Si la validación falla
+            ValidationError: Si el valor no es numérico o está fuera de rango
+        
+        Example:
+            >>> price = Validator.validate_number("precio", "19.99", 
+            ...     min_val=0, max_val=10000, allow_float=True)
+            >>> price
+            19.99
         """
         if value is None:
             if required:
@@ -94,18 +129,39 @@ class Validator:
 
 
 class ItemValidator:
-    """Validador específico para productos."""
+    """
+    Validador especializado para productos del inventario.
+    
+    Encapsula las reglas de negocio específicas de los productos
+    (códigos de barras, precios, cantidades, etc.).
+    """
     
     @staticmethod
     def validate(barrs_code, description, name, quantity, min_quantity, price, status) -> dict:
         """
-        Valida todos los campos de un producto.
+        Valida todos los campos de un producto simultáneamente.
+        
+        Args:
+            barrs_code (str): Código de barras del producto
+            description (str): Descripción del producto
+            name (str): Nombre del producto (obligatorio)
+            quantity (int): Cantidad en stock
+            min_quantity (int): Stock mínimo para alertas
+            price (float): Precio de venta
+            status (int): Estado del producto (0=inactivo, 1=activo)
         
         Returns:
-            dict: Campos validados y limpios
+            dict: Diccionario con todos los campos validados y limpios
         
         Raises:
-            ValidationError: Si algún campo no es válido
+            ValidationError: Si algún campo no pasa la validación
+                            (contiene field y message para UX)
+        
+        Example:
+            >>> try:
+            ...     clean = ItemValidator.validate("123", "Laptop", "HP", 10, 2, 599.99, 1)
+            ... except ValidationError as e:
+            ...     print(f"Error en {e.field}: {e.message}")
         """
         return {
             "barrs_code": Validator.validate_string(
@@ -140,18 +196,32 @@ class ItemValidator:
 
 
 class UserValidator:
-    """Validador específico para usuarios."""
+    """
+    Validador especializado para usuarios del sistema.
+    
+    Aplica reglas de negocio para credenciales, roles y datos de perfil.
+    """
     
     @staticmethod
     def validate(username, password, email, role="user") -> dict:
         """
-        Valida todos los campos de un usuario.
+        Valida todos los campos de un usuario simultáneamente.
+        
+        Args:
+            username (str): Nombre de usuario (único en BD)
+            password (str): Contraseña en texto plano o hash
+            email (str): Correo electrónico
+            role (str): Rol del usuario (default: "user")
         
         Returns:
-            dict: Campos validados y limpios
+            dict: Diccionario con todos los campos validados y limpios
         
         Raises:
-            ValidationError: Si algún campo no es válido
+            ValidationError: Si algún campo no pasa la validación
+        
+        Note:
+            Esta función NO hashea la contraseña, eso debe hacerse
+            en la capa de lógica de negocio antes de guardar en BD.
         """
         return {
             "username": Validator.validate_string(
