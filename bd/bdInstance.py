@@ -1,16 +1,4 @@
-"""
-Instancia global de la base de datos.
-
-Este módulo configura y expone la instancia singleton del conector de base de datos,
-asegurando que la ruta de la BD sea correcta según el entorno (desarrollo vs producción).
-
-El uso de una instancia global simplifica el acceso a la BD desde cualquier parte
-de la aplicación sin necesidad de pasar el objeto como dependencia.
-
-Note:
-    Incluye correcciones específicas para AppImage en Linux, asegurando que
-    la base de datos se almacene en un directorio escribible del usuario.
-"""
+# bd/bdInstance.py - Versión corregida para AppImage
 import os
 import sys
 from bd.bdConector import BDConector
@@ -21,23 +9,10 @@ load_dotenv()
 
 def get_db_path():
     """
-    Determina la ruta apropiada para el archivo de base de datos según el entorno.
+    Obtiene la ruta correcta para la base de datos según el entorno.
     
-    La función detecta si la aplicación está ejecutándose como binario empaquetado
-    (PyInstaller/AppImage) o en modo desarrollo, y retorna una ruta escribible apropiada.
-    
-    Returns:
-        str: Ruta absoluta al archivo database.db
-    
-    Comportamiento:
-        - Desarrollo: Lee DB_PATH del .env o usa ./bd/database.db por defecto
-        - Producción (Windows): %APPDATA%/StockManager/data/database.db
-        - Producción (Linux/Mac): ~/.stock_manager/data/database.db
-    
-    Note:
-        En producción, crea automáticamente los directorios necesarios si no existen.
-        Esto evita errores de permisos en directorios de instalación de solo lectura,
-        particularmente importante para AppImage donde el contenido es de solo lectura.
+    - En desarrollo: usa DB_PATH del .env o ./bd/database.db
+    - En producción (PyInstaller): crea la BD en un directorio escribible del usuario
     """
     if getattr(sys, 'frozen', False):
         appimage_path = os.environ.get('APPIMAGE')
@@ -57,7 +32,5 @@ def get_db_path():
         logger.info(f"Using database path (dev mode): {db_path}")
         return db_path
 
-# Instancia global de base de datos
-# Usar esta instancia en lugar de crear nuevas conexiones para mantener consistencia
 db = BDConector(db_path=get_db_path())
 db.init_db()
