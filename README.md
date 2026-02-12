@@ -1,88 +1,88 @@
-# 📦 StockManager
+# StockManager
 
-> Sistema profesional de gestión de inventarios y ventas con interfaz desktop nativa
+> Professional inventory and sales management system with native desktop interface
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 🎯 Descripción
+## Description
 
-StockManager es una aplicación de escritorio para la gestión integral de inventarios y ventas, diseñada para pequeñas y medianas empresas que necesitan control total sobre su inventario sin complicaciones de configuración.
+StockManager is a desktop application for comprehensive inventory and sales management, designed for small and medium businesses that need complete control over their inventory without configuration complications.
 
-### ✨ Características Principales
+### Main Features
 
-- **📊 Dashboard Intuitivo**: Vista general con métricas en tiempo real
-- **🔐 Sistema de Autenticación**: Control de acceso basado en roles
-- **📦 Gestión de Productos**: CRUD completo con códigos de barras
-- **💰 Registro de Ventas**: Procesamiento rápido con actualización automática
-- **📈 Métricas y Reportes**: Análisis de ventas y tendencias
-- **📥 Importación CSV**: Carga masiva de productos
-- **🔍 Búsqueda Avanzada**: Filtrado por múltiples criterios
-- **📱 Interfaz Responsiva**: Adaptable a diferentes pantallas
-- **🔒 Seguridad**: Contraseñas hasheadas y validación exhaustiva
+- **Intuitive Dashboard**: Overview with real-time metrics
+- **Authentication System**: Role-based access control
+- **Product Management**: Complete CRUD with barcodes
+- **Sales Registration**: Fast processing with automatic updates
+- **Metrics and Reports**: Sales analysis and trends
+- **CSV Import**: Bulk product loading
+- **Advanced Search**: Multi-criteria filtering
+- **Responsive Interface**: Adaptable to different screens
+- **Security**: Hashed passwords and exhaustive validation
 
-## 🚀 Inicio Rápido
+## Quick Start
 
-### Requisitos
+### Requirements
 
 - **Python 3.8+**
-- **pip** (gestor de paquetes)
-- **SQLite 3** (incluido en Python)
+- **pip** (package manager)
+- **SQLite 3** (included in Python)
 
-### Instalación
+### Installation
 
 ```bash
-# 1. Clonar el repositorio
+# 1. Clone repository
 git clone https://github.com/InnoDev69/StockManager.git
 cd StockManager
 
-# 2. Crear entorno virtual
+# 2. Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
-# 3. Instalar dependencias
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Ejecutar la aplicación
+# 4. Run application
 python main.py
 ```
 
-La aplicación se abrirá automáticamente en una ventana nativa en `http://127.0.0.1:5000`
+The application will automatically open in a native window at `http://127.0.0.1:5000`
 
-### 🎯 Primer Uso
+### First Use
 
-1. **Registro**: Crear cuenta en la pantalla de registro
-2. **Login**: Iniciar sesión con credenciales
-3. **Agregar Productos**: Navegar a "Nuevo Producto"
-4. **Registrar Ventas**: Usar formulario de ventas
-5. **Ver Dashboard**: Monitorear estadísticas
+1. **Register**: Create account on registration screen
+2. **Login**: Sign in with credentials
+3. **Add Products**: Navigate to "New Product"
+4. **Register Sales**: Use sales form
+5. **View Dashboard**: Monitor statistics
 
-## 📚 Documentación
+## Documentation
 
-### Para Desarrolladores
+### For Developers
 
-- **[Español](docs/es/README.md)** - Documentación completa en español
-- **[English](docs/en/README.md)** - Full English documentation
+- **[Spanish](docs/es/README.md)** - Complete documentation in Spanish
+- **[English](docs/en/README.md)** - Complete documentation in English
 
-#### Guías Principales
+#### Main Guides
 
-- [🏗️ Arquitectura](docs/es/ARCHITECTURE.md) - Diseño del sistema
-- [🔧 Desarrollo](docs/es/DEVELOPMENT.md) - Setup del entorno
-- [📡 API REST](docs/es/API.md) - Endpoints y ejemplos
-- [💾 Base de Datos](docs/es/DATABASE.md) - Esquema y queries
-- [🔒 Seguridad](docs/es/SECURITY_ROLES.md) - Roles y permisos
-- [📦 Despliegue](docs/es/DEPLOYMENT.md) - Empaquetado
-- [🛠️ Troubleshooting](docs/es/TROUBLESHOOTING.md) - Soluciones
+- [Architecture](docs/en/ARCHITECTURE.md) - System design
+- [Development](docs/en/DEVELOPMENT.md) - Environment setup
+- [REST API](docs/en/API.md) - Endpoints and examples
+- [Database](docs/en/DATABASE.md) - Schema and queries
+- [Security](docs/en/SECURITY_ROLES.md) - Roles and permissions
+- [Deployment](docs/en/DEPLOYMENT.md) - Packaging
+- [Troubleshooting](docs/en/TROUBLESHOOTING.md) - Solutions
 
-## 🏗️ Arquitectura
+## Architecture
 
 ```
 ┌─────────────────────────────────────┐
 │      PyWebView Window               │
 │  ┌───────────────────────────────┐  │
-│  │    Interfaz Web (HTML/CSS/JS) │  │
+│  │    Web UI (HTML/CSS/JS)       │  │
 │  └───────────────────────────────┘  │
 └─────────────┬───────────────────────┘
               ↕ HTTP
@@ -91,7 +91,7 @@ La aplicación se abrirá automáticamente en una ventana nativa en `http://127.
 ┌─────────────▼───────────────────────┐
 │       Flask Application             │
 │  ┌──────────┐    ┌───────────────┐ │
-│  │   UI     │    │   API REST    │ │
+│  │   UI     │    │   REST API    │ │
 │  │ (Jinja2) │    │   (/api/*)    │ │
 │  └──────────┘    └───────────────┘ │
 └─────────────┬───────────────────────┘
@@ -102,138 +102,138 @@ La aplicación se abrirá automáticamente en una ventana nativa en `http://127.
 └─────────────────────────────────────┘
 ```
 
-**Componentes:**
-- **Frontend**: PyWebView (ventana nativa) + HTML/CSS/JS
+**Components:**
+- **Frontend**: PyWebView (native window) + HTML/CSS/JS
 - **Backend**: Flask 3.0.0 (Python)
-- **Base de Datos**: SQLite 3 con WAL mode
+- **Database**: SQLite 3 with WAL mode
 - **API**: REST JSON endpoints
 
-Ver [ARCHITECTURE.md](docs/es/ARCHITECTURE.md) para detalles completos.
+See [ARCHITECTURE.md](docs/en/ARCHITECTURE.md) for complete details.
 
-## 🔌 API REST
+## REST API
 
-La aplicación expone una API REST completa:
+The application exposes a complete REST API:
 
-### Endpoints Principales
+### Main Endpoints
 
 ```http
-GET  /api/health              # Estado del servidor
-GET  /api/products            # Listar productos activos
-GET  /api/products/:id        # Obtener producto
-POST /api/products            # Crear producto (admin)
-PUT  /api/products/:id        # Actualizar producto (admin)
-DELETE /api/products/:id      # Eliminar producto (admin)
-POST /api/sales               # Registrar venta
-GET  /api/sales               # Historial de ventas
-GET  /api/stats               # Estadísticas del dashboard
+GET  /api/health              # Server status
+GET  /api/products            # List active products
+GET  /api/products/:id        # Get product
+POST /api/products            # Create product (admin)
+PUT  /api/products/:id        # Update product (admin)
+DELETE /api/products/:id      # Delete product (admin)
+POST /api/sales               # Register sale
+GET  /api/sales               # Sales history
+GET  /api/stats               # Dashboard statistics
 ```
 
-**Ejemplo:**
+**Example:**
 ```javascript
-// Obtener productos
+// Get products
 fetch('/api/products')
   .then(r => r.json())
   .then(products => console.log(products));
 ```
 
-📖 Ver [documentación completa de la API](docs/es/API.md)
+See [complete API documentation](docs/en/API.md)
 
-## 🛠️ Tecnologías
+## Technologies
 
 ### Backend
 - **Python 3.8+**
-- **Flask 3.0.0** - Framework web
-- **SQLite 3** - Base de datos
-- **Werkzeug 3.0.1** - Seguridad
+- **Flask 3.0.0** - Web framework
+- **SQLite 3** - Database
+- **Werkzeug 3.0.1** - Security
 - **PyWebView** - Desktop wrapper
 
 ### Frontend
 - **HTML5 + Jinja2** - Templates
-- **CSS3** - Estilos (vanilla)
-- **JavaScript ES6+** - Interactividad
+- **CSS3** - Styles (vanilla)
+- **JavaScript ES6+** - Interactivity
 - **Fetch API** - AJAX requests
 
-## 📊 Estructura del Proyecto
+## Project Structure
 
 ```
 StockManager/
-├── main.py                 # Entrypoint principal
-├── requirements.txt        # Dependencias Python
-├── .gitignore             # Archivos ignorados
+├── main.py                 # Main entrypoint
+├── requirements.txt        # Python dependencies
+├── .gitignore             # Ignored files
 │
 ├── api/
-│   └── API.py             # Blueprint REST API
+│   └── API.py             # REST API Blueprint
 │
-├── bd/                     # Capa de base de datos
-│   ├── bdConector.py      # Conector SQLite
-│   ├── bdInstance.py      # Instancia global
-│   └── bdErrors.py        # Excepciones
+├── bd/                     # Database layer
+│   ├── bdConector.py      # SQLite connector
+│   ├── bdInstance.py      # Global instance
+│   └── bdErrors.py        # Exceptions
 │
-├── data/                   # Validación
-│   ├── validators.py      # Validadores
-│   └── limits.py          # Límites
+├── data/                   # Validation
+│   ├── validators.py      # Validators
+│   └── limits.py          # Limits
 │
-├── tools/                  # Utilidades
-│   ├── logger.py          # Sistema de logging
-│   ├── scheduler.py       # Tareas periódicas
-│   └── timmer.py          # Medición de rendimiento
+├── tools/                  # Utilities
+│   ├── logger.py          # Logging system
+│   ├── scheduler.py       # Periodic tasks
+│   └── timmer.py          # Performance measurement
 │
-├── templates/              # Plantillas HTML
-│   ├── dashboard.html     # Dashboard principal
-│   ├── login.html         # Login/Registro
+├── templates/              # HTML templates
+│   ├── dashboard.html     # Main dashboard
+│   ├── login.html         # Login/Register
 │   └── ...
 │
-├── static/                 # Assets estáticos
+├── static/                 # Static assets
 │   ├── css/
 │   ├── js/
-│   └── app/               # Íconos
+│   └── app/               # Icons
 │
-└── docs/                   # Documentación
-    ├── es/                # Español
+└── docs/                   # Documentation
+    ├── es/                # Spanish
     └── en/                # English
 ```
 
-## 🔒 Seguridad
+## Security
 
-- ✅ **Contraseñas**: Hasheadas con PBKDF2:SHA256
-- ✅ **Sesiones**: Cookies firmadas
-- ✅ **Validación**: Todos los inputs validados
-- ✅ **SQL Injection**: Queries parametrizadas
-- ✅ **Foreign Keys**: Integridad referencial
-- ✅ **CSRF**: Protección nativa de Flask
+- Passwords: Hashed with PBKDF2:SHA256
+- Sessions: Signed cookies
+- Validation: All inputs validated
+- SQL Injection: Parameterized queries
+- Foreign Keys: Referential integrity
+- CSRF: Flask native protection
 
-## 🤝 Contribuir
+## Contributing
 
-Las contribuciones son bienvenidas:
+Contributions are welcome:
 
-1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/NuevaCaracteristica`)
-3. Commit cambios (`git commit -m 'Add: nueva característica'`)
-4. Push a la rama (`git push origin feature/NuevaCaracteristica`)
-5. Abre un Pull Request
+1. Fork the repository
+2. Create a branch (`git checkout -b feature/NewFeature`)
+3. Commit changes (`git commit -m 'Add: new feature'`)
+4. Push to branch (`git push origin feature/NewFeature`)
+5. Open a Pull Request
 
-### Guía de Estilo
+### Style Guide
 
 - **Python**: PEP 8
 - **Docstrings**: Google Style
-- **Commits**: Mensajes descriptivos en presente
+- **Commits**: Descriptive messages in present tense
 
-## 📄 Licencia
+## License
 
-Este proyecto está bajo la Licencia MIT. Ver archivo [LICENSE](LICENSE) para detalles.
+This project is under the MIT License. See [LICENSE](LICENSE) file for details.
 
-## 👥 Autores
+## Authors
 
 - **InnoDev69** - [GitHub](https://github.com/InnoDev69)
 
-## 📞 Soporte
+## Support
 
-Si encuentras problemas:
+If you encounter problems:
 
-1. Revisa [Troubleshooting](docs/es/TROUBLESHOOTING.md)
-2. Busca en [Issues](https://github.com/InnoDev69/StockManager/issues)
-3. Abre un [nuevo issue](https://github.com/InnoDev69/StockManager/issues/new)
+1. Review [Troubleshooting](docs/en/TROUBLESHOOTING.md)
+2. Search in [Issues](https://github.com/InnoDev69/StockManager/issues)
+3. Open a [new issue](https://github.com/InnoDev69/StockManager/issues/new)
 
 ---
 
-⭐ Si este proyecto te resulta útil, considera darle una estrella en GitHub
+If this project is useful to you, consider giving it a star on GitHub
