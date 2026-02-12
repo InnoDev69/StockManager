@@ -696,3 +696,5 @@ if __name__ == "__main__":
         except Exception as e:
             logger.warning(f"No se pudo establecer el ícono: {str(e)}")
             webview.start()
+    else:
+        webview.start()
