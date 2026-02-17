@@ -143,6 +143,14 @@ class UserValidator:
     """Validador específico para usuarios."""
     
     @staticmethod
+    def validate_email(email) -> str:
+        """Valida el formato de un email."""
+        email = Validator.validate_string("Email", email, Limits.USER_EMAIL_MAX)
+        if "@" not in email or "." not in email.split("@")[-1]:
+            raise ValidationError("Email", "Formato de email inválido")
+        return email
+    
+    @staticmethod
     def validate(username, password, email, role="user") -> dict:
         """
         Valida todos los campos de un usuario.

@@ -785,3 +785,26 @@ class BDConector:
             "best_day_revenue": float(best_day_revenue) if best_day_revenue else 0,
             "best_weekday_idx": best_weekday_idx,
         }
+
+    def get_user_by_email(self, email):
+        """
+        Busca un usuario por su email.
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Args:
+            email (str): Email del usuario
+        
+        Returns:
+            tuple|None: (id, username, password_hash, role) o None si no existe
+        
+        Example:
+            user = db.get_user_by_email('user@example.com')
+            
+        """
+        rows = self.execute_query(
+            "SELECT id, username, password, role FROM users WHERE email = ?",
+            (email,)
+        )
+        return rows[0] if rows else None

@@ -922,3 +922,53 @@ def get_metrics():
             "days": period_days
         }
     }), 200
+    
+@api_bp.route("/users/reset-password", methods=["POST"])
+def restore_password():
+    """
+    Endpoint para restaurar la contraseña de un usuario.
+    
+    Requiere login: False.
+    
+    Request Body (JSON):
+        email (str): Correo electrónico del usuario
+    
+    Returns:
+        JSON: {"message": "Codigo enviado al correo"}
+    
+    Status Codes:
+        200: Codigo enviado exitosamente
+        400: Faltan campos requeridos o formato inválido
+        404: Usuario no encontrado
+    
+    Example Request:
+        POST /users/reset-password
+        {
+            "email": "usuario@ejemplo.com"
+        }
+    """
+    
+    data = request.get_json()
+    
+    logger.info(f"Password reset requested for email: {data.get('email', 'N/A')}")
+    
+    if "email" not in data:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    
+    email = data["email"].strip()
+    
+    if not UserValidator.validate_email(email):
+        return jsonify({"error": "Formato de correo inválido"}), 400
+    
+    user = db.get_user_by_email(email)
+    
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    if user[3] != email:
+        return jsonify({"error": "El correo no coincide con el registrado"}), 400
+    
+    # Aquí se implementaría la lógica para enviar un correo de recuperación
+    # con un token o enlace para restablecer la contraseña.
+    
+    return jsonify({"message": "Codigo enviado al correo"}), 200
