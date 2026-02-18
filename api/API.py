@@ -3,7 +3,9 @@ from bd.bdConector import BDConector
 from datetime import datetime, timedelta
 from bd.bdInstance import *
 from tools.logger import logger
+from tools.email import email_sender
 from data.validators import ItemValidator, UserValidator, ValidationError
+from werkzeug.security import generate_password_hash
 
 api_bp = Blueprint("api", __name__)
 
@@ -923,6 +925,11 @@ def get_metrics():
         }
     }), 200
     
+def generate_reset_code():
+    """Genera un código de recuperación aleatorio de 6 dígitos."""
+    import random
+    return str(random.randint(100000, 999999))    
+
 @api_bp.route("/users/reset-password", methods=["POST"])
 def restore_password():
     """
@@ -965,10 +972,103 @@ def restore_password():
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
     
-    if user[3] != email:
-        return jsonify({"error": "El correo no coincide con el registrado"}), 400
+    reset_code = generate_reset_code()
+    db.save_reset_code(email, reset_code)
     
-    # Aquí se implementaría la lógica para enviar un correo de recuperación
-    # con un token o enlace para restablecer la contraseña.
+    email_sender.send_email(
+        email,
+        subject="Código de recuperación de contraseña",
+        body=f"Tu código de recuperación es: {reset_code}. Este código es válido por 15 minutos."
+    )
     
     return jsonify({"message": "Codigo enviado al correo"}), 200
+
+@api_bp.route("/users/validate-code", methods=["POST"])
+def verify_code():
+    """
+    Endpoint para verificar el código de recuperación de contraseña.
+    
+    Requiere login: False.
+    
+    Request Body (JSON):
+        email (str): Correo electrónico del usuario
+        code (str): Código de recuperación enviado al correo
+    
+    Returns:
+        JSON: {"message": "Código verificado, puedes restablecer tu contraseña"}
+    
+    Status Codes:
+        200: Código verificado exitosamente
+        400: Faltan campos requeridos o formato inválido
+        404: Usuario no encontrado
+        401: Código inválido o expirado
+    
+    Example Request:
+        POST /users/verifcode
+        {
+            "email": "usuario@ejemplo.com",
+            "code": "123456"
+        }
+    """
+    data = request.get_json()
+    
+    if "email" not in data or "code" not in data:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    code, created_at = db.get_reset_code(email=data["email"])
+    if not code:
+        return jsonify({"error": "Código no encontrado"}), 404
+    if datetime.now() - datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') > timedelta(minutes=15):
+        return jsonify({"error": "Código expirado"}), 401
+    if code != data["code"]:
+        return jsonify({"error": "Código inválido"}), 401
+    
+    db.delete_reset_code(email=data["email"])
+    return jsonify({"message": "Código verificado, puedes restablecer tu contraseña"}), 200
+
+@api_bp.route("/users/reset-password/change-password", methods=["POST"])
+def change_password():
+    """
+    Endpoint para cambiar la contraseña después de verificar el código de recuperación.
+    
+    Requiere login: False.
+    
+    Request Body (JSON):
+        email (str): Correo electrónico del usuario
+        new_password (str): Nueva contraseña a establecer
+    
+    Returns:
+        JSON: {"message": "Contraseña restablecida exitosamente"}
+    
+    Status Codes:
+        200: Contraseña cambiada exitosamente
+        400: Faltan campos requeridos o formato inválido
+        404: Usuario no encontrado
+        401: No autorizado (si el código no fue verificado)
+    
+    Example Request:
+        POST /users/reset-password/change-password
+        {
+            "email": "usuario@ejemplo.com",
+            "new_password": "nueva_contraseña_segura"
+        }
+    """
+    data = request.get_json()
+    
+    if "email" not in data or "new_password" not in data:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    
+    email = data["email"].strip()
+    new_password = data["new_password"].strip()
+    
+    if not UserValidator.validate_email(email):
+        return jsonify({"error": "Formato de correo inválido"}), 400
+    
+    user = db.get_user_by_email(email)
+    
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    hashed = generate_password_hash(new_password)
+    db.update_user_password(email, hashed)
+    
+    return jsonify({"message": "Contraseña restablecida exitosamente"}), 200

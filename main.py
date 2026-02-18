@@ -92,7 +92,7 @@ def login_post():
     Requiere login: False.
     
     Form Data:
-        user (str): Nombre de usuario
+        user/email (str): Nombre de usuario o correo electrónico
         password (str): Contraseña en texto plano (se compara con hash)
     
     Returns:
@@ -103,8 +103,8 @@ def login_post():
     password = request.form.get("password", "")
     if not user or not password:
         return render_template("login.html", error="Completa todos los campos")
-
-    rows = db.execute_query("SELECT id, password, role FROM users WHERE username = ?", (user,))
+    
+    rows = db.execute_query("SELECT id, password, role FROM users WHERE username = ? OR email = ?", (user, user))
     if not rows:
         return render_template("login.html", error="Usuario o contraseña inválidos")
 
@@ -656,7 +656,8 @@ def metrics():
     
     role = session.get("role", "user")
     if role != "admin":
-        pass
+        flash("Acceso denegado", "error")
+        return redirect(url_for("index"))
     
     return render_template("metrics.html")
 
@@ -717,3 +718,4 @@ if __name__ == "__main__":
             webview.start()
     except Exception as e:
         logger.exception(f"Error al iniciar el servidor: {str(e)}")
+        
