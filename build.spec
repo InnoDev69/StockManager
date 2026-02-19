@@ -40,6 +40,7 @@ a = Analysis(
         ('static', 'static'),
         ('bd', 'bd'),
         ('api', 'api'),
+        ('.env', '.'),
     ] + webview_datas + gi_datas,
     hiddenimports=[
         'flask',
