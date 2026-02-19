@@ -1052,8 +1052,6 @@ def change_password():
     """
     data = request.get_json()
     
-    if "email" not in data or "code" not in data or "new_password" not in data:
-        return jsonify({"error": "Faltan campos requeridos"}), 400
     if not db.verify_code(email=data.get("email", ""), code=data.get("code", "")):
         return jsonify({"error": "Código no verificado o expirado"}), 401
     
