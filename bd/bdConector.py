@@ -161,12 +161,22 @@ class BDConector:
         )
         """
         
+        reset_codes_table_query = """
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        
         with self._cursor() as cur:
             
             cur.execute(users_table_query)  
             cur.execute(items_table_query)
             cur.execute(sells_table_query)
             cur.execute(sells_details_table_query)
+            cur.execute(reset_codes_table_query)
     
     def create_table(self, table_name, columns):
         """
@@ -808,3 +818,116 @@ class BDConector:
             (email,)
         )
         return rows[0] if rows else None
+    
+    def save_reset_code(self, email, code):
+        """
+        Guarda un código de recuperación para un usuario.
+        
+        Thread-safe: Sí.
+        Transaccional: Sí.
+        
+        Args:
+            email (str): Email del usuario
+            code (str): Código de recuperación a guardar
+        
+        Raises:
+            DatabaseError: Si hay un error SQL
+        
+        Example:
+            db.save_reset_code('user@example.com', '123456')
+            
+        """
+        
+        self.execute_query(
+            "INSERT INTO password_resets (email, code, created_at) VALUES (?, ?, datetime('now'))",
+            (email, code),
+            fetch=False
+        )
+        
+    def get_reset_code(self, email):
+        """
+        Obtiene el código de recuperación en base al email del usuario y su tiempo de creacion..
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Args:
+            email (str): Email del usuario
+        
+        Returns:
+            tuple|None: (code, created_at) o None si no existe
+        
+        Example:
+            reset = db.get_reset_code('user@example.com')
+            
+        """
+        
+        rows = self.execute_query("SELECT code, created_at FROM password_resets WHERE email = ? ORDER BY created_at DESC LIMIT 1", (email,))
+        return rows[0] if rows else (None, None)
+    
+    def delete_reset_code(self, email):
+        """
+        Elimina los códigos de recuperación asociados a un email.
+        
+        Thread-safe: Sí.
+        Transaccional: Sí.
+        
+        Args:
+            email (str): Email del usuario
+        
+        Raises:
+            DatabaseError: Si hay un error SQL
+        
+        Example:
+            db.delete_reset_code('user@example.com')
+        """
+        self.execute_query("DELETE FROM password_resets WHERE email = ?", (email,), fetch=False)
+        
+    def update_user_password(self, email, new_password):
+        """
+        Actualiza la contraseña de un usuario identificado por su email.
+        
+        Thread-safe: Sí.
+        Transaccional: Sí.
+        
+        Args:
+            email (str): Email del usuario
+            new_password (str): Nueva contraseña hasheada
+        
+        Raises:
+            DatabaseError: Si el usuario no existe o hay error SQL
+        
+        Example:
+            from werkzeug.security import generate_password_hash
+            hashed = generate_password_hash('nueva_password')
+            db.update_user_password('user@example.com', hashed)
+        """
+        self.execute_query(
+            "UPDATE users SET password = ? WHERE email = ?",
+            (new_password, email),
+            fetch=False
+        )
+        
+    def verify_code(self, email, code):
+        """
+        Verifica si el código de recuperación es válido para un email dado.
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Args:
+            email (str): Email del usuario
+            code (str): Código de recuperación a verificar
+        
+        Returns:
+            bool: True si el código es válido, False en caso contrario
+        
+        Example:
+            is_valid = db.verify_code('user@example.com', '123456')
+            
+        """
+        rows = self.execute_query(
+            "SELECT 1 FROM password_resets WHERE email = ? AND code = ? AND created_at > datetime('now', '-15 minutes')",
+            (email, code)
+        )
+        return len(rows) > 0
