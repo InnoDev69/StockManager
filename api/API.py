@@ -1014,15 +1014,12 @@ def verify_code():
     
     if "email" not in data or "code" not in data:
         return jsonify({"error": "Faltan campos requeridos"}), 400
-    code, created_at = db.get_reset_code(email=data["email"])
-    if not code:
-        return jsonify({"error": "Código no encontrado"}), 404
-    if datetime.now() - datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S') > timedelta(minutes=15):
-        return jsonify({"error": "Código expirado"}), 401
-    if code != data["code"]:
-        return jsonify({"error": "Código inválido"}), 401
     
-    db.delete_reset_code(email=data["email"])
+    code_status = db.verify_code(email=data.get("email", ""), code=data.get("code", ""))
+
+    if not code_status:
+        return jsonify({"error": "Código inválido o expirado"}), 401
+    
     return jsonify({"message": "Código verificado, puedes restablecer tu contraseña"}), 200
 
 @api_bp.route("/users/reset-password/change-password", methods=["POST"])
@@ -1054,7 +1051,10 @@ def change_password():
         }
     """
     data = request.get_json()
-    if db.verify_code(email=data.get("email", ""), code=data.get("code", "")):
+    
+    if "email" not in data or "code" not in data or "new_password" not in data:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    if not db.verify_code(email=data.get("email", ""), code=data.get("code", "")):
         return jsonify({"error": "Código no verificado o expirado"}), 401
     
     if "email" not in data or "new_password" not in data:
@@ -1073,5 +1073,7 @@ def change_password():
     
     hashed = generate_password_hash(new_password)
     db.update_user_password(email, hashed)
+    
+    db.delete_reset_code(email=data["email"])
     
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200
