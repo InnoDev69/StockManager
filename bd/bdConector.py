@@ -907,4 +907,27 @@ class BDConector:
             (new_password, email),
             fetch=False
         )
+        
+    def verify_code(self, email, code):
+        """
+        Verifica si el código de recuperación es válido para un email dado.
+        
+        Thread-safe: Sí.
+        Transaccional: No requiere (solo lectura).
+        
+        Args:
+            email (str): Email del usuario
+            code (str): Código de recuperación a verificar
+        
+        Returns:
+            bool: True si el código es válido, False en caso contrario
+        
+        Example:
+            is_valid = db.verify_code('user@example.com', '123456')
             
+        """
+        rows = self.execute_query(
+            "SELECT 1 FROM password_resets WHERE email = ? AND code = ? AND created_at > datetime('now', '-15 minutes')",
+            (email, code)
+        )
+        return len(rows) > 0

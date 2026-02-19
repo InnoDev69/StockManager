@@ -927,8 +927,8 @@ def get_metrics():
     
 def generate_reset_code():
     """Genera un código de recuperación aleatorio de 6 dígitos."""
-    import random
-    return str(random.randint(100000, 999999))    
+    import secrets
+    return f"{secrets.randbelow(10**6):06d}"
 
 @api_bp.route("/users/reset-password", methods=["POST"])
 def restore_password():
@@ -1004,7 +1004,7 @@ def verify_code():
         401: Código inválido o expirado
     
     Example Request:
-        POST /users/verifcode
+        POST /users/validate-code
         {
             "email": "usuario@ejemplo.com",
             "code": "123456"
@@ -1049,10 +1049,13 @@ def change_password():
         POST /users/reset-password/change-password
         {
             "email": "usuario@ejemplo.com",
+            "code": "123456",
             "new_password": "nueva_contraseña_segura"
         }
     """
     data = request.get_json()
+    if db.verify_code(email=data.get("email", ""), code=data.get("code", "")):
+        return jsonify({"error": "Código no verificado o expirado"}), 401
     
     if "email" not in data or "new_password" not in data:
         return jsonify({"error": "Faltan campos requeridos"}), 400
