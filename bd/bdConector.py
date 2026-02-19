@@ -926,8 +926,9 @@ class BDConector:
             is_valid = db.verify_code('user@example.com', '123456')
             
         """
+
         rows = self.execute_query(
             "SELECT 1 FROM password_resets WHERE email = ? AND code = ? AND created_at > datetime('now', '-15 minutes')",
             (email, code)
         )
-        return len(rows) > 0
+        return bool(len(rows) > 0)
