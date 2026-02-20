@@ -86,6 +86,16 @@ a = Analysis(
     noarchive=False,
 )
 
+if sys.platform == 'linux':
+    system_libs = [
+        'libglib', 'libgio', 'libgobject', 'libgmodule',
+    ]
+    a.binaries = [
+        (name, path, kind)
+        for name, path, kind in a.binaries
+        if not any(excl in name.lower() for excl in system_libs)
+    ]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
