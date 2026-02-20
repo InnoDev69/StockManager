@@ -31,9 +31,9 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "SMTP_HOST=${{ secrets.SMTP_SERVER }}" >> .env
+          echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
           echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
-          echo "SMTP_USER=${{ secrets.SMTP_USERNAME }}" >> .env
+          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env
           echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
         shell: bash
 
@@ -105,9 +105,9 @@ jobs:
       - name: Build in Arch Linux container
         uses: docker://archlinux:latest
         env:
-          SMTP_HOST: ${{ secrets.SMTP_SERVER }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USERNAME }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         with:
           args: /bin/bash -c "
@@ -115,9 +115,9 @@ jobs:
             pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
             pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv &&
             cd /github/workspace &&
-            echo 'SMTP_HOST='$SMTP_HOST >> .env &&
+            echo 'SMTP_SERVER='$SMTP_SERVER >> .env &&
             echo 'SMTP_PORT='$SMTP_PORT >> .env &&
-            echo 'SMTP_USER='$SMTP_USER >> .env &&
+            echo 'SMTP_USERNAME='$SMTP_USERNAME >> .env &&
             echo 'SMTP_PASSWORD='$SMTP_PASSWORD >> .env &&
             pyinstaller build.spec &&
             cd dist &&
