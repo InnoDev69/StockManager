@@ -40,6 +40,7 @@ a = Analysis(
         ('static', 'static'),
         ('bd', 'bd'),
         ('api', 'api'),
+        ('.env', '.'),
     ] + webview_datas + gi_datas,
     hiddenimports=[
         'flask',
@@ -84,6 +85,16 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+if sys.platform == 'linux':
+    system_libs = [
+        'libglib', 'libgio', 'libgobject', 'libgmodule',
+    ]
+    a.binaries = [
+        (name, path, kind)
+        for name, path, kind in a.binaries
+        if not any(excl in name.lower() for excl in system_libs)
+    ]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 

@@ -1,10 +1,16 @@
 import smtplib
 from email.mime.text import MIMEText
+import sys
 from tools.logger import logger
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+if getattr(sys, 'frozen', False):
+    logger.info("Running in a PyInstaller bundle")
+    load_dotenv(os.path.join(sys._MEIPASS, '.env'))
+else:
+    logger.info("Running in a normal Python environment")
+    load_dotenv()
 
 class EmailSender:
     def __init__(self, smtp_server, smtp_port, username, password):
@@ -21,6 +27,7 @@ class EmailSender:
 
         try:
             with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                server.connect(self.smtp_server, self.smtp_port)
                 server.login(self.user_email, self.password)
                 server.send_message(msg)
             logger.info("Email sent successfully.")

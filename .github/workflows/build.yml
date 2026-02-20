@@ -29,6 +29,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: |
+          echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
+          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
+        shell: bash
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -96,12 +104,21 @@ jobs:
 
       - name: Build in Arch Linux container
         uses: docker://archlinux:latest
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         with:
           args: /bin/bash -c "
             pacman -Syu --noconfirm &&
             pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
             pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv &&
             cd /github/workspace &&
+            echo 'SMTP_SERVER='$SMTP_SERVER >> .env &&
+            echo 'SMTP_PORT='$SMTP_PORT >> .env &&
+            echo 'SMTP_USERNAME='$SMTP_USERNAME >> .env &&
+            echo 'SMTP_PASSWORD='$SMTP_PASSWORD >> .env &&
             pyinstaller build.spec &&
             cd dist &&
             tar -czf StockManager-arch-x64.tar.gz stock-manager-server
