@@ -27,6 +27,7 @@ class EmailSender:
 
         try:
             with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                server.connect(self.smtp_server, self.smtp_port)
                 server.login(self.user_email, self.password)
                 server.send_message(msg)
             logger.info("Email sent successfully.")
