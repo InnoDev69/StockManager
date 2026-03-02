@@ -28,7 +28,13 @@ def get_db_path():
         return db_path
     else:
         # Modo desarrollo
-        db_path = os.getenv("DB_PATH", "./bd/database.db")
+        db_path = os.getenv("DB_PATH", "./data/stock.db")
+        db_dir = os.path.dirname(db_path)
+        
+        if db_dir:
+            logger.info(f"Ensuring database directory exists: {db_dir}")
+            os.makedirs(db_dir, exist_ok=True)
+        
         logger.info(f"Using database path (dev mode): {db_path}")
         return db_path
 

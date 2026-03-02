@@ -46,11 +46,22 @@ class BDConector:
             PRAGMA foreign_keys = ON asegura integridad referencial
         """
         
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")      # lecturas concurrentes sin bloqueo
-        conn.execute("PRAGMA synchronous = NORMAL")     # más rápido, seguro para WAL
-        conn.execute("PRAGMA cache_size = -8000")       # 8MB de cache (default ~2MB)
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA journal_mode = WAL")      # lecturas concurrentes sin bloqueo
+            conn.execute("PRAGMA synchronous = NORMAL")     # más rápido, seguro para WAL
+            conn.execute("PRAGMA cache_size = -8000")       # 8MB de cache (default ~2MB)
+        
+        except sqlite3.OperationalError as e:
+            if "unable to open database file" in str(e).lower():
+                logger.error(f"Database file not found at {self.db_path}: {e}", exc_info=True)
+                raise DatabaseError(f"Database file not found at {self.db_path}")
+        
+        except sqlite3.Error as e:
+            logger.error(f"Error connecting to database: {e}", exc_info=True)
+            raise DatabaseError(f"Error connecting to database: {e}")    
+        
         return conn
 
     @contextlib.contextmanager
