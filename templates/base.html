@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{% block title %}Stock Manager{% endblock %}</title>
+  <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <header class="app-header">
     <div class="header-inner container">
-      <h1 class="brand"><a href="{{ url_for('index') }}" style="text-decoration:none; color:inherit;">Stock Manager</a></h1>
+      <h1 class="brand"><a href="{{ url_for('index') }}" style="text-decoration:none; color:inherit;">Stockly</a></h1>
       <div class="nav-actions" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
         {% if session.get('user_id') %}
         <div style="display:flex; align-items:center; gap:0.5rem;">

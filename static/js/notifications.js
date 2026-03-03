@@ -1,5 +1,5 @@
 /**
- * Sistema de Notificaciones Centralizado para Stock Manager
+ * Sistema de Notificaciones Centralizado para Stockly
  * Tipos: toast, alert (inline), modal/popup
  */
 

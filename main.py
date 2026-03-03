@@ -676,11 +676,11 @@ if __name__ == "__main__":
         SCHEDULER.start()
         
         if sys.platform == "linux":
-            os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
+            #os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
             os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
-            os.environ["WEBKIT_USE_SINGLE_WEB_PROCESS"] = "1"
-            os.environ["WEBKIT_DISABLE_HARDWARE_ACCELERATION"] = "1"
-            os.environ["QT_OPENGL"] = "software"
+            #os.environ["WEBKIT_USE_SINGLE_WEB_PROCESS"] = "1"
+            #os.environ["WEBKIT_DISABLE_HARDWARE_ACCELERATION"] = "1"
+            #os.environ["QT_OPENGL"] = "software"
             for var in ["WEBKIT_DISABLE_COMPOSITING_MODE", "WEBKIT_DISABLE_DMABUF_RENDERER",
                         "WEBKIT_USE_SINGLE_WEB_PROCESS", "WEBKIT_DISABLE_HARDWARE_ACCELERATION", "QT_OPENGL"]:
                 if var not in os.environ:
@@ -701,7 +701,7 @@ if __name__ == "__main__":
         icon_path = os.path.join(base_path, 'static', 'app', 'icon.png')
         
         window = webview.create_window(
-            'Stock Manager',
+            'Stockly',
             app,
             width=1200,
             height=800
