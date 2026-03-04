@@ -11,7 +11,7 @@
         <!-- Filters Section -->
         <div class="card mb-4">
             <div class="card-header">
-                <h3>Filtros de búsqueda</h3>
+                <h3>Filtros de busqueda</h3>
             </div>
             <div class="card-body">
                 <form id="filterForm" class="form-grid">
@@ -87,6 +87,11 @@
                     Exportar CSV
                 </button>
             </div>
+
+            <div id="sales-page-info" style="display:none; padding: 0.5rem 1.25rem; background: var(--panel-2); border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
+                Mostrando <span id="sales-from">0</span>-<span id="sales-to">0</span> de <span id="sales-total">0</span> ventas
+            </div>
+
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table">
@@ -101,10 +106,9 @@
                             </tr>
                         </thead>
                         <tbody id="salesTableBody">
-                            <!-- Placeholder rows -->
                             {% if sales %}
                                 {% for sale in sales %}
-                                <tr>
+                                <tr class="sale-row" data-index="{{ loop.index0 }}">
                                     <td>#{{ sale.id }}</td>
                                     <td>{{ sale.date }}</td>
                                     <td>
@@ -127,7 +131,7 @@
                                 </tr>
                                 {% endfor %}
                             {% else %}
-                            <tr>
+                            <tr id="empty-sales-row">
                                 <td colspan="6" class="text-center text-muted">
                                     <div style="padding: 3rem;">
                                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 1rem; opacity: 0.3;">
@@ -136,7 +140,7 @@
                                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                                         </svg>
                                         <p>No se encontraron ventas</p>
-                                        <p style="font-size: 0.875rem; opacity: 0.7;">Intenta ajustar los filtros de búsqueda</p>
+                                        <p style="font-size: 0.875rem; opacity: 0.7;">Intenta ajustar los filtros de busqueda</p>
                                     </div>
                                 </td>
                             </tr>
@@ -144,6 +148,17 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div id="sales-pagination" style="display:none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.875rem; color: var(--text-muted);">Por pagina:</label>
+                        <select id="sales-page-size" style="padding: 0.375rem 0.5rem; font-size: 0.8rem; width: auto;">
+                            <option value="10" selected>10</option>
+                        </select>
+                    </div>
+                    <div id="sales-page-buttons" style="display: flex; gap: 0.375rem;"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -158,9 +173,24 @@
             <div class="modal-body" id="modalBody">
                 <div class="detail-section">
                     <p><strong>Fecha:</strong> <span id="detailDate"></span></p>
-                    <p><strong>ID Transacción:</strong> <span id="detailId"></span></p>
+                    <p><strong>ID Transaccion:</strong> <span id="detailId"></span></p>
                 </div>
-                <h4 class="mt-3">Productos</h4>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0 0.5rem 0; flex-wrap: wrap; gap: 0.5rem;">
+                    <h4 style="margin: 0;">Productos</h4>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <span id="detail-page-info" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">Por pagina:</label>
+                            <select id="detail-page-size" style="padding: 0.25rem 0.4rem; font-size: 0.75rem; width: auto;">
+                                <option value="5" selected>5</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <table class="table">
                     <thead>
                         <tr>
@@ -173,6 +203,12 @@
                     <tbody id="detailTableBody">
                     </tbody>
                 </table>
+
+                <div id="detail-pagination" style="display:none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <span id="detail-page-counter" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);"></span>
+                    <div id="detail-page-buttons" style="display: flex; gap: 0.375rem;"></div>
+                </div>
+
                 <div class="detail-total">
                     <h3>Total: <span id="detailTotal" class="text-primary"></span></h3>
                 </div>
@@ -185,173 +221,274 @@
     </div>
 
     <script>
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-            });
-            const dateString = now.toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            const el = document.getElementById('current-time');
-            if (el) {
-                el.textContent = `${dateString} - ${timeString}`;
+    (function () {
+        'use strict';
+
+        function $(id) { return document.getElementById(id); }
+
+        function renderPagination(container, current, total, onPage) {
+            if (total <= 1) { container.innerHTML = ''; return; }
+
+            let pages = [];
+            if (total <= 7) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                if (current > 3) pages.push('...');
+                for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+                if (current < total - 2) pages.push('...');
+                pages.push(total);
             }
+
+            let html = '<button class="pg-btn" ' + (current === 1 ? 'disabled' : 'data-pg="' + (current - 1) + '"') + ' title="Anterior">' +
+                '<svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>' +
+                '</button>';
+
+            pages.forEach(p => {
+                if (p === '...') {
+                    html += '<span class="pg-ellipsis">...</span>';
+                } else {
+                    html += '<button class="pg-btn' + (p === current ? ' active' : '') + '" data-pg="' + p + '">' + p + '</button>';
+                }
+            });
+
+            html += '<button class="pg-btn" ' + (current === total ? 'disabled' : 'data-pg="' + (current + 1) + '"') + ' title="Siguiente">' +
+                '<svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+                '</button>';
+
+            container.innerHTML = html;
+            container.onclick = function (e) {
+                const btn = e.target.closest('.pg-btn[data-pg]');
+                if (!btn || btn.disabled) return;
+                const pg = parseInt(btn.dataset.pg);
+                if (pg >= 1 && pg <= total) onPage(pg);
+            };
+        }
+
+        (function initSalesPagination() {
+            const rows = Array.from(document.querySelectorAll('.sale-row'));
+            const total = rows.length;
+            if (total === 0) return;
+
+            let page     = 1;
+            let pageSize = 10;
+
+            const paginationEl = $('sales-pagination');
+            const pageInfoEl   = $('sales-page-info');
+            const fromEl       = $('sales-from');
+            const toEl         = $('sales-to');
+            const totalEl      = $('sales-total');
+            const buttonsEl    = $('sales-page-buttons');
+            const pageSizeSel  = $('sales-page-size');
+
+            function render() {
+                const totalPages = Math.ceil(total / pageSize) || 1;
+                if (page > totalPages) page = totalPages;
+
+                const start = (page - 1) * pageSize;
+                const end   = Math.min(start + pageSize, total);
+
+                rows.forEach((row, i) => {
+                    row.style.display = (i >= start && i < end) ? '' : 'none';
+                });
+
+                fromEl.textContent  = start + 1;
+                toEl.textContent    = end;
+                totalEl.textContent = total;
+                pageInfoEl.style.display = '';
+
+                paginationEl.style.display = totalPages > 1 ? '' : 'none';
+                renderPagination(buttonsEl, page, totalPages, function (pg) {
+                    page = pg;
+                    render();
+                });
+            }
+
+            pageSizeSel.addEventListener('change', function () {
+                pageSize = parseInt(this.value);
+                page     = 1;
+                render();
+            });
+
+            render();
+        })();
+
+        let detailProducts = [];
+        let detailPage     = 1;
+        let detailPageSize = 5;
+
+        function renderDetailTable() {
+            const tbody      = $('detailTableBody');
+            const infoEl     = $('detail-page-info');
+            const counterEl  = $('detail-page-counter');
+            const paginEl    = $('detail-pagination');
+            const buttonsEl  = $('detail-page-buttons');
+
+            const total      = detailProducts.length;
+            const totalPages = Math.ceil(total / detailPageSize) || 1;
+
+            if (detailPage > totalPages) detailPage = totalPages;
+            if (detailPage < 1)          detailPage = 1;
+
+            const start   = (detailPage - 1) * detailPageSize;
+            const end     = Math.min(start + detailPageSize, total);
+            const pageProd = detailProducts.slice(start, end);
+
+            infoEl.textContent    = 'Mostrando ' + (start + 1) + '-' + end + ' de ' + total + ' productos';
+            counterEl.textContent = 'Pagina ' + detailPage + ' de ' + totalPages;
+
+            tbody.innerHTML = '';
+            pageProd.forEach(function (product) {
+                const subtotal = (Number(product.quantity) * Number(product.price)).toFixed(2);
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + escapeHtml(product.name) + '</td>' +
+                    '<td>' + Number(product.quantity) + '</td>' +
+                    '<td>$' + Number(product.price).toFixed(2) + '</td>' +
+                    '<td>$' + subtotal + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            paginEl.style.display = totalPages > 1 ? '' : 'none';
+            renderPagination(buttonsEl, detailPage, totalPages, function (pg) {
+                detailPage = pg;
+                renderDetailTable();
+            });
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = String(text || '');
+            return d.innerHTML;
+        }
+
+        function updateClock() {
+            const now        = new Date();
+            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const el         = $('current-time');
+            if (el) el.textContent = dateString + ' - ' + timeString;
         }
         updateClock();
         setInterval(updateClock, 1000);
 
-        // Set default dates (last 30 days)
-        const today = new Date();
+        const today        = new Date();
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(today.getDate() - 30);
-        
-        document.getElementById('dateTo').valueAsDate = today;
-        document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+        $('dateTo').valueAsDate   = today;
+        $('dateFrom').valueAsDate = thirtyDaysAgo;
 
-        // Filter form submission
-        document.getElementById('filterForm').addEventListener('submit', function(e) {
+        $('filterForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            const formData = new FormData(this);
-            const params = new URLSearchParams(formData);
-            window.location.href = `{{ url_for('sales') }}?${params.toString()}`;
+            const params = new URLSearchParams(new FormData(this));
+            window.location.href = '{{ url_for("sales") }}?' + params.toString();
         });
 
-        // Clear filters
-        function clearFilters() {
-            document.getElementById('filterForm').reset();
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today);
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-            document.getElementById('dateTo').valueAsDate = today;
-            document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+        window.clearFilters = function () {
+            $('filterForm').reset();
+            const t  = new Date();
+            const tda = new Date(t);
+            tda.setDate(t.getDate() - 30);
+            $('dateTo').valueAsDate   = t;
+            $('dateFrom').valueAsDate = tda;
             window.location.href = '{{ url_for("sales") }}';
-        }
+        };
 
-        // View sale detail
-        async function viewSaleDetail(saleId) {
+        window.viewSaleDetail = async function (saleId) {
             try {
-                const res = await fetch(`/api/sales/${saleId}`, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                console.log(`/api/sales/${saleId}`, res);
-
+                const res         = await fetch('/api/sales/' + saleId, { headers: { 'Accept': 'application/json' } });
                 const contentType = res.headers.get('content-type') || '';
 
                 if (!res.ok) {
                     const text = await res.text();
-                    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text.slice(0, 200)}`);
+                    throw new Error('HTTP ' + res.status + ' ' + res.statusText + ': ' + text.slice(0, 200));
                 }
                 if (!contentType.includes('application/json')) {
                     const text = await res.text();
-                    throw new Error(`Respuesta no JSON (content-type=${contentType}): ${text.slice(0, 200)}`);
+                    throw new Error('Respuesta no JSON: ' + text.slice(0, 200));
                 }
 
                 const data = await res.json();
 
-                document.getElementById('modalSaleId').textContent = `#${data.id}`;
-                document.getElementById('detailDate').textContent = data.date;
-                document.getElementById('detailId').textContent = data.id;
-                document.getElementById('detailTotal').textContent = `$${Number(data.total).toFixed(2)}`;
+                $('modalSaleId').textContent = '#' + data.id;
+                $('detailDate').textContent  = data.date;
+                $('detailId').textContent    = data.id;
+                $('detailTotal').textContent = '$' + Number(data.total).toFixed(2);
 
-                const tbody = document.getElementById('detailTableBody');
-                tbody.innerHTML = '';
-                (data.products || []).forEach(product => {
-                    const row = `
-                        <tr>
-                            <td>${product.name}</td>
-                            <td>${product.quantity}</td>
-                            <td>$${Number(product.price).toFixed(2)}</td>
-                            <td>$${(Number(product.quantity) * Number(product.price)).toFixed(2)}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                detailProducts = data.products || [];
+                detailPage     = 1;
+                detailPageSize = parseInt($('detail-page-size').value) || 5;
 
-                document.getElementById('saleModal').style.display = 'flex';
+                renderDetailTable();
+
+                $('saleModal').style.display = 'flex';
             } catch (error) {
                 console.error('Error fetching sale detail:', error);
                 alert('Error al cargar el detalle de la venta');
             }
-        }
+        };
 
-        // Close modal
-        function closeSaleModal() {
-            document.getElementById('saleModal').style.display = 'none';
-        }
+        $('detail-page-size').addEventListener('change', function () {
+            detailPageSize = parseInt(this.value);
+            detailPage     = 1;
+            renderDetailTable();
+        });
 
-        // Close modal on outside click
-        window.onclick = function(event) {
-            const modal = document.getElementById('saleModal');
-            if (event.target === modal) {
-                closeSaleModal();
-            }
-        }
+        window.closeSaleModal = function () {
+            $('saleModal').style.display = 'none';
+        };
 
-        // Print sale
-        function printSale() {
-            window.print();
-        }
+        window.onclick = function (event) {
+            const modal = $('saleModal');
+            if (event.target === modal) closeSaleModal();
+        };
 
-        // Export to CSV
-        function exportToCSV() {
+        window.printSale = function () { window.print(); };
+
+        window.exportToCSV = function () {
             const table = document.querySelector('.table');
             let csv = [];
             const rows = table.querySelectorAll('tr');
-            
             for (let i = 0; i < rows.length; i++) {
-                const row = [], cols = rows[i].querySelectorAll('td, th');
-                
-                for (let j = 0; j < cols.length - 1; j++) { // Skip actions column
+                const row  = [];
+                const cols = rows[i].querySelectorAll('td, th');
+                for (let j = 0; j < cols.length - 1; j++) {
                     let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
                     data = data.replace(/"/g, '""');
                     row.push('"' + data + '"');
                 }
                 csv.push(row.join(','));
             }
-            
-            const csvFile = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const csvFile     = new Blob([csv.join('\n')], { type: 'text/csv' });
             const downloadLink = document.createElement('a');
-            downloadLink.download = `ventas_${new Date().toISOString().split('T')[0]}.csv`;
-            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
+            downloadLink.href     = window.URL.createObjectURL(csvFile);
             downloadLink.style.display = 'none';
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
-        }
+        };
 
-        // Calculate summary stats (if data available)
-        function calculateStats() {
-            const rows = document.querySelectorAll('#salesTableBody tr');
-            if (rows.length === 1 && rows[0].cells.length === 1) return; // Empty state
-            
-            let totalSales = 0;
+        (function calculateStats() {
+            const rows = document.querySelectorAll('#salesTableBody .sale-row');
+            if (rows.length === 0) return;
+
+            let totalSales    = 0;
             let totalProducts = 0;
-            
+
             rows.forEach(row => {
-                const totalCell = row.cells[4];
-                if (totalCell) {
-                    const amount = parseFloat(totalCell.textContent.replace('$', '').replace(',', ''));
-                    totalSales += amount;
-                }
+                const totalCell    = row.cells[4];
                 const quantityCell = row.cells[3];
-                if (quantityCell) {
-                    totalProducts += parseInt(quantityCell.textContent);
-                }
+                if (totalCell)    totalSales    += parseFloat(totalCell.textContent.replace('$', '').replace(',', '')) || 0;
+                if (quantityCell) totalProducts += parseInt(quantityCell.textContent) || 0;
             });
-            
-            document.getElementById('totalSales').textContent = `$${totalSales.toFixed(2)}`;
-            document.getElementById('totalTransactions').textContent = rows.length;
-            document.getElementById('totalProducts').textContent = totalProducts;
-        }
-        
-        // Run on page load
-        calculateStats();
+
+            $('totalSales').textContent        = '$' + totalSales.toFixed(2);
+            $('totalTransactions').textContent  = rows.length;
+            $('totalProducts').textContent      = totalProducts;
+        })();
+
+    })();
     </script>
 
     <style>
@@ -395,9 +532,7 @@
             color: white;
         }
 
-        .stat-info {
-            flex: 1;
-        }
+        .stat-info { flex: 1; }
 
         .stat-label {
             font-size: 0.875rem;
@@ -412,9 +547,7 @@
             color: white;
         }
 
-        .table-responsive {
-            overflow-x: auto;
-        }
+        .table-responsive { overflow-x: auto; }
 
         .table {
             width: 100%;
@@ -436,13 +569,8 @@
             letter-spacing: 0.05em;
         }
 
-        .table tbody tr {
-            transition: background 0.2s ease;
-        }
-
-        .table tbody tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
+        .table tbody tr { transition: background 0.2s ease; }
+        .table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
 
         .badge {
             display: inline-block;
@@ -454,11 +582,7 @@
             margin: 0.125rem;
         }
 
-        .product-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-        }
+        .product-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 
         .btn-icon {
             background: transparent;
@@ -477,15 +601,13 @@
             border-color: rgba(0, 212, 255, 0.5);
         }
 
-        /* Modal styles */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(4px);
             align-items: center;
@@ -511,13 +633,9 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .modal-header h3 {
-            margin: 0;
-        }
+        .modal-header h3 { margin: 0; }
 
-        .modal-body {
-            padding: 1.5rem;
-        }
+        .modal-body { padding: 1.5rem; }
 
         .modal-footer {
             display: flex;
@@ -538,9 +656,7 @@
             transition: opacity 0.2s ease;
         }
 
-        .btn-close:hover {
-            opacity: 1;
-        }
+        .btn-close:hover { opacity: 1; }
 
         .detail-section {
             background: rgba(255, 255, 255, 0.05);
@@ -549,9 +665,7 @@
             margin-bottom: 1rem;
         }
 
-        .detail-section p {
-            margin: 0.5rem 0;
-        }
+        .detail-section p { margin: 0.5rem 0; }
 
         .detail-total {
             text-align: right;
@@ -561,46 +675,62 @@
             margin-top: 1rem;
         }
 
-        .detail-total h3 {
-            margin: 0;
+        .detail-total h3 { margin: 0; }
+
+        /* Botones de paginacion compartidos */
+        .pg-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 0.4rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: inherit;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .pg-btn:hover:not(:disabled) {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.4);
+        }
+
+        .pg-btn.active {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: rgba(0, 212, 255, 0.6);
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .pg-ellipsis {
+            display: inline-flex;
+            align-items: center;
+            padding: 0 0.25rem;
+            color: rgba(255, 255, 255, 0.4);
+            user-select: none;
+            font-size: 0.8rem;
         }
 
         @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .table {
-                font-size: 0.875rem;
-            }
-
+            .form-grid   { grid-template-columns: 1fr; }
+            .stats-grid  { grid-template-columns: 1fr; }
+            .table       { font-size: 0.875rem; }
             .table th,
-            .table td {
-                padding: 0.75rem 0.5rem;
-            }
+            .table td    { padding: 0.75rem 0.5rem; }
         }
 
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            .modal-content, .modal-content * {
-                visibility: visible;
-            }
-            .modal-content {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-            .modal-header button,
-            .modal-footer {
-                display: none;
-            }
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content { position: absolute; left: 0; top: 0; width: 100%; }
+            .modal-header button, .modal-footer { display: none; }
+            #detail-pagination { display: none !important; }
         }
     </style>
 </body>

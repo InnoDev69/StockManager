@@ -87,7 +87,7 @@
     {% endif %}
 
     <!-- Ver Productos GENERALES -->
-     <a href="/product_management" class="quick-access-item" style="text-decoration: none;">
+    <a href="/product_management" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
@@ -100,22 +100,25 @@
     </a>
 
     <!-- Ver métricas-->
-     <a href="/metrics" class="quick-access-item" style="text-decoration: none;">
+    <a href="/metrics" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
-        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18"></path> <path stroke-linecap="round" stroke-linejoin="round" d="M7 17v-5"></path> <path stroke-linecap="round" stroke-linejoin="round" d="M12 17v-8"></path> <path stroke-linecap="round" stroke-linejoin="round" d="M17 17v-6"></path> </svg>
+        <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 17v-5"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 17v-8"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 17v-6"></path>
+        </svg>
       </div>
       <div class="quick-access-content">
         <div class="quick-access-title">Ver Métricas</div>
         <div class="quick-access-subtitle">Visualizar estadísticas del sistema</div>
       </div>
     </a>
-
   </div>
 </section>
 
 <!-- KPIs Section -->
 <section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
-  <!-- DEBUG: {{ DEBUG }} -->
   {% if DEBUG %}
     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
       <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Estado API</div>
@@ -150,7 +153,6 @@
 <!-- Acciones y Filtros -->
 <section class="card" aria-label="Búsqueda y filtros" style="margin-top: 1.5rem; padding: 1.25rem;">
   <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
-    <!-- Búsqueda -->
     <div style="flex: 1; min-width: 250px;">
       <label for="search" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Buscar</label>
       <div style="position: relative;">
@@ -168,7 +170,6 @@
       </div>
     </div>
 
-    <!-- Filtro de categoría -->
     <div style="min-width: 200px;">
       <label for="filter-category" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Categoría</label>
       <select id="filter-category" aria-label="Filtrar por categoría" style="width: 100%;">
@@ -176,7 +177,6 @@
       </select>
     </div>
 
-    <!-- Filtro de vista -->
     <div style="min-width: 180px;">
       <label for="view-mode" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Estado</label>
       <select id="view-mode" aria-label="Modo de vista" style="width: 100%;">
@@ -189,10 +189,8 @@
       </select>
     </div>
 
-    <!-- Acciones rápidas -->
     <div style="display: flex; gap: 0.5rem; margin-left: auto;">
       {% if role == 'admin' %}
-      <!-- Uso de url_for evita errores de ruta -->
       <a href="{{ url_for('product_new') }}" class="btn" style="white-space: nowrap;">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -225,16 +223,28 @@
 <!-- Alertas de bajo stock -->
 {% if low_stock_list %}
 <section id="alerts" aria-live="polite" aria-label="Alertas de inventario" style="margin-top: 1.5rem;">
-  <div class="card" style="padding: 1.25rem; border-left: 3px solid var(--warning, #f59e0b);">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-      <svg style="width: 20px; height: 20px; color: var(--warning, #f59e0b);" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"></path>
-      </svg>
-      <strong style="font-size: 1rem; color: var(--warning, #f59e0b);">Productos con bajo stock ({{ low_stock_list|length }})</strong>
+  <div class="card" style="padding: 0; overflow: hidden; border-left: 3px solid var(--warning, #f59e0b);">
+
+    <!-- Header con título + info de paginación -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1.25rem; border-bottom: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <svg style="width: 20px; height: 20px; color: var(--warning, #f59e0b); flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"></path>
+        </svg>
+        <strong style="font-size: 1rem; color: var(--warning, #f59e0b);">
+          Productos con bajo stock
+          (<span id="ls-total">{{ low_stock_list|length }}</span>)
+        </strong>
+      </div>
+      <span id="ls-page-info" class="text-muted" style="font-size: 0.8rem;">
+        Mostrando <span id="ls-from">1</span>–<span id="ls-to">5</span> de <span id="ls-of">{{ low_stock_list|length }}</span>
+      </span>
     </div>
-    <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+
+    <!-- Lista paginada -->
+    <ul id="ls-list" style="margin: 0; padding: 0.75rem 1.25rem; list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
       {% for item in low_stock_list %}
-      <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 6px; border: 1px solid var(--glass);">
+      <li class="ls-item" data-index="{{ loop.index0 }}" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 6px; border: 1px solid var(--glass);">
         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
           <span style="font-weight: 600; font-size: 0.95rem;">{{ item.name }}</span>
           <span class="text-muted mono" style="font-size: 0.85rem;">SKU: {{ item.sku | default('N/A') }}</span>
@@ -251,13 +261,29 @@
       </li>
       {% endfor %}
     </ul>
+
+    <!-- Controles de paginación -->
+    <div id="ls-pagination" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.875rem 1.25rem; border-top: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label class="text-muted" style="font-size: 0.875rem;">Por página:</label>
+        <select id="ls-page-size" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; width: auto;">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div id="ls-page-buttons" style="display: flex; align-items: center; gap: 0.375rem;">
+        <!-- Botones generados dinámicamente -->
+      </div>
+    </div>
+
   </div>
 </section>
 {% endif %}
 
 <!-- Lista de productos -->
 <section style="margin-top: 1.5rem;">
-  <!-- Header de la sección -->
   <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
@@ -266,7 +292,6 @@
           <span id="products-count-display">{{ products|length if products else 0 }}</span> productos en total
         </p>
       </div>
-      
       <div style="display: flex; gap: 0.5rem; align-items: center;">
         <button id="grid-view" class="btn btn-ghost" style="padding: 0.5rem;" title="Vista en cuadrícula" onclick="switchView('grid')">
           <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,36 +307,46 @@
     </div>
   </div>
 
-  <!-- Contenedor de productos -->
+  <!-- Info de paginación superior -->
+  <div id="prod-info-top" style="display:none; padding: 0.5rem 0; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+    Mostrando <span id="prod-from">0</span>–<span id="prod-to">0</span> de <span id="prod-total">0</span> productos
+  </div>
+
   <div id="productsList" class="products-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));" aria-live="polite" aria-label="Lista de productos">
-    <!-- Loading state -->
-    <div id="loadingMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;" hidden>
+    <div id="loadingMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;">
       <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid var(--glass); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
       <p class="text-muted" style="margin-top: 1rem;">Cargando productos...</p>
     </div>
-
-    <!-- Empty state -->
-    <div id="emptyMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center;" {% if products %}hidden{% endif %}>
+    <div id="emptyMessage" class="card" style="grid-column: 1 / -1; padding: 3rem; text-align: center; display: none;">
       <svg style="width: 64px; height: 64px; margin: 0 auto; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 00-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
       </svg>
       <h3 style="margin: 1.5rem 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
-      <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros de búsqueda o agrega un nuevo producto.</p>
-      {% if role == 'admin' %}
-      <a href="/products/new" class="btn">Agregar primer producto</a>
-      {% endif %}
+      <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros o agrega un nuevo producto.</p>
+      {% if role == 'admin' %}<a href="/products/new" class="btn">Agregar primer producto</a>{% endif %}
     </div>
+  </div>
+
+  <!-- Paginación inferior -->
+  <div id="prod-pagination" style="display:none; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label class="text-muted" style="font-size: 0.875rem;">Por página:</label>
+      <select id="prod-page-size" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; width: auto;">
+        <option value="12" selected>12</option>
+        <option value="24">24</option>
+        <option value="48">48</option>
+        <option value="96">96</option>
+      </select>
+    </div>
+    <div id="prod-page-buttons" style="display: flex; align-items: center; gap: 0.375rem;"></div>
   </div>
 </section>
 
 <!-- Template para tarjeta de producto -->
 <template id="product-card-template">
   <article class="card product-card" style="padding: 1.25rem; transition: all 0.2s ease; cursor: pointer; position: relative; overflow: hidden;">
-    <!-- Badge de estado -->
     <div class="product-badge" style="position: absolute; top: 0.75rem; right: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;"></div>
-    
     <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <!-- Header -->
       <div>
         <div class="text-muted mono" style="font-size: 0.75rem; margin-bottom: 0.5rem;">
           SKU: <span class="sku">-</span>
@@ -319,8 +354,6 @@
         <h3 class="name" style="margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.4;">Nombre del producto</h3>
         <div class="category text-muted" style="font-size: 0.875rem; margin-top: 0.25rem;"></div>
       </div>
-
-      <!-- Stats -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--glass);">
         <div>
           <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Stock</div>
@@ -331,15 +364,12 @@
           <div class="mono price" style="font-size: 1.25rem; font-weight: 600;">$0.00</div>
         </div>
       </div>
-
     </div>
   </article>
 </template>
 
 <style>
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .product-card:hover {
     transform: translateY(-2px);
@@ -347,21 +377,14 @@
     border-color: var(--primary);
   }
 
-  .products-list .product-card {
-    grid-column: 1 / -1;
-  }
+  .products-list .product-card { grid-column: 1 / -1; }
 
-  /* Ocultar botones según rol */
   .admin-only { display: none !important; }
   .non-admin-only { display: flex !important; }
-  
   body.role-admin .admin-only { display: flex !important; }
   body.role-admin .non-admin-only { display: none !important; }
 
-  /* Quick Access Bar */
-  .quick-access-bar {
-    animation: fadeInUp 0.5s ease;
-  }
+  .quick-access-bar { animation: fadeInUp 0.5s ease; }
 
   .quick-access-grid {
     display: grid;
@@ -376,7 +399,7 @@
     gap: 0.875rem;
     padding: 1rem;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
     border: 1px solid var(--border);
     transition: all 0.2s ease;
     cursor: pointer;
@@ -388,7 +411,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
     opacity: 0;
     transition: opacity 0.2s ease;
   }
@@ -396,16 +419,11 @@
   .quick-access-item:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15), 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
   }
 
-  .quick-access-item:hover::before {
-    opacity: 1;
-  }
-
-  .quick-access-item:active {
-    transform: translateY(0);
-  }
+  .quick-access-item:hover::before { opacity: 1; }
+  .quick-access-item:active { transform: translateY(0); }
 
   .quick-access-icon {
     flex-shrink: 0;
@@ -416,13 +434,10 @@
     justify-content: center;
     border-radius: var(--radius-sm);
     color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 
-  .quick-access-content {
-    flex: 1;
-    min-width: 0;
-  }
+  .quick-access-content { flex: 1; min-width: 0; }
 
   .quick-access-title {
     font-weight: 600;
@@ -455,122 +470,354 @@
     border-radius: 12px;
     font-size: 0.75rem;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     animation: pulse 2s ease infinite;
   }
 
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.05); }
   }
 
-  /* Responsive adjustments */
+  #prod-page-buttons button, #ls-page-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: inherit;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  #prod-page-buttons button:hover:not(:disabled) {
+    background: rgba(var(--brand-rgb, 99,102,241), 0.08);
+    border-color: var(--brand);
+  }
+
+  #prod-page-buttons button.active {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+    font-weight: 700;
+  }
+
+  #prod-page-buttons button:disabled,
+  #ls-page-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #prod-page-buttons .pg-ellipsis,
+  #ls-page-buttons .ls-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.25rem;
+    color: var(--text-muted);
+    user-select: none;
+  }
+
   @media (max-width: 768px) {
-    .quick-access-grid {
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    }
-    
-    .quick-access-item {
-      padding: 0.875rem;
-      gap: 0.75rem;
-    }
-
-    .quick-access-icon {
-      width: 40px;
-      height: 40px;
-    }
-
-    .quick-access-icon svg {
-      width: 20px !important;
-      height: 20px !important;
-    }
-
-    .quick-access-title {
-      font-size: 0.875rem;
-    }
-
-    .quick-access-subtitle {
-      font-size: 0.75rem;
-    }
+    .quick-access-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .quick-access-item { padding: 0.875rem; gap: 0.75rem; }
+    .quick-access-icon { width: 40px; height: 40px; }
+    .quick-access-icon svg { width: 20px !important; height: 20px !important; }
+    .quick-access-title { font-size: 0.875rem; }
+    .quick-access-subtitle { font-size: 0.75rem; }
   }
 </style>
 
 <script>
-  // Configuración y state de la aplicación
+  // =====================================================
+  //  Utilidad compartida: renderiza botones de paginación
+  // =====================================================
+  function renderPagination(containerId, current, total, onPage) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (total <= 1) { container.innerHTML = ''; return; }
+
+    let pages = [];
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+    }
+
+    const prevBtn = current === 1
+      ? '<button disabled title="Anterior"><svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>'
+      : '<button data-pg="' + (current - 1) + '" title="Anterior"><svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>';
+    const nextBtn = current === total
+      ? '<button disabled title="Siguiente"><svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>'
+      : '<button data-pg="' + (current + 1) + '" title="Siguiente"><svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>';
+
+    let inner = prevBtn;
+    pages.forEach(function(p) {
+      inner += p === '...'
+        ? '<span class="pg-ellipsis">…</span>'
+        : '<button class="' + (p === current ? 'active' : '') + '" data-pg="' + p + '">' + p + '</button>';
+    });
+    inner += nextBtn;
+
+    container.innerHTML = inner;
+    container.onclick = function(e) {
+      const btn = e.target.closest('button[data-pg]');
+      if (!btn || btn.disabled) return;
+      const pg = parseInt(btn.dataset.pg);
+      if (pg >= 1 && pg <= total) onPage(pg);
+    };
+  }
+
+  // =====================================================
+  //  Paginación del bloque "Bajo stock" (Jinja2-rendered)
+  // =====================================================
+  (function () {
+    const allItems = Array.from(document.querySelectorAll('.ls-item'));
+    if (!allItems.length) return;
+
+    let currentPage = 1;
+    let pageSize    = 5;
+
+    function renderPage() {
+      const total      = allItems.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1)          currentPage = 1;
+
+      const start = (currentPage - 1) * pageSize;
+      const end   = Math.min(start + pageSize, total);
+
+      allItems.forEach(function(li, idx) {
+        li.style.display = (idx >= start && idx < end) ? '' : 'none';
+      });
+
+      document.getElementById('ls-from').textContent = start + 1;
+      document.getElementById('ls-to').textContent   = end;
+
+      const paginationEl = document.getElementById('ls-pagination');
+      const infoEl       = document.getElementById('ls-page-info');
+      if (totalPages <= 1) {
+        paginationEl.style.display = 'none';
+        infoEl.style.display       = 'none';
+      } else {
+        paginationEl.style.display = '';
+        infoEl.style.display       = '';
+      }
+
+      renderPagination('ls-page-buttons', currentPage, totalPages, function(pg) {
+        currentPage = pg;
+        renderPage();
+      });
+    }
+
+    document.getElementById('ls-page-size').addEventListener('change', function() {
+      pageSize    = parseInt(this.value);
+      currentPage = 1;
+      renderPage();
+    });
+
+    renderPage();
+  })();
+
+  // =====================================================
+  //  Grilla de Productos — paginación server-side
+  // =====================================================
+  (function() {
+    'use strict';
+
+    let currentPage = 1;
+    let totalPages  = 1;
+    let pageSize    = 12;
+
+    function debounce(fn, ms) {
+      let t; return function() { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), ms); };
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+
+    function buildParams(page) {
+      const search   = (document.getElementById('search').value || '').trim();
+      const viewMode = document.getElementById('view-mode').value;
+      const p = new URLSearchParams({ page: page, limit: pageSize, view_mode: viewMode });
+      if (search) p.set('search', search);
+      return p;
+    }
+
+    async function fetchProducts(page) {
+      const list    = document.getElementById('productsList');
+      const loading = document.getElementById('loadingMessage');
+      const empty   = document.getElementById('emptyMessage');
+      const pgCtrl  = document.getElementById('prod-pagination');
+      const infoTop = document.getElementById('prod-info-top');
+
+      // Limpiar tarjetas anteriores (dejar loading y empty)
+      Array.from(list.children).forEach(function(el) {
+        if (el.id !== 'loadingMessage' && el.id !== 'emptyMessage') el.remove();
+      });
+      loading.style.display = '';
+      empty.style.display   = 'none';
+      pgCtrl.style.display  = 'none';
+      infoTop.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/products?' + buildParams(page), {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) throw new Error('Error ' + res.status);
+
+        // Nuevo contrato: { data, total, page, pages, limit }
+        const json  = await res.json();
+        const items = json.data  || [];
+        currentPage = json.page  || 1;
+        totalPages  = json.pages || 1;
+        const total = json.total || 0;
+
+        loading.style.display = 'none';
+
+        document.getElementById('products-count-display').textContent = total;
+
+        if (items.length === 0) {
+          empty.style.display = '';
+          return;
+        }
+
+        // Info superior
+        const start = (currentPage - 1) * pageSize;
+        document.getElementById('prod-from').textContent  = start + 1;
+        document.getElementById('prod-to').textContent    = Math.min(start + items.length, total);
+        document.getElementById('prod-total').textContent = total;
+        infoTop.style.display = '';
+
+        // Renderizar tarjetas usando el template
+        const template = document.getElementById('product-card-template');
+        items.forEach(function(p) {
+          const clone  = template.content.cloneNode(true);
+          const card   = clone.querySelector('article');
+          const stock  = p.stock || 0;
+          const min    = p.min_stock || 0;
+
+          // Badge de stock
+          const badge = clone.querySelector('.product-badge');
+          if (p.status === 0) {
+            badge.textContent = 'Inactivo';
+            badge.style.background = 'rgba(239,68,68,0.15)';
+            badge.style.color      = 'var(--danger, #ef4444)';
+          } else if (stock === 0) {
+            badge.textContent = 'Agotado';
+            badge.style.background = 'rgba(239,68,68,0.15)';
+            badge.style.color      = 'var(--danger, #ef4444)';
+          } else if (stock <= min) {
+            badge.textContent = 'Stock bajo';
+            badge.style.background = 'rgba(245,158,11,0.15)';
+            badge.style.color      = 'var(--warning, #f59e0b)';
+          } else {
+            badge.textContent = 'En stock';
+            badge.style.background = 'rgba(16,185,129,0.15)';
+            badge.style.color      = 'var(--success, #10b981)';
+          }
+
+          clone.querySelector('.sku').textContent    = escapeHtml(p.barcode || 'N/A');
+          clone.querySelector('.name').textContent   = escapeHtml(p.name);
+          clone.querySelector('.stock').textContent  = stock;
+          clone.querySelector('.stock').style.color  = stock === 0 ? 'var(--danger)' : stock <= min ? 'var(--warning)' : 'var(--success)';
+          clone.querySelector('.price').textContent  = '$' + (p.price || 0).toFixed(2);
+
+          // Click → ir al detalle del producto
+          card.addEventListener('click', function() {
+            window.location.href = '/products/' + p.id;
+          });
+
+          list.appendChild(clone);
+        });
+
+        // Paginación
+        pgCtrl.style.display = totalPages > 1 ? '' : 'none';
+        renderPagination('prod-page-buttons', currentPage, totalPages, function(pg) {
+          fetchProducts(pg);
+          document.getElementById('productsList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+      } catch (err) {
+        console.error('Error cargando productos:', err);
+        loading.style.display = 'none';
+        empty.style.display   = '';
+      }
+    }
+
+    // Cambio de filtros → volver a página 1
+    document.getElementById('search').addEventListener('input', debounce(function() { fetchProducts(1); }, 400));
+    document.getElementById('view-mode').addEventListener('change', function() { fetchProducts(1); });
+    document.getElementById('prod-page-size').addEventListener('change', function() {
+      pageSize = parseInt(this.value);
+      fetchProducts(1);
+    });
+
+    // Exponer para switchView
+    window._prodFetch = fetchProducts;
+
+    // Carga inicial
+    fetchProducts(1);
+  })();
+
+  // =====================================================
+  //  Resto del dashboard
+  // =====================================================
   window.APP = window.APP || {};
   window.APP.role = "{{ role|e }}";
   window.APP.currentView = 'grid';
 
-  // Función para cambiar entre vista de cuadrícula y lista
   function switchView(view) {
     const container = document.getElementById('productsList');
     window.APP.currentView = view;
-    
     if (view === 'grid') {
-      container.className = 'products-grid';
       container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
     } else {
-      container.className = 'products-list';
       container.style.gridTemplateColumns = '1fr';
     }
-
-    // Actualizar botones activos
     document.getElementById('grid-view').style.opacity = view === 'grid' ? '1' : '0.5';
     document.getElementById('list-view').style.opacity = view === 'list' ? '1' : '0.5';
   }
 
-  // Verificar el estado de la API al cargar
   async function checkAPIHealth() {
-    const healthEl = document.getElementById('health');
+    const healthEl    = document.getElementById('health');
     const indicatorEl = document.getElementById('health-indicator');
-    
     if (!healthEl || !indicatorEl) return;
-    
     try {
       const response = await fetch('/api/health');
       if (response.ok) {
-        healthEl.textContent = 'Online';
-        healthEl.style.color = 'var(--success, #10b981)';
-        indicatorEl.style.background = 'var(--success, #10b981)';
-        indicatorEl.style.boxShadow = '0 0 8px var(--success, #10b981)';
-      } else {
-        throw new Error('API no disponible');
-      }
-    } catch (error) {
-      healthEl.textContent = 'Offline';
-      healthEl.style.color = 'var(--danger, #ef4444)';
-      indicatorEl.style.background = 'var(--danger, #ef4444)';
+        healthEl.textContent           = 'Online';
+        healthEl.style.color           = 'var(--success, #10b981)';
+        indicatorEl.style.background   = 'var(--success, #10b981)';
+        indicatorEl.style.boxShadow    = '0 0 8px var(--success, #10b981)';
+      } else { throw new Error(); }
+    } catch {
+      healthEl.textContent          = 'Offline';
+      healthEl.style.color          = 'var(--danger, #ef4444)';
+      indicatorEl.style.background  = 'var(--danger, #ef4444)';
     }
   }
 
-  // Inicializar cuando se carga la página
   document.addEventListener('DOMContentLoaded', function() {
     checkAPIHealth();
-    
-    // Aplicar clase de rol al body para CSS
-    if (window.APP.role === 'admin') {
-      document.body.classList.add('role-admin');
-    }
-    
-    // Inicializar vista por defecto
+    if (window.APP.role === 'admin') document.body.classList.add('role-admin');
     switchView('grid');
   });
-
-  console.log('Dashboard inicializado - Role:', window.APP.role);
 </script>
 {% endblock %}

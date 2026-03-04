@@ -39,130 +39,204 @@ def health():
 @api_bp.route("/products_all", methods=["GET"])
 def get_all_products():
     """
-    Obtiene todos los productos del inventario con filtros opcionales.
-    
+    Obtiene productos del inventario con paginacion server-side.
+
     Requiere login: True.
-    
+
     Query Parameters:
-        search (str, optional): Búsqueda por nombre o código de barras
-        view_mode (str, optional): Filtro por stock ("all", "in_stock", "out_of_stock")
-    
+        search      (str, optional) : Busqueda por nombre, codigo de barras o descripcion
+        view_mode   (str, optional) : "all" | "in_stock" | "low_stock" | "out_of_stock"
+        sort        (str, optional) : Campo de orden: "name" | "stock" | "price"  (default: "name")
+        order       (str, optional) : "asc" | "desc"  (default: "asc")
+        page        (int, optional) : Numero de pagina, 1-based  (default: 1)
+        limit       (int, optional) : Registros por pagina, max 250  (default: 50)
+
     Returns:
-        JSON: Lista de productos con sus detalles
-        - id (int): ID del producto
-        - barcode (str): Código de barras
-        - name (str): Nombre del producto
-        - description (str): Descripción
-        - stock (int): Cantidad disponible
-        - min_stock (int): Stock mínimo
-        - price (float): Precio de venta
-        - status (int): Estado del producto (1=activo, 0=deshabilitado)
-    
+        JSON:
+            data   (list) : Productos de la pagina actual
+            total  (int)  : Total de registros que coinciden con los filtros
+            page   (int)  : Pagina actual
+            pages  (int)  : Total de paginas
+            limit  (int)  : Registros por pagina usados
+
     Status Codes:
-        200: Éxito
+        200: Exito
         401: No autorizado
     """
-    
+
     auth_error = require_auth()
     if auth_error:
         return auth_error
-    
-    search = request.args.get("search", "")
+
+    # ── Parametros ────────────────────────────────────────────
+    search    = request.args.get("search", "").strip()
     view_mode = request.args.get("view_mode", "all")
-    
-    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price, status FROM items WHERE 1=1"
+    sort      = request.args.get("sort", "name")
+    order     = request.args.get("order", "asc").lower()
+    page      = max(1, request.args.get("page", 1, type=int))
+    limit     = min(250, max(1, request.args.get("limit", 50, type=int)))
+    offset    = (page - 1) * limit
+
+    # Whitelist para evitar SQL injection en ORDER BY
+    allowed_sort  = {"name", "stock", "price"}
+    allowed_order = {"asc", "desc"}
+    sort  = sort  if sort  in allowed_sort  else "name"
+    order = order if order in allowed_order else "asc"
+
+    # Mapeo campo logico -> columna real
+    sort_column = {"name": "name", "stock": "quantity", "price": "price"}[sort]
+
+    # ── Filtros WHERE ─────────────────────────────────────────
+    where  = ["1=1"]
     params = []
-    
+
     if search:
-        query += " AND (name LIKE ? OR barrs_code LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-    
+        where.append("(name LIKE ? OR barrs_code LIKE ? OR description LIKE ?)")
+        params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+
     if view_mode == "in_stock":
-        query += " AND quantity > 0"
+        where.append("quantity > min_quantity")
+    elif view_mode == "low_stock":
+        where.append("quantity > 0 AND quantity <= min_quantity")
     elif view_mode == "out_of_stock":
-        query += " AND quantity = 0"
-    
-    rows = db.execute_query(query, tuple(params))
-    
+        where.append("quantity = 0")
+
+    where_clause = " AND ".join(where)
+
+    # ── COUNT total ───────────────────────────────────────────
+    count_query = f"SELECT COUNT(*) FROM items WHERE {where_clause}"
+    total = db.execute_query(count_query, tuple(params))[0][0]
+    pages = max(1, -(-total // limit))  # ceil division
+
+    # ── Pagina actual ─────────────────────────────────────────
+    data_query = f"""
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
+        FROM items
+        WHERE {where_clause}
+        ORDER BY {sort_column} {order}
+        LIMIT ? OFFSET ?
+    """
+    rows = db.execute_query(data_query, tuple(params) + (limit, offset))
+
     products = [
         {
-            "id": row[0],
-            "barcode": row[1],
-            "name": row[2],
+            "id":          row[0],
+            "barcode":     row[1],
+            "name":        row[2],
             "description": row[3],
-            "stock": row[4],
-            "min_stock": row[5],
-            "price": row[6],
-            "status": row[7]
+            "stock":       row[4],
+            "min_stock":   row[5],
+            "price":       row[6],
+            "status":      row[7],
         }
         for row in rows
     ]
-    
-    return jsonify(products), 200
+
+    return jsonify({
+        "data":  products,
+        "total": total,
+        "page":  page,
+        "pages": pages,
+        "limit": limit,
+    }), 200
 
 @api_bp.route("/products", methods=["GET"])
 def get_products():
     """
-    Obtiene todos los productos del inventario con filtros opcionales.
-    
+    Obtiene productos activos del inventario con paginacion server-side.
+
     Requiere login: True.
-    
+
     Query Parameters:
-        search (str, optional): Búsqueda por nombre o código de barras
-        view_mode (str, optional): Filtro por stock ("all", "in_stock", "out_of_stock")
-    
+        search      (str, optional) : Busqueda por nombre o codigo de barras
+        view_mode   (str, optional) : "all" | "in_stock" | "out_of_stock"
+        sort        (str, optional) : "name" | "stock" | "price"  (default: "name")
+        order       (str, optional) : "asc" | "desc"  (default: "asc")
+        page        (int, optional) : Pagina, 1-based  (default: 1)
+        limit       (int, optional) : Registros por pagina, max 250  (default: 24)
+
     Returns:
-        JSON: Lista de productos con sus detalles
-        - id (int): ID del producto
-        - barcode (str): Código de barras
-        - name (str): Nombre del producto
-        - description (str): Descripción
-        - stock (int): Cantidad disponible
-        - min_stock (int): Stock mínimo
-        - price (float): Precio de venta
-        - status (int): Estado del producto (1=activo, 0=deshabilitado)
-    
+        JSON:
+            data   (list) : Productos de la pagina actual
+            total  (int)  : Total de registros con los filtros
+            page   (int)  : Pagina actual
+            pages  (int)  : Total de paginas
+            limit  (int)  : Registros por pagina usados
+
     Status Codes:
-        200: Éxito
+        200: Exito
         401: No autorizado
     """
-    
+
     auth_error = require_auth()
     if auth_error:
         return auth_error
-    
-    search = request.args.get("search", "")
+
+    search    = request.args.get("search", "").strip()
     view_mode = request.args.get("view_mode", "all")
-    
-    query = "SELECT id, barrs_code, name, description, quantity, min_quantity, price, status FROM items WHERE status = 1"
+    sort      = request.args.get("sort", "name")
+    order     = request.args.get("order", "asc").lower()
+    page      = max(1, request.args.get("page", 1, type=int))
+    limit     = min(250, max(1, request.args.get("limit", 24, type=int)))
+    offset    = (page - 1) * limit
+
+    allowed_sort  = {"name", "stock", "price"}
+    allowed_order = {"asc", "desc"}
+    sort  = sort  if sort  in allowed_sort  else "name"
+    order = order if order in allowed_order else "asc"
+    sort_column = {"name": "name", "stock": "quantity", "price": "price"}[sort]
+
+    where  = ["status = 1"]
     params = []
-    
+
     if search:
-        query += " AND (name LIKE ? OR barrs_code LIKE ?)"
+        where.append("(name LIKE ? OR barrs_code LIKE ?)")
         params.extend([f"%{search}%", f"%{search}%"])
-    
+
     if view_mode == "in_stock":
-        query += " AND quantity > 0"
+        where.append("quantity > 0")
     elif view_mode == "out_of_stock":
-        query += " AND quantity = 0"
-    
-    rows = db.execute_query(query, tuple(params))
-    
+        where.append("quantity = 0")
+
+    where_clause = " AND ".join(where)
+
+    total = db.execute_query(
+        f"SELECT COUNT(*) FROM items WHERE {where_clause}", tuple(params)
+    )[0][0]
+    pages = max(1, -(-total // limit))
+
+    rows = db.execute_query(
+        f"""
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
+        FROM items
+        WHERE {where_clause}
+        ORDER BY {sort_column} {order}
+        LIMIT ? OFFSET ?
+        """,
+        tuple(params) + (limit, offset),
+    )
+
     products = [
         {
-            "id": row[0],
-            "barcode": row[1],
-            "name": row[2],
+            "id":          row[0],
+            "barcode":     row[1],
+            "name":        row[2],
             "description": row[3],
-            "stock": row[4],
-            "min_stock": row[5],
-            "price": row[6],
-            "status": row[7]
+            "stock":       row[4],
+            "min_stock":   row[5],
+            "price":       row[6],
+            "status":      row[7],
         }
         for row in rows
     ]
-    
-    return jsonify(products), 200
+
+    return jsonify({
+        "data":  products,
+        "total": total,
+        "page":  page,
+        "pages": pages,
+        "limit": limit,
+    }), 200
 
 @api_bp.route("/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
@@ -574,79 +648,133 @@ def create_sales_bulk():
 @api_bp.route("/sales", methods=["GET"])
 def list_sales():
     """
-    Lista las ventas registradas con filtros opcionales.
-    
+    Lista ventas con paginacion server-side.
+
     Requiere login: True.
-    
+
     Query Parameters:
-        from (str, optional): Fecha inicial (formato: YYYY-MM-DD)
-        to (str, optional): Fecha final (formato: YYYY-MM-DD)
-    
+        from    (str, optional) : Fecha inicial YYYY-MM-DD
+        to      (str, optional) : Fecha final   YYYY-MM-DD
+        product (str, optional) : Filtro por nombre de producto
+        page    (int, optional) : Pagina, 1-based  (default: 1)
+        limit   (int, optional) : Ventas por pagina, max 100  (default: 10)
+
     Returns:
-        JSON: Lista de ventas agrupadas por ID
-        - id (int): ID de la venta
-        - date (str): Fecha y hora de la venta
-        - items (array): Productos vendidos
-          - product_name (str): Nombre del producto
-          - quantity (int): Cantidad vendida
-          - price (float): Precio unitario
-        - total (float): Total de la venta
-    
+        JSON:
+            data   (list) : Ventas de la pagina actual, cada una con:
+                            id, date, products[], total_quantity, total
+            total  (int)  : Total de ventas que coinciden con los filtros
+            page   (int)  : Pagina actual
+            pages  (int)  : Total de paginas
+            limit  (int)  : Registros por pagina usados
+
     Status Codes:
-        200: Ventas obtenidas exitosamente
+        200: Exito
         401: No autorizado
     """
-    
+
     auth_error = require_auth()
     if auth_error:
         return auth_error
-    
-    date_from = request.args.get("from")
-    date_to = request.args.get("to")
-    
-    query = """
-        SELECT s.id, s.date, d.item_id, i.name, d.quantity, d.price
+
+    date_from   = request.args.get("from")
+    date_to     = request.args.get("to")
+    product_q   = request.args.get("product", "").strip()
+    page        = max(1, request.args.get("page", 1, type=int))
+    limit       = min(100, max(1, request.args.get("limit", 10, type=int)))
+    offset      = (page - 1) * limit
+
+    # ── Filtros para la subquery de sells ────────────────────
+    sell_where  = ["1=1"]
+    sell_params = []
+
+    if date_from:
+        sell_where.append("DATE(s.date) >= ?")
+        sell_params.append(date_from)
+    if date_to:
+        sell_where.append("DATE(s.date) <= ?")
+        sell_params.append(date_to)
+    if product_q:
+        sell_where.append("s.id IN (SELECT d2.sell_id FROM details d2 JOIN items i2 ON d2.item_id = i2.id WHERE i2.name LIKE ?)")
+        sell_params.append(f"%{product_q}%")
+
+    sell_where_clause = " AND ".join(sell_where)
+
+    # ── COUNT de ventas unicas que pasan los filtros ─────────
+    count_query = f"""
+        SELECT COUNT(DISTINCT s.id)
+        FROM sells s
+        WHERE {sell_where_clause}
+    """
+    total = db.execute_query(count_query, tuple(sell_params))[0][0]
+    pages = max(1, -(-total // limit))
+
+    # ── IDs de la pagina actual (paginamos sobre sells) ──────
+    ids_query = f"""
+        SELECT DISTINCT s.id
+        FROM sells s
+        WHERE {sell_where_clause}
+        ORDER BY s.date DESC, s.id DESC
+        LIMIT ? OFFSET ?
+    """
+    id_rows = db.execute_query(ids_query, tuple(sell_params) + (limit, offset))
+
+    if not id_rows:
+        return jsonify({
+            "data":  [],
+            "total": total,
+            "page":  page,
+            "pages": pages,
+            "limit": limit,
+        }), 200
+
+    sale_ids = [row[0] for row in id_rows]
+
+    # ── Detalle completo solo de esos IDs ────────────────────
+    placeholders = ",".join("?" * len(sale_ids))
+    detail_query = f"""
+        SELECT s.id, s.date, i.name, d.quantity, d.price
         FROM sells s
         JOIN details d ON s.id = d.sell_id
-        JOIN items i ON d.item_id = i.id
-        WHERE 1=1
+        JOIN items  i ON d.item_id = i.id
+        WHERE s.id IN ({placeholders})
+        ORDER BY s.date DESC, s.id DESC
     """
-    params = []
-    
-    if date_from:
-        query += " AND DATE(s.date) >= ?"
-        params.append(date_from)
-    
-    if date_to:
-        query += " AND DATE(s.date) <= ?"
-        params.append(date_to)
-    
-    query += " ORDER BY s.date DESC, s.id DESC"
-    
-    rows = db.execute_query(query, tuple(params))
-    
+    rows = db.execute_query(detail_query, tuple(sale_ids))
+
+    # ── Agrupar por venta ─────────────────────────────────────
     sales_dict = {}
-    for row in rows:
-        sale_id, date, item_id, name, quantity, price = row
-        
+    for sale_id, date, name, quantity, price in rows:
         if sale_id not in sales_dict:
             sales_dict[sale_id] = {
-                "id": sale_id,
-                "date": date,
-                "items": [],
-                "total": 0
+                "id":             sale_id,
+                "date":           date,
+                "products":       [],
+                "total_quantity": 0,
+                "total":          0.0,
             }
-        
-        sales_dict[sale_id]["items"].append({
-            "product_name": name,
+        sales_dict[sale_id]["products"].append({
+            "name":     name,
             "quantity": quantity,
-            "price": price
+            "price":    float(price),
         })
-        sales_dict[sale_id]["total"] += quantity * price
-    
-    sales = list(sales_dict.values())
-    
-    return jsonify(sales), 200
+        sales_dict[sale_id]["total_quantity"] += quantity
+        sales_dict[sale_id]["total"]          += quantity * float(price)
+
+    # Redondear totales y mantener el orden de la pagina
+    sales = []
+    for sid in sale_ids:
+        if sid in sales_dict:
+            sales_dict[sid]["total"] = round(sales_dict[sid]["total"], 2)
+            sales.append(sales_dict[sid])
+
+    return jsonify({
+        "data":  sales,
+        "total": total,
+        "page":  page,
+        "pages": pages,
+        "limit": limit,
+    }), 200
     
 @api_bp.route("/items", methods=["GET"])
 def search_items():

@@ -12,7 +12,6 @@
 <!-- Barra de búsqueda y filtros -->
 <section class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
   <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
-    <!-- Búsqueda -->
     <div style="flex: 1; min-width: 250px;">
       <label for="search" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Buscar producto</label>
       <div style="position: relative;">
@@ -27,7 +26,6 @@
       </div>
     </div>
 
-    <!-- Filtro de stock -->
     <div style="min-width: 180px;">
       <label for="filter-stock" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Estado de stock</label>
       <select id="filter-stock" style="width: 100%;">
@@ -38,7 +36,6 @@
       </select>
     </div>
 
-    <!-- Ordenar por -->
     <div style="min-width: 160px;">
       <label for="sort-by" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Ordenar por</label>
       <select id="sort-by" style="width: 100%;">
@@ -51,7 +48,6 @@
       </select>
     </div>
 
-    <!-- Botones de acción -->
     <div style="display: flex; gap: 0.5rem;">
       <a href="{{ url_for('product_new') }}" class="btn">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,6 +86,11 @@
   <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
     <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Lista de Productos</h3>
     <span id="products-count" class="text-muted" style="font-size: 0.875rem;">0 productos</span>
+  </div>
+
+  <!-- Info de paginación superior -->
+  <div id="pagination-info-top" style="display: none; padding: 0.625rem 1.25rem; background: var(--panel-2); border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
+    Mostrando <span id="page-from">0</span>–<span id="page-to">0</span> de <span id="page-total">0</span> productos
   </div>
   
   <div class="table-responsive" style="overflow-x: auto;">
@@ -135,6 +136,22 @@
     <h3 style="margin: 0 0 0.5rem 0; font-weight: 600; color: var(--danger);">Error al cargar</h3>
     <p id="error-message" class="text-muted" style="margin: 0 0 1.5rem 0;">No se pudieron cargar los productos.</p>
     <button onclick="loadProducts()" class="btn">Reintentar</button>
+  </div>
+
+  <!-- Controles de paginación inferior -->
+  <div id="pagination-controls" style="display: none; padding: 1rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label class="text-muted" style="font-size: 0.875rem;">Por página:</label>
+      <select id="page-size" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; width: auto;">
+        <option value="25">25</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+        <option value="250">250</option>
+      </select>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.375rem;" id="page-buttons">
+      <!-- Botones generados dinámicamente -->
+    </div>
   </div>
 </section>
 
@@ -303,16 +320,12 @@
     justify-content: center;
   }
 
-  .action-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .action-btn.edit { color: var(--brand); }
+  .action-btn:hover { background: rgba(255, 255, 255, 0.08); }
+  .action-btn.edit  { color: var(--brand); }
   .action-btn.stock { color: var(--success); }
   .action-btn.delete { color: var(--danger); }
-
-  .action-btn:hover.edit { background: rgba(79, 70, 229, 0.1); }
-  .action-btn:hover.stock { background: rgba(16, 185, 129, 0.1); }
+  .action-btn:hover.edit   { background: rgba(79, 70, 229, 0.1); }
+  .action-btn:hover.stock  { background: rgba(16, 185, 129, 0.1); }
   .action-btn:hover.delete { background: rgba(239, 68, 68, 0.1); }
 
   .modal .dialog {
@@ -321,7 +334,7 @@
 
   @keyframes modalSlideIn {
     from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   @media (max-width: 768px) {
@@ -341,19 +354,12 @@
     flex-shrink: 0;
   }
 
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+  .switch input { opacity: 0; width: 0; height: 0; }
 
   .switch .slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-color: var(--border);
     transition: 0.2s;
     border-radius: 24px;
@@ -371,25 +377,66 @@
     border-radius: 50%;
   }
 
-  .switch input:checked + .slider {
-    background-color: var(--success);
+  .switch input:checked + .slider { background-color: var(--success); }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+
+  /* Botones de paginación */
+  #page-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: inherit;
+    transition: background 0.15s, border-color 0.15s;
   }
 
-  .switch input:checked + .slider:before {
-    transform: translateX(20px);
+  #page-buttons button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--brand);
+  }
+
+  #page-buttons button.active {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+    font-weight: 600;
+  }
+
+  #page-buttons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  #page-buttons .page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.25rem;
+    color: var(--text-muted);
+    user-select: none;
   }
 </style>
 
 <script>
 (function() {
   'use strict';
-  
-  let allProducts = [];
-  let filteredProducts = [];
+
+  // ── Estado ────────────────────────────────────────────────────────────
+  // pageProducts guarda solo los productos de la página actual
+  // (usados para abrir modales sin re-fetch)
+  let pageProducts = [];
+  let currentPage  = 1;
+  let totalPages   = 1;
+  let pageSize     = 50;
 
   // ===== Utilidades =====
   function $(id) { return document.getElementById(id); }
-  
   function show(el) { if (el) el.style.display = ''; }
   function hide(el) { if (el) el.style.display = 'none'; }
 
@@ -408,207 +455,224 @@
     return div.innerHTML;
   }
 
-  // ===== Cargar productos =====
-  async function loadProducts() {
+  // ── Construir parámetros desde los controles ──────────────────────────
+  function buildParams(page) {
+    const search  = ($('search').value || '').trim();
+    const sortRaw = $('sort-by').value;             // "name_asc", "stock_desc", etc.
+    const [sort, order] = sortRaw.split('_');
+    const p = new URLSearchParams({
+      page:      page,
+      limit:     pageSize,
+      view_mode: $('filter-stock').value,
+      sort:      sort,
+      order:     order,
+    });
+    if (search) p.set('search', search);
+    return p;
+  }
+
+  // ── Fetch principal (server-side) ─────────────────────────────────────
+  async function fetchPage(page) {
     const loadingState = $('loading-state');
-    const emptyState = $('empty-state');
-    const errorState = $('error-state');
-    const tableBody = $('products-table-body');
-    
+    const emptyState   = $('empty-state');
+    const errorState   = $('error-state');
+    const tableBody    = $('products-table-body');
+
     show(loadingState);
     hide(emptyState);
     hide(errorState);
+    hide($('pagination-controls'));
+    hide($('pagination-info-top'));
     tableBody.innerHTML = '';
 
     try {
-      const response = await fetch('/api/products_all', {
-        method: 'GET',
+      const res = await fetch('/api/products_all?' + buildParams(page), {
         credentials: 'same-origin',
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       });
-      
-      if (response.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      allProducts = Array.isArray(data) ? data : [];
-      
+
+      if (res.status === 401) { window.location.href = '/login'; return; }
+      if (!res.ok) throw new Error('Error ' + res.status + ': ' + res.statusText);
+
+      // Nuevo contrato: { data, total, page, pages, limit }
+      const json   = await res.json();
+      pageProducts = json.data  || [];
+      currentPage  = json.page  || 1;
+      totalPages   = json.pages || 1;
+
       hide(loadingState);
-      applyFilters();
-      updateStats();
-      
-    } catch (error) {
-      console.error('Error cargando productos:', error);
+      renderTable(pageProducts, json.total || 0, totalPages);
+      loadStats();
+
+    } catch (err) {
+      console.error('Error cargando productos:', err);
       Notify.error('Error al cargar los productos.');
       hide(loadingState);
-      $('error-message').textContent = error.message || 'No se pudieron cargar los productos.';
+      $('error-message').textContent = err.message || 'No se pudieron cargar los productos.';
       show(errorState);
     }
   }
 
-  // ===== Filtros =====
-  function applyFilters() {
-    const searchTerm = ($('search').value || '').toLowerCase();
-    const stockFilter = $('filter-stock').value;
-    const sortBy = $('sort-by').value;
+  // Alias público (botón Reintentar y llamadas tras edición/borrado)
+  function loadProducts() { fetchPage(currentPage); }
 
-    filteredProducts = allProducts.filter(product => {
-      const matchesSearch = !searchTerm || 
-        (product.name && product.name.toLowerCase().includes(searchTerm)) ||
-        (product.barcode && product.barcode.toLowerCase().includes(searchTerm)) ||
-        (product.description && product.description.toLowerCase().includes(searchTerm));
+  // Cambio de filtros → siempre volver a página 1
+  function applyFilters() { fetchPage(1); }
 
-      let matchesStock = true;
-      const stock = product.stock || 0;
-      const minStock = product.min_stock || 0;
-      
-      if (stockFilter === 'in_stock') {
-        matchesStock = stock > minStock;
-      } else if (stockFilter === 'low_stock') {
-        matchesStock = stock > 0 && stock <= minStock;
-      } else if (stockFilter === 'out_of_stock') {
-        matchesStock = stock === 0;
-      }
+  // ── Renderizar la página recibida del servidor ────────────────────────
+  function renderTable(products, total, pages) {
+    const tableBody          = $('products-table-body');
+    const emptyState         = $('empty-state');
+    const paginationControls = $('pagination-controls');
+    const paginationInfoTop  = $('pagination-info-top');
 
-      return matchesSearch && matchesStock;
-    });
+    $('products-count').textContent = total + ' producto' + (total !== 1 ? 's' : '');
 
-    // Ordenar
-    const [field, direction] = sortBy.split('_');
-    filteredProducts.sort((a, b) => {
-      let valueA, valueB;
-      
-      if (field === 'name') {
-        valueA = (a.name || '').toLowerCase();
-        valueB = (b.name || '').toLowerCase();
-      } else if (field === 'stock') {
-        valueA = a.stock || 0;
-        valueB = b.stock || 0;
-      } else if (field === 'price') {
-        valueA = a.price || 0;
-        valueB = b.price || 0;
-      }
-
-      if (direction === 'asc') {
-        return valueA > valueB ? 1 : -1;
-      } else {
-        return valueA < valueB ? 1 : -1;
-      }
-    });
-
-    renderProducts();
-  }
-
-  // ===== Renderizar productos =====
-  function renderProducts() {
-    const tableBody = $('products-table-body');
-    const emptyState = $('empty-state');
-    const productsCount = $('products-count');
-
-    productsCount.textContent = filteredProducts.length + ' producto' + (filteredProducts.length !== 1 ? 's' : '');
-
-    if (filteredProducts.length === 0) {
+    if (products.length === 0) {
       tableBody.innerHTML = '';
       show(emptyState);
+      hide(paginationControls);
+      hide(paginationInfoTop);
       return;
     }
 
     hide(emptyState);
-    
+
+    // Info superior: "Mostrando X–Y de Z"
+    const startIndex = (currentPage - 1) * pageSize;
+    $('page-from').textContent  = startIndex + 1;
+    $('page-to').textContent    = Math.min(startIndex + products.length, total);
+    $('page-total').textContent = total;
+    show(paginationInfoTop);
+
+    // Filas
     let html = '';
-    for (let i = 0; i < filteredProducts.length; i++) {
-      const product = filteredProducts[i];
-      const status = getStockStatus(product);
-      const name = escapeHtml(product.name);
-      const desc = product.description ? escapeHtml(product.description.substring(0, 20)) + (product.description.length > 50 ? '...' : '') : '';
-      const price = (product.price || 0).toFixed(2);
-      
-      html += '<tr data-id="' + product.id + '">' +
-        '<td style="padding: 0.875rem 1rem;"><span class="mono" style="font-size: 0.85rem; color: var(--text-muted);">' + (product.barcode || '—') + '</span></td>' +
-        '<td style="padding: 0.875rem 1rem;"><div style="font-weight: 600;">' + name + '</div>' + 
-        (desc ? '<div class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">' + desc + '</div>' : '') + '</td>' +
-        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="mono" style="font-size: 1rem; font-weight: 600; color: ' + status.color + ';">' + (product.stock || 0) + '</span></td>' +
-        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="mono text-muted">' + (product.min_stock || 0) + '</span></td>' +
-        '<td style="padding: 0.875rem 1rem; text-align: right;"><span class="mono" style="font-weight: 600;">$' + price + '</span></td>' +
-        '<td style="padding: 0.875rem 1rem; text-align: center;"><span class="status-badge ' + status.cssClass + '">' + status.text + '</span></td>' +
-        '<td style="padding: 0.875rem 1rem; text-align: center;">' +
-          '<div style="display: flex; gap: 0.25rem; justify-content: center;">' +
-            '<button class="action-btn stock" data-action="stock" data-id="' + product.id + '" title="Ajustar stock">' +
-              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>' +
-            '</button>' +
-            '<button class="action-btn edit" data-action="edit" data-id="' + product.id + '" title="Editar">' +
-              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>' +
-            '</button>' +
-            '<button class="action-btn delete" data-action="delete" data-id="' + product.id + '" title="Eliminar">' +
-              '<svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>' +
-            '</button>' +
-          '</div>' +
-        '</td>' +
-      '</tr>';
+    for (let i = 0; i < products.length; i++) {
+      const p      = products[i];
+      const status = getStockStatus(p);
+      const name   = escapeHtml(p.name);
+      const desc   = p.description
+        ? escapeHtml(p.description.substring(0, 50)) + (p.description.length > 50 ? '...' : '')
+        : '';
+      const price  = (p.price || 0).toFixed(2);
+
+      html +=
+        '<tr data-id="' + p.id + '">' +
+          '<td style="padding:0.875rem 1rem;"><span class="mono" style="font-size:0.85rem;color:var(--text-muted);">' + (p.barcode || '—') + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;"><div style="font-weight:600;">' + name + '</div>' +
+            (desc ? '<div class="text-muted" style="font-size:0.8rem;margin-top:0.25rem;">' + desc + '</div>' : '') + '</td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono" style="font-size:1rem;font-weight:600;color:' + status.color + ';">' + (p.stock || 0) + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.min_stock || 0) + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:right;"><span class="mono" style="font-weight:600;">$' + price + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="status-badge ' + status.cssClass + '">' + status.text + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;">' +
+            '<div style="display:flex;gap:0.25rem;justify-content:center;">' +
+              '<button class="action-btn stock" data-action="stock" data-id="' + p.id + '" title="Ajustar stock"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></button>' +
+              '<button class="action-btn edit"  data-action="edit"  data-id="' + p.id + '" title="Editar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>' +
+              '<button class="action-btn delete" data-action="delete" data-id="' + p.id + '" title="Eliminar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
     }
-    
     tableBody.innerHTML = html;
+
+    renderPaginationButtons(pages);
+    show(paginationControls);
+    tableBody.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function getStockStatus(product) {
-    const stock = product.stock || 0;
-    const minStock = product.min_stock || 0;
-    
-    if (product.status === 0) {
-      return { cssClass: 'out-of-stock', text: 'Deshabilitado', color: 'var(--danger)' };
-    }
-    if (stock === 0) {
-      return { cssClass: 'out-of-stock', text: 'Sin stock', color: 'var(--danger)' };
-    } else if (stock <= minStock) {
-      return { cssClass: 'low-stock', text: 'Stock bajo', color: 'var(--warning)' };
+  // ===== Botones de paginación (ventana deslizante) =====
+  function renderPaginationButtons(totalPages) {
+    const container = $('page-buttons');
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    // Calcular páginas visibles
+    let pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      return { cssClass: 'in-stock', text: 'En stock', color: 'var(--success)' };
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
     }
+
+    let html = '';
+
+    // Botón anterior
+    html += '<button ' + (currentPage === 1 ? 'disabled' : 'onclick="goToPage(' + (currentPage - 1) + ')"') + ' title="Anterior">' +
+      '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>' +
+    '</button>';
+
+    // Páginas numeradas
+    for (let i = 0; i < pages.length; i++) {
+      const p = pages[i];
+      if (p === '...') {
+        html += '<span class="page-ellipsis">…</span>';
+      } else {
+        html += '<button class="' + (p === currentPage ? 'active' : '') + '" onclick="goToPage(' + p + ')">' + p + '</button>';
+      }
+    }
+
+    // Botón siguiente
+    html += '<button ' + (currentPage === totalPages ? 'disabled' : 'onclick="goToPage(' + (currentPage + 1) + ')"') + ' title="Siguiente">' +
+      '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+    '</button>';
+
+    container.innerHTML = html;
   }
 
-  function updateStats() {
-    const total = allProducts.length;
-    let inStock = 0, lowStock = 0, outOfStock = 0;
-    
-    for (let i = 0; i < allProducts.length; i++) {
-      const p = allProducts[i];
-      const stock = p.stock || 0;
-      const minStock = p.min_stock || 0;
-      
-      if (stock === 0) outOfStock++;
-      else if (stock <= minStock) lowStock++;
-      else inStock++;
-    }
+  // goToPage ahora dispara un nuevo fetch al servidor
+  function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    fetchPage(page);
+  }
 
-    $('stat-total').textContent = total;
-    $('stat-in-stock').textContent = inStock;
-    $('stat-low-stock').textContent = lowStock;
-    $('stat-out-stock').textContent = outOfStock;
+  // ── Stats: usa /api/stats (totales reales del inventario completo) ─────
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const d = await res.json();
+      $('stat-total').textContent     = d.products  || 0;
+      $('stat-low-stock').textContent = d.low_stock || 0;
+
+      // in_stock y out_stock: pedir solo el total con limit=1
+      const [rIn, rOut] = await Promise.all([
+        fetch('/api/products_all?view_mode=in_stock&limit=1',     { credentials: 'same-origin' }),
+        fetch('/api/products_all?view_mode=out_of_stock&limit=1', { credentials: 'same-origin' }),
+      ]);
+      if (rIn.ok)  { const j = await rIn.json();  $('stat-in-stock').textContent  = j.total || 0; }
+      if (rOut.ok) { const j = await rOut.json(); $('stat-out-stock').textContent = j.total || 0; }
+    } catch (_) { /* stats no son críticos */ }
+  }
+
+  // ── Estado de stock ───────────────────────────────────────────────────
+  function getStockStatus(product) {
+    const stock    = product.stock || 0;
+    const minStock = product.min_stock || 0;
+    if (product.status === 0) return { cssClass: 'out-of-stock', text: 'Deshabilitado', color: 'var(--danger)' };
+    if (stock === 0)          return { cssClass: 'out-of-stock', text: 'Sin stock',     color: 'var(--danger)' };
+    if (stock <= minStock)    return { cssClass: 'low-stock',    text: 'Stock bajo',    color: 'var(--warning)' };
+    return                           { cssClass: 'in-stock',     text: 'En stock',      color: 'var(--success)' };
   }
 
   // ===== Modal de Edición =====
   function openEditModal(productId) {
-    const product = allProducts.find(function(p) { return p.id === productId; });
+    const product = pageProducts.find(p => p.id === productId);
     if (!product) return;
-
-    $('edit-id').value = product.id;
-    $('edit-barcode').value = product.barcode || '';
-    $('edit-name').value = product.name || '';
-    $('edit-description').value = product.description || '';
-    $('edit-quantity').value = product.stock || 0;
+    $('edit-id').value           = product.id;
+    $('edit-barcode').value      = product.barcode || '';
+    $('edit-name').value         = product.name || '';
+    $('edit-description').value  = product.description || '';
+    $('edit-quantity').value     = product.stock || 0;
     $('edit-min-quantity').value = product.min_stock || 0;
-    $('edit-price').value = product.price || 0;
-    $('edit-status').checked = product.status === 1;
+    $('edit-price').value        = product.price || 0;
+    $('edit-status').checked     = product.status === 1;
     hide($('edit-error'));
-
     show($('edit-modal'));
     $('edit-modal').setAttribute('aria-hidden', 'false');
   }
@@ -620,17 +684,15 @@
 
   async function handleEditSubmit(e) {
     e.preventDefault();
-    
     const productId = $('edit-id').value;
     const data = {
-      name: $('edit-name').value,
-      description: $('edit-description').value,
-      quantity: parseInt($('edit-quantity').value) || 0,
+      name:         $('edit-name').value,
+      description:  $('edit-description').value,
+      quantity:     parseInt($('edit-quantity').value) || 0,
       min_quantity: parseInt($('edit-min-quantity').value) || 0,
-      price: parseFloat($('edit-price').value) || 0,
-      status: $('edit-status').checked ? 1 : 0
+      price:        parseFloat($('edit-price').value) || 0,
+      status:       $('edit-status').checked ? 1 : 0
     };
-
     try {
       const response = await fetch('/api/products/' + productId, {
         method: 'PUT',
@@ -638,12 +700,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al actualizar');
-      }
-
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al actualizar'); }
       closeEditModal();
       Notify.success('Producto actualizado correctamente');
       loadProducts();
@@ -655,10 +712,9 @@
 
   // ===== Modal de Eliminación =====
   function openDeleteModal(productId) {
-    const product = allProducts.find(function(p) { return p.id === productId; });
+    const product = pageProducts.find(p => p.id === productId);
     if (!product) return;
-    
-    $('delete-product-id').value = productId;
+    $('delete-product-id').value         = productId;
     $('delete-product-name').textContent = product.name || 'este producto';
     show($('delete-modal'));
     $('delete-modal').setAttribute('aria-hidden', 'false');
@@ -671,18 +727,12 @@
 
   async function confirmDelete() {
     const productId = $('delete-product-id').value;
-
     try {
       const response = await fetch('/api/products/' + productId, {
         method: 'DELETE',
         credentials: 'same-origin'
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al eliminar');
-      }
-
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al eliminar'); }
       closeDeleteModal();
       Notify.success('Producto eliminado correctamente');
       loadProducts();
@@ -693,13 +743,12 @@
 
   // ===== Modal de Stock =====
   function openStockModal(productId) {
-    const product = allProducts.find(function(p) { return p.id === productId; });
+    const product = pageProducts.find(p => p.id === productId);
     if (!product) return;
-    
-    $('stock-product-id').value = productId;
+    $('stock-product-id').value       = productId;
     $('stock-product-name').textContent = product.name || '';
-    $('stock-current').textContent = product.stock || 0;
-    $('stock-adjustment').value = product.stock || 0;
+    $('stock-current').textContent    = product.stock || 0;
+    $('stock-adjustment').value       = product.stock || 0;
     show($('stock-modal'));
     $('stock-modal').setAttribute('aria-hidden', 'false');
   }
@@ -711,8 +760,7 @@
 
   async function saveStockAdjustment() {
     const productId = $('stock-product-id').value;
-    const newStock = parseInt($('stock-adjustment').value) || 0;
-
+    const newStock  = parseInt($('stock-adjustment').value) || 0;
     try {
       const response = await fetch('/api/products/' + productId, {
         method: 'PUT',
@@ -720,12 +768,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newStock })
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al actualizar stock');
-      }
-
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al actualizar stock'); }
       closeStockModal();
       Notify.success('Stock actualizado correctamente');
       loadProducts();
@@ -734,54 +777,43 @@
     }
   }
 
-  // ===== Event Delegation para acciones =====
+  // ===== Event delegation para botones de la tabla =====
   function handleTableClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
-    
     const action = btn.getAttribute('data-action');
-    const id = parseInt(btn.getAttribute('data-id'));
-    
-    if (action === 'edit') openEditModal(id);
+    const id     = parseInt(btn.getAttribute('data-id'));
+    if      (action === 'edit')   openEditModal(id);
     else if (action === 'delete') openDeleteModal(id);
-    else if (action === 'stock') openStockModal(id);
+    else if (action === 'stock')  openStockModal(id);
   }
 
   // ===== Inicialización =====
   function init() {
-    // Event listeners para filtros
-    $('search').addEventListener('input', debounce(applyFilters, 300));
+    $('search').addEventListener('input', debounce(applyFilters, 400));
     $('filter-stock').addEventListener('change', applyFilters);
     $('sort-by').addEventListener('change', applyFilters);
-    
-    // Form de edición
-    $('edit-form').addEventListener('submit', handleEditSubmit);
-    
-    // Event delegation para botones de acción en la tabla
-    $('products-table-body').addEventListener('click', handleTableClick);
-    
-    // Cerrar modales con Escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeEditModal();
-        closeDeleteModal();
-        closeStockModal();
-      }
+    $('page-size').addEventListener('change', function() {
+      pageSize = parseInt(this.value);
+      fetchPage(1);   // al cambiar el límite volvemos a la página 1
     });
-
-    // Cargar productos
-    loadProducts();
+    $('edit-form').addEventListener('submit', handleEditSubmit);
+    $('products-table-body').addEventListener('click', handleTableClick);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { closeEditModal(); closeDeleteModal(); closeStockModal(); }
+    });
+    fetchPage(1);   // carga inicial
   }
 
-  // Exponer funciones globalmente para onclick en HTML
-  window.loadProducts = loadProducts;
-  window.closeEditModal = closeEditModal;
-  window.closeDeleteModal = closeDeleteModal;
-  window.closeStockModal = closeStockModal;
-  window.confirmDelete = confirmDelete;
+  // Exponer funciones globales necesarias para onclick en HTML
+  window.loadProducts       = loadProducts;
+  window.closeEditModal     = closeEditModal;
+  window.closeDeleteModal   = closeDeleteModal;
+  window.closeStockModal    = closeStockModal;
+  window.confirmDelete      = confirmDelete;
   window.saveStockAdjustment = saveStockAdjustment;
+  window.goToPage           = goToPage;
 
-  // Iniciar cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

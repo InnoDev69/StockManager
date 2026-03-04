@@ -1,3 +1,4 @@
+import time
 import sqlite3
 import contextlib
 from flask import jsonify
@@ -89,23 +90,33 @@ class BDConector:
         """
         
         conn = self._connect()
+        start = time.perf_counter()
         try:
             cur = conn.cursor()
             yield cur
             conn.commit()
+            elapsed = (time.perf_counter() - start) * 1000
             logger.debug(
-                f"Transacción completa | "
-                f"Filas afectadas: {cur.rowcount} | "
-                f"Último ID: {cur.lastrowid}"
+                f"[DB] Commit | "
+                f"filas={cur.rowcount} | "
+                f"last_id={cur.lastrowid} | "
+                f"tiempo={elapsed:.2f}ms"
             )
-        
+
         except sqlite3.Error as e:
             conn.rollback()
-            logger.error(f"Database error: {e}", exc_info=True)
+            elapsed = (time.perf_counter() - start) * 1000
+            logger.error(
+                f"[DB] Rollback | "
+                f"error={e} | "
+                f"tiempo={elapsed:.2f}ms",
+                exc_info=True
+            )
             raise DatabaseError(f"Database error: {e}")    
             
         finally:
             conn.close()
+            logger.debug(f"[DB] Conexión cerrada")
     
     def init_db(self):
         """
