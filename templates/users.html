@@ -1,0 +1,849 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+
+<!-- ── Encabezado ─────────────────────────────────────── -->
+<div style="display:flex; justify-content:space-between; align-items:flex-start;
+            flex-wrap:wrap; gap:.75rem; margin-bottom:1.5rem;">
+  <div>
+    <h1 style="margin:0; font-size:1.6rem; font-weight:700; display:flex;
+               align-items:center; gap:.5rem;">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Gestión de Usuarios
+    </h1>
+    <p style="margin:.25rem 0 0; color:var(--text-muted); font-size:.875rem;">
+      Administrá los usuarios del sistema
+    </p>
+  </div>
+  <button class="btn" onclick="openCreateModal()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+         viewBox="0 0 24 24" style="vertical-align:middle; margin-right:.35rem;">
+      <path d="M12 4v16m8-8H4"/>
+    </svg>
+    Nuevo Usuario
+  </button>
+</div>
+
+<!-- ── Filtros ────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:1rem; padding:1rem;">
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
+    <div style="flex:1; min-width:220px; position:relative;">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24"
+           style="position:absolute; left:.75rem; top:50%; transform:translateY(-50%);
+                  color:var(--text-muted); pointer-events:none;">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input id="searchInput" type="text" placeholder="Buscar por nombre o correo..."
+             oninput="debounceSearch()"
+             style="width:100%; padding:.6rem .75rem .6rem 2.25rem;">
+    </div>
+    <select id="statusFilter" onchange="loadUsers(1)" style="width:180px;">
+      <option value="">Todos los estados</option>
+      <option value="1">Activos</option>
+      <option value="0">Inactivos</option>
+    </select>
+    <span id="totalCount"
+          style="color:var(--text-muted); font-size:.85rem; white-space:nowrap;">—</span>
+  </div>
+</div>
+
+<!-- ── Tabla ──────────────────────────────────────────── -->
+<div class="card" style="padding:0; overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:.9rem;">
+      <thead>
+        <tr style="background:var(--panel-2); border-bottom:1px solid var(--border);">
+          <th style="padding:.75rem 1rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em; width:50px;">#</th>
+          <th style="padding:.75rem .75rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em;">Usuario</th>
+          <th style="padding:.75rem .75rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em;">Correo</th>
+          <th style="padding:.75rem .75rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em; width:110px;">Rol</th>
+          <th style="padding:.75rem .75rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em; width:100px;">Estado</th>
+          <th style="padding:.75rem .75rem; text-align:left; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em; width:150px;">Creado</th>
+          <th style="padding:.75rem 1rem; text-align:center; font-weight:600;
+                     color:var(--text-muted); font-size:.8rem; text-transform:uppercase;
+                     letter-spacing:.05em; width:130px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
+            <div class="spinner" style="margin:0 auto .75rem;"></div>
+            Cargando usuarios...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginación -->
+  <div style="display:flex; justify-content:space-between; align-items:center;
+              padding:.75rem 1rem; border-top:1px solid var(--border);
+              background:var(--panel-2);">
+    <span id="pageInfo" style="color:var(--text-muted); font-size:.85rem;"></span>
+    <div id="pagination" style="display:flex; gap:.25rem;"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<!-- ════════════════════════════════════════════════════
+     MODAL: Crear / Editar Usuario
+════════════════════════════════════════════════════ -->
+<div id="userModal" class="modal-overlay" onclick="overlayClose(event,'userModal')">
+  <div class="modal-box" style="width:min(480px,95vw);">
+    <div class="modal-header">
+      <h2 class="modal-title" id="userModalTitle">Nuevo Usuario</h2>
+      <button class="modal-close" onclick="closeModal('userModal')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+             viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editUserId">
+
+      <div class="field">
+        <label class="label">Nombre de usuario <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="fieldUsername" placeholder="ej: juan_perez">
+      </div>
+
+      <div class="field">
+        <label class="label">Correo electrónico <span style="color:var(--danger)">*</span></label>
+        <input type="email" id="fieldEmail" placeholder="ej: juan@empresa.com">
+      </div>
+
+      <div class="field">
+        <label class="label">
+          Contraseña <span style="color:var(--danger)" id="passwordRequired">*</span>
+        </label>
+        <div style="display:grid; grid-template-columns:1fr auto; gap:.5rem;">
+          <input type="password" id="fieldPassword" placeholder="Mínimo 6 caracteres">
+          <button class="btn-ghost" type="button" onclick="togglePassword()"
+                  style="padding:.6rem .75rem; border:1px solid var(--border);
+                         border-radius:10px;">
+            <svg id="eyeIcon" width="16" height="16" fill="none" stroke="currentColor"
+                 stroke-width="2" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <span id="passwordHint" style="font-size:.8rem; color:var(--text-muted);
+                                        margin-top:.25rem; display:block;"></span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+        <div class="field">
+          <label class="label">Rol <span style="color:var(--danger)">*</span></label>
+          <select id="fieldRole">
+            <option value="user">Usuario</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div class="field" id="statusField" style="display:none;">
+          <label class="label">Estado</label>
+          <select id="fieldStatus">
+            <option value="1">Activo</option>
+            <option value="0">Inactivo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('userModal')">Cancelar</button>
+      <button class="btn" id="saveBtn" onclick="saveUser()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"
+             viewBox="0 0 24 24" style="vertical-align:middle; margin-right:.3rem;">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════
+     MODAL: Actividad del Usuario
+════════════════════════════════════════════════════ -->
+<div id="activityModal" class="modal-overlay" onclick="overlayClose(event,'activityModal')">
+  <div class="modal-box" style="width:min(700px,95vw);">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        Actividad de
+        <span id="activityUsername" style="color:var(--brand);"></span>
+      </h2>
+      <button class="modal-close" onclick="closeModal('activityModal')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+             viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:0; max-height:50vh; overflow-y:auto;">
+      <!-- Loading -->
+      <div id="activityLoading" style="text-align:center; padding:3rem;
+                                        color:var(--text-muted);">
+        <div class="spinner" style="margin:0 auto .75rem;"></div>
+        Cargando actividad...
+      </div>
+      <!-- Tabla -->
+      <table id="activityTable" style="width:100%; border-collapse:collapse;
+                                        font-size:.875rem; display:none;">
+        <thead>
+          <tr style="background:var(--panel-2); border-bottom:1px solid var(--border);
+                     position:sticky; top:0;">
+            <th style="padding:.65rem 1rem; text-align:left; color:var(--text-muted);
+                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              ID Venta</th>
+            <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
+                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Fecha</th>
+            <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
+                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Método pago</th>
+            <th style="padding:.65rem .75rem; text-align:center; color:var(--text-muted);
+                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Artículos</th>
+            <th style="padding:.65rem 1rem; text-align:right; color:var(--text-muted);
+                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Total</th>
+          </tr>
+        </thead>
+        <tbody id="activityTableBody"></tbody>
+      </table>
+      <!-- Vacío -->
+      <div id="activityEmpty" style="text-align:center; padding:3rem;
+                                      color:var(--text-muted); display:none;">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"
+             viewBox="0 0 24 24" style="margin:0 auto .75rem; display:block; opacity:.4;">
+          <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>
+        Sin actividad registrada
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <span id="activityPageInfo" style="font-size:.8rem; color:var(--text-muted);"></span>
+      <div id="activityPagination" style="display:flex; gap:.25rem;"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════
+     MODAL: Confirmar baja
+════════════════════════════════════════════════════ -->
+<div id="deleteModal" class="modal-overlay" onclick="overlayClose(event,'deleteModal')">
+  <div class="modal-box" style="width:min(360px,95vw);">
+    <div class="modal-header" style="background:color-mix(in srgb,var(--danger) 15%,transparent);
+                                      border-bottom-color:color-mix(in srgb,var(--danger) 30%,transparent);">
+      <h2 class="modal-title" style="color:var(--danger); font-size:1rem;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+             viewBox="0 0 24 24" style="vertical-align:middle; margin-right:.4rem;">
+          <path d="m10.29 3.86-8.23 14.22A2 2 0 0 0 3.77 21h16.46a2 2 0 0 0 1.71-2.92L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Confirmar baja
+      </h2>
+      <button class="modal-close" onclick="closeModal('deleteModal')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+             viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="text-align:center; padding:1.75rem 1.5rem;">
+      <svg width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5"
+           viewBox="0 0 24 24"
+           style="margin:0 auto 1rem; display:block; color:var(--danger); opacity:.7;">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/>
+      </svg>
+      <p style="margin:0 0 .5rem; font-size:.95rem;">¿Dar de baja al usuario</p>
+      <p id="deleteUsername" style="color:var(--danger); font-weight:700;
+                                     font-size:1.05rem; margin:0 0 1rem;"></p>
+      <p style="color:var(--text-muted); font-size:.82rem; margin:0;">
+        El usuario no podrá iniciar sesión hasta ser reactivado.
+      </p>
+    </div>
+    <div class="modal-footer" style="justify-content:center; gap:.75rem;">
+      <button class="btn-ghost" onclick="closeModal('deleteModal')">Cancelar</button>
+      <button onclick="confirmDelete()"
+              style="padding:.6rem 1.25rem; border-radius:10px; border:0; cursor:pointer;
+                     font-weight:600; background:var(--danger); color:#fff;
+                     transition:opacity .15s;">
+        Dar de baja
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"
+     style="position:fixed; bottom:1.25rem; right:1.25rem; z-index:9999;
+            display:flex; flex-direction:column; gap:.5rem; pointer-events:none;"></div>
+
+<script>
+// ── Estado global ───────────────────────────────────────
+let currentPage    = 1;
+let searchTimer    = null;
+let deleteUserId   = null;
+let activityUserId = null;
+let activityPage   = 1;
+
+// ── Modal helpers ───────────────────────────────────────
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.style.display = "flex";
+  requestAnimationFrame(() => el.classList.add("open"));
+  document.body.style.overflow = "hidden";
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove("open");
+  el.addEventListener("transitionend", () => {
+    el.style.display = "none";
+    document.body.style.overflow = "";
+  }, { once: true });
+}
+function overlayClose(e, id) {
+  if (e.target.id === id) closeModal(id);
+}
+
+// ── Carga de usuarios ───────────────────────────────────
+async function loadUsers(page = 1) {
+  currentPage = page;
+  const search = document.getElementById("searchInput").value.trim();
+  const status = document.getElementById("statusFilter").value;
+  showTableLoading();
+
+  const params = new URLSearchParams({ page, limit: 10 });
+  if (search) params.append("search", search);
+
+  try {
+    const res  = await fetch(`/api/users?${params}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    let users = data.data;
+    if (status !== "") users = users.filter(u => String(u.status) === status);
+
+    renderTable(users);
+    renderPagination(data.page, data.pages);
+    document.getElementById("totalCount").textContent =
+      `${data.total} usuario${data.total !== 1 ? "s" : ""}`;
+    document.getElementById("pageInfo").textContent =
+      users.length ? `Página ${data.page} de ${data.pages}` : "";
+  } catch {
+    showTableError("No se pudo cargar la lista de usuarios");
+  }
+}
+
+function showTableLoading() {
+  document.getElementById("usersTableBody").innerHTML = `
+    <tr><td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
+      <div class="spinner" style="margin:0 auto .75rem;"></div>Cargando...
+    </td></tr>`;
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById("usersTableBody");
+  if (!users.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"
+             viewBox="0 0 24 24" style="display:block; margin:0 auto .75rem; opacity:.35;">
+          <path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+        </svg>Sin resultados
+      </td></tr>`;
+    return;
+  }
+
+  const ROW_BORDER = "border-bottom:1px solid var(--border);";
+
+  tbody.innerHTML = users.map(u => {
+    const initial = u.username.charAt(0).toUpperCase();
+    const hue     = [...u.username].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
+
+    const roleBadge = u.role === "admin"
+      ? `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
+                      border-radius:99px; font-size:.75rem; font-weight:600;
+                      background:color-mix(in srgb,#f59e0b 18%,transparent);
+                      color:#f59e0b; border:1px solid color-mix(in srgb,#f59e0b 30%,transparent);">
+           Admin
+         </span>`
+      : `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
+                      border-radius:99px; font-size:.75rem; font-weight:600;
+                      background:color-mix(in srgb,var(--text-muted) 12%,transparent);
+                      color:var(--text-muted); border:1px solid var(--border);">
+           Usuario
+         </span>`;
+
+    const statusBadge = u.status
+      ? `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
+                      border-radius:99px; font-size:.75rem; font-weight:600;
+                      background:color-mix(in srgb,var(--success) 15%,transparent);
+                      color:var(--success); border:1px solid color-mix(in srgb,var(--success) 30%,transparent);">
+           <span style="width:6px;height:6px;border-radius:50%;
+                        background:var(--success);display:inline-block;"></span>Activo
+         </span>`
+      : `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
+                      border-radius:99px; font-size:.75rem; font-weight:600;
+                      background:color-mix(in srgb,var(--danger) 15%,transparent);
+                      color:var(--danger); border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);">
+           <span style="width:6px;height:6px;border-radius:50%;
+                        background:var(--danger);display:inline-block;"></span>Inactivo
+         </span>`;
+
+    const toggleBtn = u.status
+      ? `<button class="icon-btn danger" title="Dar de baja"
+                 onclick="openDeleteModal(${u.id},'${escHtml(u.username)}')">
+           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+             <circle cx="9" cy="7" r="4"/>
+             <line x1="17" y1="8" x2="23" y2="14"/>
+             <line x1="23" y1="8" x2="17" y2="14"/>
+           </svg>
+         </button>`
+      : `<button class="icon-btn success" title="Reactivar"
+                 onclick="reactivateUser(${u.id})">
+           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+             <circle cx="9" cy="7" r="4"/>
+             <polyline points="16 11 18 13 22 9"/>
+           </svg>
+         </button>`;
+
+    return `
+      <tr style="${ROW_BORDER} transition:background .12s ease;"
+          onmouseover="this.style.background='var(--panel-2)'"
+          onmouseout="this.style.background=''">
+        <td style="padding:.75rem 1rem; color:var(--text-muted); font-size:.82rem;">${u.id}</td>
+        <td style="padding:.75rem .75rem;">
+          <div style="display:flex; align-items:center; gap:.65rem;">
+            <div style="width:34px; height:34px; border-radius:50%; flex-shrink:0;
+                        background:hsl(${hue},55%,45%); display:flex; align-items:center;
+                        justify-content:center; font-weight:700; font-size:.85rem; color:#fff;
+                        box-shadow:0 2px 6px rgba(0,0,0,.25);">${initial}</div>
+            <span style="font-weight:600;">${escHtml(u.username)}</span>
+          </div>
+        </td>
+        <td style="padding:.75rem .75rem; color:var(--text-muted); font-size:.875rem;">
+          ${escHtml(u.email)}
+        </td>
+        <td style="padding:.75rem .75rem;">${roleBadge}</td>
+        <td style="padding:.75rem .75rem;">${statusBadge}</td>
+        <td style="padding:.75rem .75rem; color:var(--text-muted); font-size:.82rem;">
+          ${formatDate(u.created_at)}
+        </td>
+        <td style="padding:.75rem 1rem; text-align:center;">
+          <div style="display:flex; justify-content:center; gap:.35rem;">
+            <button class="icon-btn info" title="Ver actividad"
+                    onclick="openActivity(${u.id},'${escHtml(u.username)}')">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                   viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </button>
+            <button class="icon-btn primary" title="Editar"
+                    onclick="openEditModal(${u.id})">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+                   viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            ${toggleBtn}
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
+}
+
+function renderPagination(current, total) {
+  const container = document.getElementById("pagination");
+  container.innerHTML = "";
+  if (total <= 1) return;
+
+  const btn = (label, page, disabled, active) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.disabled    = disabled;
+    b.style.cssText = `
+      padding:.35rem .65rem; border-radius:8px; border:1px solid var(--border);
+      background:${active ? "var(--brand)" : "var(--panel-2)"}; cursor:pointer;
+      color:${active ? "#fff" : "var(--text)"}; font-size:.82rem;
+      opacity:${disabled ? ".4" : "1"}; font-weight:${active ? "600" : "400"};`;
+    if (!disabled) b.onclick = () => loadUsers(page);
+    return b;
+  };
+
+  container.appendChild(btn("‹", current - 1, current === 1, false));
+  for (let i = 1; i <= total; i++)
+    container.appendChild(btn(i, i, false, i === current));
+  container.appendChild(btn("›", current + 1, current === total, false));
+}
+
+function showTableError(msg) {
+  document.getElementById("usersTableBody").innerHTML = `
+    <tr><td colspan="7" style="text-align:center; padding:3rem; color:var(--danger);">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"
+           viewBox="0 0 24 24" style="display:block; margin:0 auto .75rem; opacity:.7;">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>${msg}
+    </td></tr>`;
+}
+
+// ── Debounce ────────────────────────────────────────────
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadUsers(1), 350);
+}
+
+// ── Modal crear ─────────────────────────────────────────
+function openCreateModal() {
+  document.getElementById("userModalTitle").textContent = "Nuevo Usuario";
+  document.getElementById("fieldUsername").value = "";
+  document.getElementById("fieldEmail").value    = "";
+  document.getElementById("fieldPassword").value = "";
+  document.getElementById("fieldRole").value     = "user";
+  document.getElementById("editUserId").value    = "";
+  document.getElementById("statusField").style.display   = "none";
+  document.getElementById("passwordRequired").style.display = "inline";
+  document.getElementById("passwordHint").textContent    = "";
+  openModal("userModal");
+}
+
+// ── Modal editar ────────────────────────────────────────
+async function openEditModal(userId) {
+  try {
+    const res  = await fetch(`/api/users/${userId}`);
+    if (!res.ok) throw new Error();
+    const user = await res.json();
+
+    document.getElementById("userModalTitle").textContent  = "Editar Usuario";
+    document.getElementById("editUserId").value    = user.id;
+    document.getElementById("fieldUsername").value = user.username;
+    document.getElementById("fieldEmail").value    = user.email;
+    document.getElementById("fieldRole").value     = user.role;
+    document.getElementById("fieldStatus").value   = String(user.status);
+    document.getElementById("fieldPassword").value = "";
+    document.getElementById("passwordRequired").style.display = "none";
+    document.getElementById("passwordHint").textContent = "Dejá en blanco para no cambiar";
+    document.getElementById("statusField").style.display = "grid";
+    openModal("userModal");
+  } catch {
+    showToast("No se pudo cargar el usuario", "danger");
+  }
+}
+
+// ── Guardar usuario ─────────────────────────────────────
+async function saveUser() {
+  const id       = document.getElementById("editUserId").value;
+  const username = document.getElementById("fieldUsername").value.trim();
+  const email    = document.getElementById("fieldEmail").value.trim();
+  const password = document.getElementById("fieldPassword").value;
+  const role     = document.getElementById("fieldRole").value;
+  const status   = document.getElementById("fieldStatus").value;
+
+  if (!username || !email) { showToast("Completá los campos requeridos", "warning"); return; }
+  if (!id && !password)    { showToast("La contraseña es obligatoria para nuevos usuarios", "warning"); return; }
+
+  const btn = document.getElementById("saveBtn");
+  btn.disabled    = true;
+  btn.textContent = "Guardando...";
+
+  const payload = { username, email, role };
+  if (password) payload.password = password;
+  if (id)       payload.status   = parseInt(status);
+
+  try {
+    const res  = await fetch(id ? `/api/users/${id}` : "/api/users", {
+      method:  id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      closeModal("userModal");
+      showToast(data.message, "success");
+      loadUsers(currentPage);
+    } else {
+      showToast(data.error || "Error al guardar", "danger");
+    }
+  } catch {
+    showToast("Error de conexión", "danger");
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+// ── Modal baja ──────────────────────────────────────────
+function openDeleteModal(id, username) {
+  deleteUserId = id;
+  document.getElementById("deleteUsername").textContent = username;
+  openModal("deleteModal");
+}
+
+async function confirmDelete() {
+  try {
+    const res  = await fetch(`/api/users/${deleteUserId}`, { method: "DELETE" });
+    const data = await res.json();
+    closeModal("deleteModal");
+    showToast(res.ok ? data.message : data.error, res.ok ? "success" : "danger");
+    if (res.ok) loadUsers(currentPage);
+  } catch {
+    showToast("Error de conexión", "danger");
+  }
+}
+
+// ── Reactivar ───────────────────────────────────────────
+async function reactivateUser(id) {
+  try {
+    const res  = await fetch(`/api/users/${id}`, {
+      method:  "PUT",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ status: 1 })
+    });
+    const data = await res.json();
+    showToast(res.ok ? "Usuario reactivado" : data.error, res.ok ? "success" : "danger");
+    if (res.ok) loadUsers(currentPage);
+  } catch {
+    showToast("Error de conexión", "danger");
+  }
+}
+
+// ── Actividad ───────────────────────────────────────────
+async function openActivity(userId, username) {
+  activityUserId = userId;
+  activityPage   = 1;
+  document.getElementById("activityUsername").textContent = username;
+  document.getElementById("activityLoading").style.display = "block";
+  document.getElementById("activityTable").style.display   = "none";
+  document.getElementById("activityEmpty").style.display   = "none";
+  document.getElementById("activityTableBody").innerHTML   = "";
+  document.getElementById("activityPageInfo").textContent  = "";
+  document.getElementById("activityPagination").innerHTML  = "";
+  openModal("activityModal");
+  await loadActivity(1);
+}
+
+async function loadActivity(page = 1) {
+  activityPage = page;
+  try {
+    const res  = await fetch(`/api/users/${activityUserId}/activity?page=${page}&limit=10`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    document.getElementById("activityLoading").style.display = "none";
+
+    if (!data.data.length) {
+      document.getElementById("activityEmpty").style.display = "block";
+      document.getElementById("activityPageInfo").textContent = "Sin ventas registradas";
+      return;
+    }
+
+    document.getElementById("activityTable").style.display = "table";
+    document.getElementById("activityTableBody").innerHTML = data.data.map(r => `
+      <tr style="border-bottom:1px solid var(--border);"
+          onmouseover="this.style.background='var(--panel-2)'"
+          onmouseout="this.style.background=''">
+        <td style="padding:.65rem 1rem; color:var(--text-muted); font-size:.82rem;">
+          #${r.sale_id}</td>
+        <td style="padding:.65rem .75rem; font-size:.875rem;">${formatDate(r.date)}</td>
+        <td style="padding:.65rem .75rem;">
+          <span style="padding:.2rem .55rem; border-radius:6px; font-size:.78rem;
+                       background:var(--panel-2); border:1px solid var(--border);">
+            ${escHtml(r.payment_method)}
+          </span>
+        </td>
+        <td style="padding:.65rem .75rem; text-align:center;">
+          <span style="padding:.2rem .55rem; border-radius:6px; font-size:.78rem;
+                       background:color-mix(in srgb,var(--brand) 12%,transparent);
+                       color:var(--brand); border:1px solid color-mix(in srgb,var(--brand) 25%,transparent);">
+            ${r.items}
+          </span>
+        </td>
+        <td style="padding:.65rem 1rem; text-align:right; font-weight:600;">
+          $${r.total.toFixed(2)}</td>
+      </tr>`).join("");
+
+    document.getElementById("activityPageInfo").textContent =
+      `Página ${data.page} de ${data.pages} · ${data.total} venta${data.total !== 1 ? "s" : ""}`;
+
+    const pag = document.getElementById("activityPagination");
+    pag.innerHTML = "";
+    if (data.pages > 1) {
+      for (let i = 1; i <= data.pages; i++) {
+        const b = document.createElement("button");
+        b.textContent = i;
+        b.style.cssText = `
+          padding:.3rem .6rem; border-radius:7px; border:1px solid var(--border);
+          background:${i === data.page ? "var(--brand)" : "var(--panel-2)"};
+          color:${i === data.page ? "#fff" : "var(--text)"}; cursor:pointer; font-size:.8rem;`;
+        b.onclick = () => loadActivity(i);
+        pag.appendChild(b);
+      }
+    }
+  } catch {
+    document.getElementById("activityLoading").style.display = "none";
+    document.getElementById("activityEmpty").style.display   = "block";
+    document.getElementById("activityEmpty").innerHTML =
+      '<svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="display:block;margin:0 auto .75rem;color:var(--danger);opacity:.7;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+      '<span style="color:var(--danger)">Error al cargar actividad</span>';
+  }
+}
+
+// ── Toggle password ─────────────────────────────────────
+function togglePassword() {
+  const input = document.getElementById("fieldPassword");
+  const show  = input.type === "password";
+  input.type  = show ? "text" : "password";
+  document.getElementById("eyeIcon").innerHTML = show
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+       <line x1="1" y1="1" x2="23" y2="23"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+       <circle cx="12" cy="12" r="3"/>`;
+}
+
+// ── Helpers ─────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function formatDate(str) {
+  if (!str) return `<span style="color:var(--text-muted)">—</span>`;
+  const d = new Date(str);
+  if (isNaN(d)) return str;
+  return d.toLocaleString("es-AR", {
+    day:"2-digit", month:"2-digit", year:"numeric",
+    hour:"2-digit", minute:"2-digit"
+  });
+}
+
+function showToast(msg, type = "success") {
+  const colors = {
+    success: "var(--success)", danger: "var(--danger)",
+    warning: "#f59e0b",        info:   "var(--brand)"
+  };
+  const t = document.createElement("div");
+  t.style.cssText = `
+    pointer-events:auto; display:flex; align-items:center; gap:.6rem;
+    padding:.75rem 1rem; border-radius:10px; font-size:.875rem; font-weight:500;
+    background:var(--card); border:1px solid ${colors[type] || colors.info};
+    color:var(--text); box-shadow:var(--shadow-md); min-width:240px;
+    animation:slideUp .2s ease;`;
+  t.innerHTML = `
+    <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+                 background:${colors[type]};"></span>
+    <span style="flex:1">${msg}</span>
+    <button onclick="this.parentElement.remove()"
+            style="background:none;border:none;cursor:pointer;color:var(--text-muted);
+                   padding:0;font-size:1rem;line-height:1;">×</button>`;
+  document.getElementById("toastContainer").appendChild(t);
+  setTimeout(() => t.style.opacity = 0, 3600);
+  setTimeout(() => t.remove(), 4000);
+}
+
+loadUsers();
+</script>
+
+<style>
+/* ── Modal system ─────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.6);
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity .2s ease;
+}
+.modal-overlay.open { opacity: 1; }
+.modal-overlay.open .modal-box { transform: translateY(0); opacity: 1; }
+
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform .25s ease, opacity .25s ease;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.modal-title { margin:0; font-size:1rem; font-weight:700; }
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: .25rem;
+  border-radius: 6px; display:flex; align-items:center;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 1.25rem; display: grid; gap: .85rem; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: .6rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+/* ── Icon buttons ─────────────────────────────────── */
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s ease;
+  color: var(--text-muted);
+}
+.icon-btn:hover          { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb,var(--brand) 10%,transparent); }
+.icon-btn.primary:hover  { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb,var(--brand) 10%,transparent); }
+.icon-btn.info:hover     { border-color: #38bdf8; color: #38bdf8; background: color-mix(in srgb,#38bdf8 10%,transparent); }
+.icon-btn.danger:hover   { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb,var(--danger) 10%,transparent); }
+.icon-btn.success:hover  { border-color: var(--success); color: var(--success); background: color-mix(in srgb,var(--success) 10%,transparent); }
+
+/* ── Spinner ──────────────────────────────────────── */
+.spinner {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--brand);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes slideUp { from { transform: translateY(8px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+</style>
+{% endblock %}

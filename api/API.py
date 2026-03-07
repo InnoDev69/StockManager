@@ -555,7 +555,9 @@ def create_sale():
     if stock < qty:
         return jsonify({"error": "Stock insuficiente"}), 400
     
-    db.record_product_sale(item_id, qty)
+    vendedor = session.get("username", "unknown")
+    payment_method = data.get("payment_method", "Efectivo")
+    db.record_product_sale(item_id, qty, vendedor, payment_method)
     
     return jsonify({
         "message": f"Venta registrada: {name} x{qty}",
@@ -633,8 +635,10 @@ def create_sales_bulk():
         })
         total += subtotal
 
+    vendedor = db.get_user_by_email(session.get("username", "unknown"))
+    payment_method = data.get("payment_method", "Efectivo")
     try:
-        sale_id = db.record_bulk_sale(validated_items)
+        sale_id = db.record_bulk_sale(validated_items, vendedor[1], payment_method)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -684,7 +688,6 @@ def list_sales():
     limit       = min(100, max(1, request.args.get("limit", 10, type=int)))
     offset      = (page - 1) * limit
 
-    # ── Filtros para la subquery de sells ────────────────────
     sell_where  = ["1=1"]
     sell_params = []
 
@@ -700,7 +703,6 @@ def list_sales():
 
     sell_where_clause = " AND ".join(sell_where)
 
-    # ── COUNT de ventas unicas que pasan los filtros ─────────
     count_query = f"""
         SELECT COUNT(DISTINCT s.id)
         FROM sells s
@@ -709,7 +711,6 @@ def list_sales():
     total = db.execute_query(count_query, tuple(sell_params))[0][0]
     pages = max(1, -(-total // limit))
 
-    # ── IDs de la pagina actual (paginamos sobre sells) ──────
     ids_query = f"""
         SELECT DISTINCT s.id
         FROM sells s
@@ -730,10 +731,9 @@ def list_sales():
 
     sale_ids = [row[0] for row in id_rows]
 
-    # ── Detalle completo solo de esos IDs ────────────────────
     placeholders = ",".join("?" * len(sale_ids))
     detail_query = f"""
-        SELECT s.id, s.date, i.name, d.quantity, d.price
+        SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method
         FROM sells s
         JOIN details d ON s.id = d.sell_id
         JOIN items  i ON d.item_id = i.id
@@ -742,9 +742,8 @@ def list_sales():
     """
     rows = db.execute_query(detail_query, tuple(sale_ids))
 
-    # ── Agrupar por venta ─────────────────────────────────────
     sales_dict = {}
-    for sale_id, date, name, quantity, price in rows:
+    for sale_id, date, name, quantity, price, vendedor, payment_method in rows:
         if sale_id not in sales_dict:
             sales_dict[sale_id] = {
                 "id":             sale_id,
@@ -752,6 +751,8 @@ def list_sales():
                 "products":       [],
                 "total_quantity": 0,
                 "total":          0.0,
+                "vendedor":       vendedor,
+                "payment_method": payment_method,
             }
         sales_dict[sale_id]["products"].append({
             "name":     name,
@@ -761,7 +762,6 @@ def list_sales():
         sales_dict[sale_id]["total_quantity"] += quantity
         sales_dict[sale_id]["total"]          += quantity * float(price)
 
-    # Redondear totales y mantener el orden de la pagina
     sales = []
     for sid in sale_ids:
         if sid in sales_dict:
@@ -858,7 +858,7 @@ def get_sale_detail(sale_id):
     
     sale_data = db.execute_query(
         """
-        SELECT s.id, s.date, i.name, d.quantity, d.price 
+        SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method
         FROM sells s 
         JOIN details d ON s.id = d.sell_id 
         JOIN items i ON d.item_id = i.id 
@@ -871,10 +871,12 @@ def get_sale_detail(sale_id):
         return jsonify({"error": "Sale not found"}), 404
     
     sale = {
-        "id": sale_data[0][0],
-        "date": sale_data[0][1],
-        "products": [],
-        "total": 0.0
+        "id":             sale_data[0][0],
+        "date":           sale_data[0][1],
+        "products":       [],
+        "total":          0.0,
+        "vendedor":       sale_data[0][5],
+        "payment_method": sale_data[0][6],
     }
     
     for row in sale_data:
@@ -1203,3 +1205,256 @@ def change_password():
     db.delete_reset_code(email=data["email"])
     
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200
+
+@api_bp.route("/users", methods=["GET"])
+def get_users():
+    """Lista todos los usuarios con paginación."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    search = request.args.get("search", "").strip()
+    page   = max(1, request.args.get("page", 1, type=int))
+    limit  = min(100, max(1, request.args.get("limit", 10, type=int)))
+    offset = (page - 1) * limit
+
+    where  = ["1=1"]
+    params = []
+
+    if search:
+        where.append("(username LIKE ? OR email LIKE ?)")
+        params.extend([f"%{search}%", f"%{search}%"])
+
+    where_clause = " AND ".join(where)
+
+    total = db.execute_query(
+        f"SELECT COUNT(*) FROM users WHERE {where_clause}", tuple(params)
+    )[0][0]
+    pages = max(1, -(-total // limit))
+
+    rows = db.execute_query(
+        f"""
+        SELECT id, username, email, role, status, created_at
+        FROM users
+        WHERE {where_clause}
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        tuple(params) + (limit, offset)
+    )
+
+    users_list = [
+        {
+            "id":         row[0],
+            "username":   row[1],
+            "email":      row[2],
+            "role":       row[3],
+            "status":     row[4],
+            "created_at": row[5],
+        }
+        for row in rows
+    ]
+
+    return jsonify({
+        "data":  users_list,
+        "total": total,
+        "page":  page,
+        "pages": pages,
+        "limit": limit,
+    }), 200
+
+
+@api_bp.route("/users/<int:user_id>", methods=["GET"])
+def get_user(user_id):
+    """Obtiene un usuario específico."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    rows = db.execute_query(
+        "SELECT id, username, email, role, status, created_at FROM users WHERE id = ?",
+        (user_id,)
+    )
+    if not rows:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    r = rows[0]
+    return jsonify({
+        "id":         r[0],
+        "username":   r[1],
+        "email":      r[2],
+        "role":       r[3],
+        "status":     r[4],
+        "created_at": r[5],
+    }), 200
+
+
+@api_bp.route("/users", methods=["POST"])
+def create_user():
+    """Crea un nuevo usuario."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    data = request.get_json()
+    required = ["username", "email", "password", "role"]
+    if not all(f in data for f in required):
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+
+    try:
+        UserValidator.validate_email(data["email"])
+    except Exception:
+        return jsonify({"error": "Formato de correo inválido"}), 400
+
+    existing = db.get_user_by_email(data["email"].strip())
+    if existing:
+        return jsonify({"error": "El correo ya está registrado"}), 409
+
+    hashed = generate_password_hash(data["password"])
+    try:
+        db.execute_query(
+            "INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, 1)",
+            (data["username"].strip(), data["email"].strip(), hashed, data["role"]),
+            fetch=False
+        )
+        logger.info(f"Usuario creado: {data['username']} por admin ID {session.get('user_id')}")
+        return jsonify({"message": "Usuario creado exitosamente"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/users/<int:user_id>", methods=["PUT"])
+def update_user(user_id):
+    """Actualiza un usuario existente."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    data = request.get_json()
+    updates = []
+    params  = []
+
+    if "username" in data:
+        updates.append("username = ?")
+        params.append(data["username"].strip())
+    if "email" in data:
+        updates.append("email = ?")
+        params.append(data["email"].strip())
+    if "role" in data:
+        updates.append("role = ?")
+        params.append(data["role"])
+    if "status" in data:
+        updates.append("status = ?")
+        params.append(int(data["status"]))
+    if "password" in data and data["password"]:
+        updates.append("password = ?")
+        params.append(generate_password_hash(data["password"]))
+
+    if not updates:
+        return jsonify({"error": "No hay datos para actualizar"}), 400
+
+    params.append(user_id)
+    db.execute_query(
+        f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+        tuple(params),
+        fetch=False
+    )
+    logger.info(f"Usuario ID {user_id} actualizado por admin ID {session.get('user_id')}")
+    return jsonify({"message": "Usuario actualizado"}), 200
+
+
+@api_bp.route("/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    """Deshabilita un usuario (baja lógica)."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    if user_id == session.get("user_id"):
+        return jsonify({"error": "No puedes darte de baja a ti mismo"}), 400
+
+    db.execute_query(
+        "UPDATE users SET status = 0 WHERE id = ?",
+        (user_id,),
+        fetch=False
+    )
+    logger.info(f"Usuario ID {user_id} dado de baja por admin ID {session.get('user_id')}")
+    return jsonify({"message": "Usuario dado de baja"}), 200
+
+
+@api_bp.route("/users/<int:user_id>/activity", methods=["GET"])
+def get_user_activity(user_id):
+    """Obtiene los movimientos/ventas de un usuario."""
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+
+    if session.get("role") != "admin":
+        return jsonify({"error": "Permiso denegado"}), 403
+
+    page   = max(1, request.args.get("page", 1, type=int))
+    limit  = min(100, max(1, request.args.get("limit", 10, type=int)))
+    offset = (page - 1) * limit
+
+    user_rows = db.execute_query(
+        "SELECT username FROM users WHERE id = ?", (user_id,)
+    )
+    if not user_rows:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    username = user_rows[0][0]
+
+    total = db.execute_query(
+        "SELECT COUNT(*) FROM sells WHERE vendedor = ?", (username,)
+    )[0][0]
+    pages = max(1, -(-total // limit))
+
+    rows = db.execute_query(
+        """
+        SELECT s.id, s.date, s.payment_method,
+               COUNT(d.id) AS items,
+               SUM(d.quantity * d.price) AS total
+        FROM sells s
+        JOIN details d ON s.id = d.sell_id
+        WHERE s.vendedor = ?
+        GROUP BY s.id
+        ORDER BY s.date DESC
+        LIMIT ? OFFSET ?
+        """,
+        (username, limit, offset)
+    )
+
+    activity = [
+        {
+            "sale_id":        r[0],
+            "date":           r[1],
+            "payment_method": r[2],
+            "items":          int(r[3]),
+            "total":          round(float(r[4]), 2),
+        }
+        for r in rows
+    ]
+
+    return jsonify({
+        "username": username,
+        "data":     activity,
+        "total":    total,
+        "page":     page,
+        "pages":    pages,
+        "limit":    limit,
+    }), 200

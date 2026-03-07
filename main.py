@@ -430,7 +430,7 @@ def sales():
         return redirect(url_for("login"))
     
     sales_data = db.execute_query(
-        "SELECT s.id, s.date, i.name, d.quantity, d.price "
+        "SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method "
         "FROM sells s "
         "JOIN details d ON s.id = d.sell_id "
         "JOIN items i ON d.item_id = i.id "
@@ -446,7 +446,9 @@ def sales():
                 "date": row[1],
                 "products": [],
                 "total": 0.0,
-                "total_quantity": 0
+                "total_quantity": 0,
+                "vendedor": row[5],
+                "payment_method": row[6]
             }
         
         sales_dict[sale_id]["products"].append({
@@ -637,7 +639,7 @@ def product_management():
     
     role = session.get("role", "user")
     if role != "admin":
-        pass
+        flash("Acceso denegado", "error")
     
     return render_template("product_management.html")
 
@@ -660,6 +662,26 @@ def metrics():
         return redirect(url_for("index"))
     
     return render_template("metrics.html")
+    
+@app.route("/users")
+def users():
+    """
+    Página de gestión de usuarios.
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: users.html con la interfaz de gestión
+    """
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    
+    role = session.get("role", "user")
+    if role != "admin":
+        flash("Acceso denegado", "error")
+        return redirect(url_for("index"))
+    
+    return render_template("users.html")
 
 def signal_handler(sig, frame):
     logger.info("Señal de terminación recibida, cerrando servidor...")
@@ -668,12 +690,14 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
+SCHEDULER.add_task(86400, logger._cleanup_old_logs)
+SCHEDULER.start()
+
 if __name__ == "__main__":
     try:
         logger.info("Iniciando aplicación...")
         
-        SCHEDULER.add_task(86400, logger._cleanup_old_logs)
-        SCHEDULER.start()
+        
         
         if sys.platform == "linux":
             #os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"

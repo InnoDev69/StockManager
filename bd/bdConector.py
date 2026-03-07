@@ -146,7 +146,9 @@ class BDConector:
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             email TEXT NOT NULL,
-            role TEXT NOT NULL
+            role TEXT NOT NULL,
+            status INTEGER NOT NULL DEFAULT 1,  -- 1=active, 0=disabled
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
         items_table_query = """
@@ -169,6 +171,8 @@ class BDConector:
             item_id INTEGER NOT NULL,
             quantity INTEGER NOT NULL,
             price REAL NOT NULL,
+            vendedor TEXT NOT NULL,
+            payment_method TEXT NOT NULL DEFAULT 'Efectivo',
             FOREIGN KEY (sell_id) REFERENCES sells (id),
             FOREIGN KEY (item_id) REFERENCES items (id)
         )
@@ -179,6 +183,8 @@ class BDConector:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id INTEGER NOT NULL,
             date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            vendedor TEXT NOT NULL,
+            payment_method TEXT NOT NULL DEFAULT 'Efectivo',
             FOREIGN KEY (item_id) REFERENCES items (id)
         )
         """
@@ -199,6 +205,35 @@ class BDConector:
             cur.execute(sells_table_query)
             cur.execute(sells_details_table_query)
             cur.execute(reset_codes_table_query)
+
+        self._run_migrations()
+
+    def _run_migrations(self):
+        """
+        Aplica migraciones incrementales a la base de datos existente.
+        Cada migración usa ALTER TABLE y es idempotente (ignora errores
+        de columna duplicada para no fallar en deployments frescos).
+        """
+        migrations = [
+            ("sells",   "vendedor",       "TEXT NOT NULL DEFAULT 'unknown'"),
+            ("sells",   "payment_method", "TEXT NOT NULL DEFAULT 'Efectivo'"),
+            ("details", "vendedor",       "TEXT NOT NULL DEFAULT 'unknown'"),
+            ("details", "payment_method", "TEXT NOT NULL DEFAULT 'Efectivo'"),
+            ("users",   "status",         "INTEGER NOT NULL DEFAULT 1"),
+            ("users",   "created_at",     "TEXT DEFAULT NULL"),  # NULL evita error de SQLite
+        ]
+        conn = self._connect()
+        try:
+            cur = conn.cursor()
+            for table, column, definition in migrations:
+                try:
+                    cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+                    logger.info(f"[Migration] Columna '{column}' agregada a '{table}'")
+                except Exception:
+                    pass  # La columna ya existe
+            conn.commit()
+        finally:
+            conn.close()
     
     def create_table(self, table_name, columns):
         """
@@ -468,7 +503,7 @@ class BDConector:
 
         return {"products": total, "low_stock": low, "sales_today": today, "low_stock_list": low_list}
 
-    def record_product_sale(self, item_id, quantity):
+    def record_product_sale(self, item_id, quantity, vendedor, payment_method="Efectivo"):
         """
         Registra una venta y actualiza el inventario de forma atómica.
         
@@ -500,7 +535,7 @@ class BDConector:
         """
         
         with self._cursor() as cur:
-            cur.execute("INSERT INTO sells (item_id) VALUES (?)", (item_id,))
+            cur.execute("INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)", (item_id, vendedor, payment_method))
             sell_id = cur.lastrowid
             
             cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
@@ -512,8 +547,8 @@ class BDConector:
                 raise ValueError("Stock insuficiente")
 
             cur.execute(
-                "INSERT INTO details (sell_id, item_id, quantity, price) VALUES (?, ?, ?, ?)",
-                (sell_id, item_id, quantity, price)
+                "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                (sell_id, item_id, quantity, price, vendedor, payment_method)
             )
             
             cur.execute(
@@ -521,7 +556,7 @@ class BDConector:
                 (current_qty - quantity, item_id)
             )
     
-    def record_bulk_sale(self, items):
+    def record_bulk_sale(self, items, vendedor, payment_method="Efectivo"):
         """
         Registra una venta con múltiples productos en una sola transacción.
         
@@ -563,7 +598,7 @@ class BDConector:
             raise ValueError("La lista de items no puede estar vacía")
         
         with self._cursor() as cur:
-            cur.execute("INSERT INTO sells (item_id) VALUES (?)", (items[0]["item_id"],))
+            cur.execute("INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)", (items[0]["item_id"], vendedor, payment_method))
             sell_id = cur.lastrowid
             
             for item in items:
@@ -580,8 +615,8 @@ class BDConector:
                     raise ValueError(f"Stock insuficiente para producto ID {item_id}")
                 
                 cur.execute(
-                    "INSERT INTO details (sell_id, item_id, quantity, price) VALUES (?, ?, ?, ?)",
-                    (sell_id, item_id, quantity, price)
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sell_id, item_id, quantity, price, vendedor, payment_method)
                 )
                 
                 cur.execute(

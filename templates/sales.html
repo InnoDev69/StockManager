@@ -102,6 +102,8 @@
                                 <th>Productos</th>
                                 <th>Cantidad Total</th>
                                 <th>Total</th>
+                                <th>Vendedor</th>
+                                <th>M&eacute;todo de Pago</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -120,6 +122,12 @@
                                     </td>
                                     <td>{{ sale.total_quantity }}</td>
                                     <td class="text-primary">${{ "%.2f"|format(sale.total) }}</td>
+                                    <td>{{ sale.vendedor or '—' }}</td>
+                                    <td>
+                                        <span class="badge" style="background: color-mix(in srgb, var(--brand, #00d4ff) 15%, transparent); border-color: color-mix(in srgb, var(--brand, #00d4ff) 30%, transparent);">
+                                            {{ sale.payment_method or 'Efectivo' }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <button class="btn-icon" onclick="viewSaleDetail({{ sale.id }})" title="Ver detalle">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -132,7 +140,7 @@
                                 {% endfor %}
                             {% else %}
                             <tr id="empty-sales-row">
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="8" class="text-center text-muted">
                                     <div style="padding: 3rem;">
                                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 1rem; opacity: 0.3;">
                                             <circle cx="12" cy="12" r="10"/>
@@ -154,6 +162,8 @@
                         <label style="font-size: 0.875rem; color: var(--text-muted);">Por pagina:</label>
                         <select id="sales-page-size" style="padding: 0.375rem 0.5rem; font-size: 0.8rem; width: auto;">
                             <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
                         </select>
                     </div>
                     <div id="sales-page-buttons" style="display: flex; gap: 0.375rem;"></div>
@@ -173,7 +183,9 @@
             <div class="modal-body" id="modalBody">
                 <div class="detail-section">
                     <p><strong>Fecha:</strong> <span id="detailDate"></span></p>
-                    <p><strong>ID Transaccion:</strong> <span id="detailId"></span></p>
+                    <p><strong>ID Transacci&oacute;n:</strong> <span id="detailId"></span></p>
+                    <p><strong>Vendedor:</strong> <span id="detailVendedor"></span></p>
+                    <p><strong>M&eacute;todo de pago:</strong> <span id="detailPayment"></span></p>
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0 0.5rem 0; flex-wrap: wrap; gap: 0.5rem;">
@@ -410,10 +422,12 @@
 
                 const data = await res.json();
 
-                $('modalSaleId').textContent = '#' + data.id;
-                $('detailDate').textContent  = data.date;
-                $('detailId').textContent    = data.id;
-                $('detailTotal').textContent = '$' + Number(data.total).toFixed(2);
+                $('modalSaleId').textContent  = '#' + data.id;
+                $('detailDate').textContent    = data.date;
+                $('detailId').textContent      = data.id;
+                $('detailTotal').textContent   = '$' + Number(data.total).toFixed(2);
+                $('detailVendedor').textContent = data.vendedor || '—';
+                $('detailPayment').textContent  = data.payment_method || 'Efectivo';
 
                 detailProducts = data.products || [];
                 detailPage     = 1;
