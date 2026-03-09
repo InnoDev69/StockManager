@@ -1114,6 +1114,7 @@ document.getElementById('modalConfirm').addEventListener('click', async function
 
   var res = await fetch('/api/sales/bulk', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ items: payload, payment_method: selectedPaymentMethod })
   });

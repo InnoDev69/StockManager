@@ -20,8 +20,10 @@ def require_auth():
         None si está autenticado, o una respuesta JSON de error si no lo está.
     """
     
-    if not session.get("user_id"):
-        return jsonify({"error": "No autorizado"}), 401
+    user_id = session.get("user_id")
+    logger.info(f"require_auth check: user_id={user_id}, cookies={dict(request.cookies)}")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
     return None
 
 @api_bp.route("/health", methods=["GET"])
@@ -635,7 +637,11 @@ def create_sales_bulk():
         })
         total += subtotal
 
-    vendedor = db.get_user_by_email(session.get("username", "unknown"))
+    user_row = db.execute_query(
+        "SELECT id, username, password, role FROM users WHERE id = ?",
+        (session.get("user_id"),)
+    )
+    vendedor = user_row[0] if user_row else None
     payment_method = data.get("payment_method", "Efectivo")
     try:
         sale_id = db.record_bulk_sale(validated_items, vendedor[1], payment_method)
