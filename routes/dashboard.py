@@ -1,0 +1,38 @@
+import os
+from flask import Blueprint, render_template, session, redirect, url_for
+from bd.bdInstance import db
+
+dashboard_bp = Blueprint('dashboard', __name__)
+
+@dashboard_bp.route("/")
+def index():
+    """
+    Dashboard principal de la aplicación.
+    
+    Muestra estadísticas generales:
+    - Total de productos
+    - Productos con stock bajo
+    - Ventas del día
+    - Lista de productos con stock crítico
+    
+    Requiere login: True.
+    
+    Returns:
+        Template: dashboard.html con estadísticas y datos del usuario
+    """
+    
+    if not session.get("user_id"):
+        return redirect("/login")
+    
+    stats_data = db.get_dashboard_stats()
+    stats = {
+        "products": stats_data.get("products", 0),
+        "low_stock": stats_data.get("low_stock", 0),
+        "sales_today": stats_data.get("sales_today", 0)
+    }
+    low_stock_list = stats_data.get("low_stock_list", [])
+    
+    role = session.get("role", "Vendedor")
+    return render_template('dashboard.html', stats=stats, role=role,
+                       low_stock_list=low_stock_list, products=[], show_back=False,
+                       DEBUG=1 if os.getenv("DEBUG", "0") == "1" else 0)

@@ -393,7 +393,7 @@
         $('filterForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const params = new URLSearchParams(new FormData(this));
-            window.location.href = '{{ url_for("sales") }}?' + params.toString();
+            window.location.href = '{{ url_for("sales.sales") }}?' + params.toString();
         });
 
         window.clearFilters = function () {
@@ -403,7 +403,7 @@
             tda.setDate(t.getDate() - 30);
             $('dateTo').valueAsDate   = t;
             $('dateFrom').valueAsDate = tda;
-            window.location.href = '{{ url_for("sales") }}';
+            window.location.href = '{{ url_for("sales.sales") }}';
         };
 
         window.viewSaleDetail = async function (saleId) {

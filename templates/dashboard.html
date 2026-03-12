@@ -28,7 +28,7 @@
 
     {% if role == 'admin' %}
     <!-- Nuevo Producto -->
-    <a href="{{ url_for('product_new') }}" class="quick-access-item" style="text-decoration: none;">
+    <a href="{{ url_for('products.product_new') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--brand), var(--brand-2));">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
@@ -103,7 +103,7 @@
 
     <!-- Ver métricas-->
     {% if role == 'admin' %}
-    <a href="/metrics" class="quick-access-item" style="text-decoration: none;">
+    <a href="{{ url_for('metrics.metrics') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18"></path>
@@ -210,7 +210,7 @@
 
     <div style="display: flex; gap: 0.5rem; margin-left: auto;">
       {% if role == 'admin' %}
-      <a href="{{ url_for('product_new') }}" class="btn" style="white-space: nowrap;">
+      <a href="{{ url_for('products.product_new') }}" class="btn" style="white-space: nowrap;">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>

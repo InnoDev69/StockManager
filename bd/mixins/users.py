@@ -1,0 +1,60 @@
+from bd.bdErrors import DatabaseError
+
+
+class UsersMixin:
+    """Métodos de gestión de usuarios. Requiere que la clase base tenga execute_query()."""
+
+    def user_exists(self, username, email):
+        """
+        Verifica si un usuario ya existe por nombre o email.
+
+        Args:
+            username (str): Nombre de usuario a verificar
+            email (str): Email a verificar
+
+        Returns:
+            bool: True si existe un usuario con ese username o email
+        """
+        rows = self.execute_query(
+            "SELECT id FROM users WHERE username = ? OR email = ?",
+            (username, email),
+        )
+        return len(rows) > 0
+
+    def add_user(self, username, password, email, role="user"):
+        """
+        Registra un nuevo usuario en el sistema.
+
+        Args:
+            username (str): Nombre de usuario único
+            password (str): Contraseña hasheada (NO texto plano)
+            email (str): Correo electrónico
+            role (str): Rol del usuario ('admin' o 'user', default: 'user')
+
+        Raises:
+            DatabaseError: Si el usuario ya existe o hay un error SQL
+
+        Warning:
+            NUNCA pasar contraseñas en texto plano. Hashear antes de llamar.
+        """
+        self.execute_query(
+            "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
+            (username, password, email, role),
+            fetch=False,
+        )
+
+    def get_user_by_email(self, email):
+        """
+        Busca un usuario por su email.
+
+        Args:
+            email (str): Email del usuario
+
+        Returns:
+            tuple|None: (id, username, password_hash, role) o None si no existe
+        """
+        rows = self.execute_query(
+            "SELECT id, username, password, role FROM users WHERE email = ?",
+            (email,),
+        )
+        return rows[0] if rows else None

@@ -10,7 +10,7 @@
 <body>
   <header class="app-header">
     <div class="header-inner container">
-      <h1 class="brand"><a href="{{ url_for('index') }}" style="text-decoration:none; color:inherit;">Stockly</a></h1>
+      <h1 class="brand"><a href="{{ url_for('dashboard.index') }}" style="text-decoration:none; color:inherit;">Stockly</a></h1>
       <div class="nav-actions" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
         {% if session.get('user_id') %}
         <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -19,9 +19,9 @@
             {{ session.get('role') }}
           </span>
         </div>
-        <a href="{{ url_for('logout') }}" class="btn btn-ghost" title="Cerrar sesión">Cerrar sesión</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost" title="Cerrar sesión">Cerrar sesión</a>
         {% else %}
-        <a href="{{ url_for('login') }}" class="btn btn-ghost">Iniciar sesión</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Iniciar sesión</a>
         {% endif %}
       </div>
     </div>
