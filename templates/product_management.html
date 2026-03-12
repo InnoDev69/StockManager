@@ -49,7 +49,7 @@
     </div>
 
     <div style="display: flex; gap: 0.5rem;">
-      <a href="{{ url_for('product_new') }}" class="btn">
+      <a href="{{ url_for('products.product_new') }}" class="btn">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
@@ -119,7 +119,7 @@
     </svg>
     <h3 style="margin: 0 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
     <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros o agrega un nuevo producto.</p>
-    <a href="{{ url_for('product_new') }}" class="btn">Agregar producto</a>
+    <a href="{{ url_for('products.product_new') }}" class="btn">Agregar producto</a>
   </div>
 
   <!-- Estado de carga -->

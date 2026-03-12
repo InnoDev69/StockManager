@@ -93,7 +93,7 @@
         Herramientas
       </h2>
       <div style="display: grid; gap: 10px;">
-        <a class="btn-ghost" href="{{ url_for('import_preview') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
+        <a class="btn-ghost" href="{{ url_for('products.import_preview') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -101,7 +101,7 @@
           </svg>
           Importar CSV
         </a>
-        <a class="btn-ghost" href="{{ url_for('product_new') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
+        <a class="btn-ghost" href="{{ url_for('products.product_new') }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0.7rem;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
             <path d="M12 5v14m-7-7h14"/>
           </svg>
@@ -116,13 +116,13 @@
   <!-- Acciones principales -->
   <div class="back-footer">
     <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-      <a href="{{ url_for('index') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+      <a href="{{ url_for('dashboard.index') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
           <path d="m15 18-6-6 6-6"/>
         </svg>
         Volver atrás
       </a>
-      <a href="{{ url_for('logout') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; --btn-bg: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); color: color-mix(in srgb, var(--danger) 90%, white 10%);">
+      <a href="{{ url_for('auth.logout') }}" class="btn-ghost" style="min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; --btn-bg: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); color: color-mix(in srgb, var(--danger) 90%, white 10%);">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
           <polyline points="16 17 21 12 16 7"/>

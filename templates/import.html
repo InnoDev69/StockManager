@@ -10,7 +10,7 @@
 
 <div id="importAlerts"></div>
 
-<form id="importForm" action="{{ url_for('import_preview') }}" method="POST" enctype="multipart/form-data" class="card" autocomplete="off" novalidate>
+<form id="importForm" action="{{ url_for('products.import_preview') }}" method="POST" enctype="multipart/form-data" class="card" autocomplete="off" novalidate>
   <h2 style="margin: 0 0 6px 0; font-size: 1rem; font-weight: 600;">Archivo</h2>
   <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.92rem;">Selecciona el CSV y configura cómo debe interpretarse.</p>
 
