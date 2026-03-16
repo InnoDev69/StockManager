@@ -4,6 +4,8 @@ from api.auth_utils import require_auth, require_admin
 from data.validators import ItemValidator, ValidationError
 from tools.logger import logger
 
+ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
+
 products_api = Blueprint("products_api", __name__)
 
 @products_api.route("/products_all", methods=["GET"])
@@ -472,3 +474,347 @@ def search_items():
     ]
     
     return jsonify(items), 200
+
+@products_api.route("/products/<int:item_id>/attributes", methods=["POST"])
+def create_product_attribute_for_item(item_id):
+    """
+    POST /api/products/{item_id}/attributes
+    
+    Crea un NUEVO TIPO de atributo y lo asigna a este producto.
+    
+    Args:
+        item_id (int): ID del producto
+    
+    Body:
+        {
+            "name": "Color",
+            "data_type": "text",
+            "required": false
+        }
+    
+    Returns:
+        JSON: {"ok": True, "data": {...}}
+    
+    Status Codes:
+        201: Atributo creado exitosamente
+        400: Datos inválidos
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+        404: Producto no encontrado
+    """
+    
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
+    
+    if db.get_item_details(item_id) is None:
+        return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
+    
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    data_type = (data.get("data_type") or "text").strip().lower()
+    required = 1 if data.get("required") else 0
+    
+    if not name:
+        return jsonify({"ok": False, "error": "name es obligatorio"}), 400
+    
+    if data_type not in ALLOWED_ATTRIBUTE_TYPES:
+        return jsonify({"ok": False, "error": f"data_type inválido. Usa: {ALLOWED_ATTRIBUTE_TYPES}"}), 400
+    
+    try:
+        code = name.lower().replace(" ", "_")
+        
+        db.create_item_attribute(name, code, data_type, required)
+        
+        logger.info(f"Atributo '{name}' creado para producto {item_id} por usuario {session.get('user_id')}")
+        
+        return jsonify({
+            "ok": True,
+            "message": "Atributo creado",
+            "data": {
+                "name": name,
+                "code": code,
+                "data_type": data_type,
+                "required": bool(required)
+            }
+        }), 201
+    
+    except Exception as e:
+        logger.error(f"Error creando atributo para producto {item_id}: {str(e)}")
+        return jsonify({"ok": False, "error": str(e)}), 400
+    
+@products_api.route("/product-attributes", methods=["POST"])
+def create_product_attribute():
+    """
+    POST /api/product-attributes
+    
+    Crea un TIPO de atributo reutilizable (ej: "Fecha de vencimiento").
+    
+    Body:
+        {
+            "name": "Fecha de vencimiento",
+            "code": "expiration_date",
+            "data_type": "date",
+            "required": false
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    code = (data.get("code") or "").strip()
+    data_type = (data.get("data_type") or "text").strip().lower()
+    required = 1 if data.get("required") else 0
+
+    if not name or not code:
+        return jsonify({"ok": False, "error": "name y code obligatorios"}), 400
+    if data_type not in ALLOWED_ATTRIBUTE_TYPES:
+        return jsonify({"ok": False, "error": f"data_type invalido. Usa: {ALLOWED_ATTRIBUTE_TYPES}"}), 400
+
+    try:
+        db.create_item_attribute(name, code, data_type, required)
+        return jsonify({"ok": True, "message": "Atributo creado"}), 201
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+@products_api.route("/product-attributes", methods=["GET"])
+def list_product_attributes():
+    """GET /api/product-attributes"""
+    rows = db.list_item_attributes()
+    data = [
+        {
+            "id": r[0],
+            "name": r[1],
+            "code": r[2],
+            "data_type": r[3],
+            "required": bool(r[4]),
+        }
+        for r in rows
+    ]
+    return jsonify({"ok": True, "data": data}), 200
+
+@products_api.route("/products/<int:item_id>/attributes", methods=["GET"])
+def get_product_attributes(item_id):
+    """GET /api/products/1/attributes"""
+    
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    if db.get_item_details(item_id) is None:
+        return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
+    
+    try:
+        attr_rows = db.list_item_attributes()
+        
+        attributes = []
+        for attr_row in attr_rows:
+            attr_id = attr_row[0]
+            attr_name = attr_row[1]
+            attr_code = attr_row[2]
+            attr_type = attr_row[3]
+            attr_required = attr_row[4]
+            
+            value_rows = db.execute_query(
+                """
+                SELECT value FROM item_attribute_values 
+                WHERE item_id = ? AND attribute_id = ?
+                """,
+                (item_id, attr_id)
+            )
+            
+            value = value_rows[0][0] if value_rows and value_rows[0][0] else None
+            
+            attributes.append({
+                "attribute_id": attr_id,
+                "name": attr_name,
+                "code": attr_code,
+                "data_type": attr_type,
+                "required": bool(attr_required),
+                "value": value
+            })
+        
+        return jsonify({
+            "ok": True,
+            "data": attributes
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error obteniendo atributos: {str(e)}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
+def upsert_product_attributes(item_id):
+    """
+    PUT /api/products/1/attributes
+    
+    Guarda los valores de atributos para este producto.
+    
+    Body:
+        {
+            "attributes": [
+                { "attribute_id": 1, "value": "2026-12-31" },
+                { "attribute_id": 2, "value": "Lote A-19" }
+            ]
+        }
+    """
+    payload = request.get_json(silent=True) or {}
+    attrs = payload.get("attributes", [])
+
+    if not isinstance(attrs, list):
+        return jsonify({"ok": False, "error": "attributes debe ser lista"}), 400
+
+    if db.get_item_details(item_id) is None:
+        return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
+
+    try:
+        for row in attrs:
+            attribute_id = row.get("attribute_id")
+            value = row.get("value")
+
+            if not attribute_id:
+                return jsonify({"ok": False, "error": "attribute_id obligatorio"}), 400
+
+            attr = db.get_item_attribute_by_id(int(attribute_id))
+            if not attr:
+                return jsonify({"ok": False, "error": f"Atributo {attribute_id} inexistente"}), 400
+
+            _, name, _, data_type, required, status = attr
+            
+            # Validaciones q rompe bola
+            if int(required) == 1 and (value is None or str(value).strip() == ""):
+                return jsonify({"ok": False, "error": f"Atributo requerido: {name}"}), 400
+
+            if not db._validate_attribute_value(data_type, value):
+                return jsonify({"ok": False, "error": f"Valor invalido: {name} debe ser {data_type}"}), 400
+
+            db.set_item_attribute_value(item_id, int(attribute_id), value)
+
+        return jsonify({"ok": True, "message": "Atributos guardados"}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    
+@products_api.route("/attributes/<int:attribute_id>", methods=["DELETE"])
+def delete_product_attribute(attribute_id):
+    """
+    DELETE /api/attributes/{attribute_id}
+    
+    Elimina un tipo de atributo y todos sus valores asociados.
+    
+    Args:
+        attribute_id (int): ID del atributo a eliminar
+    
+    Returns:
+        JSON: {"ok": True, "message": "Atributo eliminado"}
+    
+    Status Codes:
+        200: Atributo eliminado exitosamente
+        400: Atributo no encontrado o error en BD
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+    """
+    
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
+    
+    #Verifica si exite
+    attr = db.get_item_attribute_by_id(attribute_id)
+    if not attr:
+        return jsonify({"ok": False, "error": "Atributo no encontrado"}), 404
+    
+    try:
+        db.execute_query(
+            "DELETE FROM item_attribute_values WHERE attribute_id = ?",
+            (attribute_id,),
+            fetch=False
+        )
+        
+        db.execute_query(
+            "DELETE FROM item_attributes WHERE id = ?",
+            (attribute_id,),
+            fetch=False
+        )
+        
+        logger.info(f"Atributo {attribute_id} eliminado por usuario {session.get('user_id')}")
+        return jsonify({"ok": True, "message": "Atributo eliminado"}), 200
+    
+    except Exception as e:
+        logger.error(f"Error eliminando atributo {attribute_id}: {str(e)}")
+        return jsonify({"ok": False, "error": str(e)}), 400
+    
+@products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
+def update_product_attributes(item_id):
+    """
+    PUT /api/products/{item_id}/attributes
+    """
+    
+    auth_error = require_auth()
+    if auth_error:
+        return auth_error
+    
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
+    
+    if db.get_item_details(item_id) is None:
+        return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
+    
+    data = request.get_json(silent=True) or {}
+    attributes = data.get("attributes", [])
+    
+    if not isinstance(attributes, list):
+        return jsonify({"ok": False, "error": "attributes debe ser un array"}), 400
+    
+    try:
+        db.execute_query(
+            "DELETE FROM item_attribute_values WHERE item_id = ?",
+            (item_id,),
+            fetch=False
+        )
+        
+        for attr in attributes:
+            attr_id = attr.get("attribute_id")
+            value = attr.get("value")
+            
+            if attr_id is None:
+                continue
+            
+            attr_def = db.get_item_attribute_by_id(attr_id)
+            if not attr_def:
+                logger.warning(f"Atributo {attr_id} no existe para producto {item_id}")
+                continue
+            
+            if int(attr_def[4]) == 1 and (value is None or str(value).strip() == ""):
+                return jsonify({
+                    "ok": False, 
+                    "error": f"Atributo obligatorio: {attr_def[1]}"
+                }), 400
+            
+            if value is not None and str(value).strip():
+                db.execute_query(
+                    """
+                    INSERT INTO item_attribute_values (item_id, attribute_id, value)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(item_id, attribute_id)
+                    DO UPDATE SET value = excluded.value
+                    """,
+                    (item_id, attr_id, str(value).strip()),
+                    fetch=False
+                )
+        
+        logger.info(f"Atributos actualizados para producto {item_id}")
+        return jsonify({
+            "ok": True, 
+            "message": "Atributos actualizados"
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error actualizando atributos: {str(e)}")
+        return jsonify({
+            "ok": False, 
+            "error": str(e)
+        }), 400

@@ -1,6 +1,7 @@
 import os
 import sys
 import signal
+import uuid
 import webview
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
@@ -34,13 +35,15 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_error(e):
-    logger.exception(f"500 - Error interno: {request.path}")
-    return render_template("404.html"), 500
+    error_id = str(uuid.uuid4())[:8].upper()
+    logger.error(f"Internal server error {error_id}: {e}", exc_info=True)
+    return render_template("500.html", error_id=error_id, error=e), 500
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    error_id = str(uuid.uuid4())[:8].upper()
     logger.exception(f"Excepción no capturada en {request.path}: {str(e)}")
-    return render_template("404.html"), 500
+    return render_template("500.html", error_id=error_id, error=e), 500
 
 # --- Señales ---
 def signal_handler(sig, frame):

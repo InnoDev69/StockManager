@@ -42,7 +42,7 @@
   </div>
 </form>
 
-<form id="confirmForm" class="card hidden" action="{{ url_for('confirm_import') }}" method="POST" style="margin-top: 1.5rem;">
+<form id="confirmForm" class="card hidden" action="{{ url_for('products.confirm_import') }}" method="POST" style="margin-top: 1.5rem;">
   <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
     <div>
       <h2 style="margin: 0; font-size: 1rem; font-weight: 600;">Previsualización</h2>
@@ -385,7 +385,7 @@
 
     try {
       const formData = new FormData(importForm);
-      const res = await fetch('{{ url_for("import_preview") }}', { method: 'POST', body: formData });
+      const res = await fetch('{{ url_for("products.import_preview") }}', { method: 'POST', body: formData });
 
       if (!res.ok) {
         addInlineAlert(importAlerts, 'No se pudo procesar el archivo. Verifica el delimitador y el formato del CSV.', 'error');

@@ -141,12 +141,39 @@ class BDConector(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
+        
+        item_attributes_table_query = """
+        CREATE TABLE IF NOT EXISTS item_attributes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            code TEXT NOT NULL UNIQUE,
+            data_type TEXT NOT NULL,
+            required INTEGER NOT NULL DEFAULT 0,
+            status INTEGER NOT NULL DEFAULT 1
+        )
+        """
+        item_attribute_values_table_query = """
+        CREATE TABLE IF NOT EXISTS item_attribute_values (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            attribute_id INTEGER NOT NULL,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(item_id, attribute_id),
+            FOREIGN KEY (item_id) REFERENCES items(id),
+            FOREIGN KEY (attribute_id) REFERENCES item_attributes(id)
+        )
+        """
+        
         with self._cursor() as cur:
             cur.execute(users_table_query)
             cur.execute(items_table_query)
             cur.execute(sells_table_query)
             cur.execute(sells_details_table_query)
             cur.execute(reset_codes_table_query)
+            
+            cur.execute(item_attributes_table_query)
+            cur.execute(item_attribute_values_table_query)
 
         self._run_migrations()
 

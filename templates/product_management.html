@@ -158,8 +158,8 @@
 <!-- Modal de edición -->
 <div id="edit-modal" class="modal" style="display: none;" aria-hidden="true">
   <div class="overlay" onclick="closeEditModal()"></div>
-  <div class="dialog card" style="width: min(560px, 90vw); max-height: 90vh; overflow-y: auto;">
-    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border);">
+  <div class="dialog card" style="width: min(650px, 90vw); max-height: 90vh; overflow-y: auto;">
+    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); z-index: 10;">
       <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Editar Producto</h3>
       <button class="btn-ghost close-btn" onclick="closeEditModal()" style="padding: 0.5rem;">✕</button>
     </header>
@@ -203,12 +203,77 @@
         </label>
         <label for="edit-status" style="cursor: pointer; font-weight: 500;">Producto habilitado</label>
       </div>
-      
+
+      <!-- SECCIÓN DE ATRIBUTOS DINÁMICOS -->
+      <div id="attributes-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h4 style="margin: 0; color: var(--text); font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+            </svg>
+            Atributos adicionales
+          </h4>
+          <button type="button" id="add-attribute-btn" class="btn" style="padding: 0.5rem 1rem; font-size: 0.8rem; display: none;">
+            <svg style="width: 14px; height: 14px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Agregar atributo
+          </button>
+        </div>
+        <div id="attributes-loading" style="text-align: center; padding: 1rem; color: var(--text-muted);">
+          <div style="display: inline-block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        </div>
+        <div id="attributes-container" style="display: grid; gap: 1.25rem;"></div>
+      </div>
+
       <div id="edit-error" class="alert-error" style="display: none; margin-top: 0.5rem;"></div>
       
-      <div class="form-actions" style="margin-top: 0.5rem;">
+      <div class="form-actions" style="margin-top: 1rem; display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--panel); z-index: 10;">
         <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancelar</button>
         <button type="submit" class="btn">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para agregar nuevo atributo -->
+<div id="new-attribute-modal" class="modal" style="display: none;" aria-hidden="true">
+  <div class="overlay" onclick="closeNewAttributeModal()"></div>
+  <div class="dialog card" style="width: min(450px, 90vw);">
+    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border);">
+      <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Nuevo Atributo</h3>
+      <button class="btn-ghost close-btn" onclick="closeNewAttributeModal()" style="padding: 0.5rem;">✕</button>
+    </header>
+    <form id="new-attribute-form" style="padding: 1.25rem; display: grid; gap: 1rem;">
+      <input type="hidden" id="new-attr-product-id">
+      
+      <div class="field">
+        <label class="label" for="new-attr-name">Nombre del atributo *</label>
+        <input type="text" id="new-attr-name" required maxlength="100" placeholder="Ej: Color, Talla, Material">
+      </div>
+
+      <div class="field">
+        <label class="label" for="new-attr-type">Tipo de dato *</label>
+        <select id="new-attr-type" required>
+          <option value="">Seleccionar tipo...</option>
+          <option value="text">Texto</option>
+          <option value="date">Fecha</option>
+        </select>
+      </div>
+
+      <div class="field" style="display: flex; align-items: center; gap: 0.75rem;">
+        <label class="switch">
+          <input type="checkbox" id="new-attr-required">
+          <span class="slider"></span>
+        </label>
+        <label for="new-attr-required" style="cursor: pointer; font-weight: 500;">Requerido</label>
+      </div>
+
+      <div id="new-attr-error" class="alert-error" style="display: none;"></div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-ghost" onclick="closeNewAttributeModal()">Cancelar</button>
+        <button type="submit" class="btn">Crear atributo</button>
       </div>
     </form>
   </div>
@@ -230,6 +295,27 @@
       <div style="display: flex; gap: 0.75rem; justify-content: center;">
         <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancelar</button>
         <button class="btn" onclick="confirmDelete()" style="--btn-bg: var(--danger); --btn-bg-2: #dc2626;">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para confirmar eliminación de atributo -->
+<div id="delete-attribute-modal" class="modal" style="display: none;" aria-hidden="true">
+  <div class="overlay" onclick="closeDeleteAttributeModal()"></div>
+  <div class="dialog card" style="width: min(380px, 90vw); text-align: center;">
+    <div style="padding: 2rem;">
+      <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+        <svg style="width: 32px; height: 32px; color: var(--warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem; font-weight: 600;">Eliminar atributo</h3>
+      <p class="text-muted" style="margin: 0 0 1.5rem 0;">¿Eliminar <strong id="delete-attr-name"></strong>? Sus valores se eliminarán también.</p>
+      <input type="hidden" id="delete-attr-id">
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button class="btn btn-ghost" onclick="closeDeleteAttributeModal()">Cancelar</button>
+        <button class="btn" onclick="confirmDeleteAttribute()" style="--btn-bg: var(--warning); --btn-bg-2: #f59e0b;">Eliminar</button>
       </div>
     </div>
   </div>
@@ -337,6 +423,80 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* Atributos contenedor */
+  #attributes-container .attribute-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  #attributes-container .attribute-field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+  }
+
+  #attributes-container .attribute-delete-btn {
+    padding: 0.375rem 0.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s ease;
+  }
+
+  #attributes-container .attribute-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  #attributes-container .attribute-field label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #attributes-container .attribute-field label .required {
+    color: var(--danger);
+    font-weight: bold;
+  }
+
+  #attributes-container .attribute-field input,
+  #attributes-container .attribute-field textarea {
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: var(--panel);
+    color: var(--text);
+    transition: border-color 0.15s ease;
+  }
+
+  #attributes-container .attribute-field input:focus,
+  #attributes-container .attribute-field textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  #attributes-container .attribute-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
   @media (max-width: 768px) {
     .table th:nth-child(4), .table td:nth-child(4) { display: none; }
   }
@@ -421,6 +581,15 @@
     color: var(--text-muted);
     user-select: none;
   }
+
+  .alert-error {
+    padding: 0.75rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: var(--danger);
+    font-size: 0.875rem;
+  }
 </style>
 
 <script>
@@ -428,12 +597,11 @@
   'use strict';
 
   // ── Estado ────────────────────────────────────────────────────────────
-  // pageProducts guarda solo los productos de la página actual
-  // (usados para abrir modales sin re-fetch)
   let pageProducts = [];
   let currentPage  = 1;
   let totalPages   = 1;
   let pageSize     = 50;
+  let currentProductId = null;
 
   // ===== Utilidades =====
   function $(id) { return document.getElementById(id); }
@@ -455,10 +623,321 @@
     return div.innerHTML;
   }
 
+  // ===== ATRIBUTOS DINÁMICOS =====
+  async function loadProductAttributes(productId) {
+    currentProductId = productId;
+    const container = $('attributes-container');
+    const loading = $('attributes-loading');
+    const addBtn = $('add-attribute-btn');
+
+    show(loading);
+    container.innerHTML = '';
+    hide(addBtn);
+
+    try {
+      const res = await fetch(`/api/products/${productId}/attributes`, {
+        credentials: 'same-origin'
+      });
+
+      if (!res.ok) {
+        container.innerHTML = '<div class="attribute-empty">No hay atributos configurados</div>';
+        show(addBtn);
+        hide(loading);
+        return;
+      }
+
+      const json = await res.json();
+      const data = json.data || [];
+
+      hide(loading);
+
+      if (data.length === 0) {
+        container.innerHTML = '<div class="attribute-empty">No hay atributos disponibles para este producto</div>';
+        show(addBtn);
+        return;
+      }
+
+      data.forEach(attr => {
+        renderAttributeField(attr);
+      });
+      show(addBtn);
+
+    } catch (error) {
+      console.error('Error cargando atributos:', error);
+      hide(loading);
+      container.innerHTML = '<div class="attribute-empty">Error cargando atributos</div>';
+      show(addBtn);
+    }
+  }
+
+  function renderAttributeField(attr) {
+    const container = $('attributes-container');
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'attribute-field';
+    fieldDiv.dataset.attributeId = attr.attribute_id;
+
+    const header = document.createElement('div');
+    header.className = 'attribute-field-header';
+
+    const label = document.createElement('label');
+    label.innerHTML = `
+      ${escapeHtml(attr.name)}
+      ${attr.required ? '<span class="required">*</span>' : ''}
+    `;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'attribute-delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Eliminar';
+    deleteBtn.onclick = (e) => {
+      e.preventDefault();
+      openDeleteAttributeModal(attr.attribute_id, attr.name);
+    };
+
+    header.appendChild(label);
+    header.appendChild(deleteBtn);
+
+    const input = document.createElement('input');
+    input.type = attr.data_type === 'date' ? 'date' : 'text';
+    // ✅ Asegurar que el valor sea siempre una cadena válida
+    input.value = (attr.value && attr.value.trim()) ? attr.value.trim() : '';
+    input.dataset.attributeId = attr.attribute_id;
+    input.dataset.dataType = attr.data_type;
+    input.required = attr.required;
+    input.placeholder = escapeHtml(attr.name);
+
+    fieldDiv.appendChild(header);
+    fieldDiv.appendChild(input);
+    container.appendChild(fieldDiv);
+  }
+
+  async function saveProductAttributes(productId) {
+    const inputs = document.querySelectorAll('[data-attribute-id]');
+    if (inputs.length === 0) return true;
+
+    const attributes = [];
+    let isValid = true;
+
+    inputs.forEach(input => {
+      // ✅ Validar que input.value existe antes de usar .trim()
+      const value = input.value ? input.value.trim() : '';
+      
+      if (input.required && (!value || value === '')) {
+        input.style.borderColor = 'var(--danger)';
+        isValid = false;
+      } else {
+        input.style.borderColor = '';
+      }
+
+      attributes.push({
+        attribute_id: parseInt(input.dataset.attributeId),
+        value: value || null
+      });
+    });
+
+    if (!isValid) {
+      $('edit-error').textContent = 'Completa todos los atributos requeridos';
+      show($('edit-error'));
+      return false;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${productId}/attributes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ attributes })
+      });
+
+      // ✅ Verificar si hay contenido antes de parsear JSON
+      const text = await res.text();
+      let json = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error('JSON inválido:', text);
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      if (!res.ok) {
+        $('edit-error').textContent = 'Error: ' + (json.error || json.message || res.statusText);
+        show($('edit-error'));
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error guardando atributos:', error);
+      $('edit-error').textContent = error.message || 'Error guardando atributos';
+      show($('edit-error'));
+      return false;
+    }
+  }
+
+  async function saveProductAttributes(productId) {
+    const inputs = document.querySelectorAll('[data-attribute-id]');
+    if (inputs.length === 0) return true;
+
+    const attributes = [];
+    let isValid = true;
+
+    inputs.forEach(input => {
+      // ✅ Manejo seguro de valores
+      const rawValue = input.value;
+      const value = (rawValue && typeof rawValue === 'string') 
+        ? rawValue.trim() 
+        : '';
+      
+      if (input.required && !value) {
+        input.style.borderColor = 'var(--danger)';
+        isValid = false;
+      } else {
+        input.style.borderColor = '';
+      }
+
+      attributes.push({
+        attribute_id: parseInt(input.dataset.attributeId),
+        value: value || null  // null si está vacío
+      });
+    });
+
+    if (!isValid) {
+      $('edit-error').textContent = 'Completa todos los atributos requeridos';
+      show($('edit-error'));
+      return false;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${productId}/attributes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ attributes })
+      });
+
+      const text = await res.text();
+      let json = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error('JSON inválido:', text);
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      if (!res.ok) {
+        $('edit-error').textContent = 'Error: ' + (json.error || json.message || res.statusText);
+        show($('edit-error'));
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error:', error);
+      $('edit-error').textContent = error.message || 'Error guardando atributos';
+      show($('edit-error'));
+      return false;
+    }
+  }
+
+  // ===== CREAR NUEVO ATRIBUTO =====
+  function openNewAttributeModal() {
+    $('new-attr-product-id').value = currentProductId;
+    $('new-attr-name').value = '';
+    $('new-attr-type').value = '';
+    $('new-attr-required').checked = false;
+    hide($('new-attr-error'));
+    show($('new-attribute-modal'));
+    $('new-attribute-modal').setAttribute('aria-hidden', 'false');
+    $('new-attr-name').focus();
+  }
+
+  function closeNewAttributeModal() {
+    hide($('new-attribute-modal'));
+    $('new-attribute-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function handleNewAttributeSubmit(e) {
+    e.preventDefault();
+    const productId = $('new-attr-product-id').value;
+    const name = $('new-attr-name').value.trim();
+    const dataType = $('new-attr-type').value;
+    const required = $('new-attr-required').checked ? 1 : 0;
+
+    if (!name || !dataType) {
+      $('new-attr-error').textContent = 'Completa todos los campos';
+      show($('new-attr-error'));
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${productId}/attributes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          name,
+          data_type: dataType,
+          required
+        })
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        $('new-attr-error').textContent = 'Error: ' + json.error;
+        show($('new-attr-error'));
+        return;
+      }
+
+      closeNewAttributeModal();
+      if (typeof Notify !== 'undefined') Notify.success('Atributo creado correctamente');
+      loadProductAttributes(productId);
+    } catch (error) {
+      console.error('Error:', error);
+      $('new-attr-error').textContent = error.message;
+      show($('new-attr-error'));
+    }
+  }
+
+  // ===== ELIMINAR ATRIBUTO =====
+  function openDeleteAttributeModal(attrId, attrName) {
+    $('delete-attr-id').value = attrId;
+    $('delete-attr-name').textContent = attrName;
+    show($('delete-attribute-modal'));
+    $('delete-attribute-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeDeleteAttributeModal() {
+    hide($('delete-attribute-modal'));
+    $('delete-attribute-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function confirmDeleteAttribute() {
+    const attrId = $('delete-attr-id').value;
+    const productId = currentProductId;
+
+    try {
+      const res = await fetch(`/api/attributes/${attrId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Error al eliminar');
+      }
+
+      closeDeleteAttributeModal();
+      if (typeof Notify !== 'undefined') Notify.success('Atributo eliminado correctamente');
+      loadProductAttributes(productId);
+    } catch (error) {
+      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al eliminar atributo');
+    }
+  }
+
   // ── Construir parámetros desde los controles ──────────────────────────
   function buildParams(page) {
     const search  = ($('search').value || '').trim();
-    const sortRaw = $('sort-by').value;             // "name_asc", "stock_desc", etc.
+    const sortRaw = $('sort-by').value;
     const [sort, order] = sortRaw.split('_');
     const p = new URLSearchParams({
       page:      page,
@@ -494,7 +973,6 @@
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error('Error ' + res.status + ': ' + res.statusText);
 
-      // Nuevo contrato: { data, total, page, pages, limit }
       const json   = await res.json();
       pageProducts = json.data  || [];
       currentPage  = json.page  || 1;
@@ -506,17 +984,14 @@
 
     } catch (err) {
       console.error('Error cargando productos:', err);
-      Notify.error('Error al cargar los productos.');
+      if (typeof Notify !== 'undefined') Notify.error('Error al cargar los productos.');
       hide(loadingState);
       $('error-message').textContent = err.message || 'No se pudieron cargar los productos.';
       show(errorState);
     }
   }
 
-  // Alias público (botón Reintentar y llamadas tras edición/borrado)
   function loadProducts() { fetchPage(currentPage); }
-
-  // Cambio de filtros → siempre volver a página 1
   function applyFilters() { fetchPage(1); }
 
   // ── Renderizar la página recibida del servidor ────────────────────────
@@ -538,14 +1013,12 @@
 
     hide(emptyState);
 
-    // Info superior: "Mostrando X–Y de Z"
     const startIndex = (currentPage - 1) * pageSize;
     $('page-from').textContent  = startIndex + 1;
     $('page-to').textContent    = Math.min(startIndex + products.length, total);
     $('page-total').textContent = total;
     show(paginationInfoTop);
 
-    // Filas
     let html = '';
     for (let i = 0; i < products.length; i++) {
       const p      = products[i];
@@ -581,12 +1054,11 @@
     tableBody.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ===== Botones de paginación (ventana deslizante) =====
+  // ===== Botones de paginación =====
   function renderPaginationButtons(totalPages) {
     const container = $('page-buttons');
     if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-    // Calcular páginas visibles
     let pages = [];
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -601,13 +1073,10 @@
     }
 
     let html = '';
-
-    // Botón anterior
     html += '<button ' + (currentPage === 1 ? 'disabled' : 'onclick="goToPage(' + (currentPage - 1) + ')"') + ' title="Anterior">' +
       '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>' +
     '</button>';
 
-    // Páginas numeradas
     for (let i = 0; i < pages.length; i++) {
       const p = pages[i];
       if (p === '...') {
@@ -617,7 +1086,6 @@
       }
     }
 
-    // Botón siguiente
     html += '<button ' + (currentPage === totalPages ? 'disabled' : 'onclick="goToPage(' + (currentPage + 1) + ')"') + ' title="Siguiente">' +
       '<svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
     '</button>';
@@ -625,13 +1093,12 @@
     container.innerHTML = html;
   }
 
-  // goToPage ahora dispara un nuevo fetch al servidor
   function goToPage(page) {
     if (page < 1 || page > totalPages) return;
     fetchPage(page);
   }
 
-  // ── Stats: usa /api/stats (totales reales del inventario completo) ─────
+  // ── Stats ─────────────────────────────────────────────────────
   async function loadStats() {
     try {
       const res = await fetch('/api/stats', { credentials: 'same-origin' });
@@ -640,7 +1107,6 @@
       $('stat-total').textContent     = d.products  || 0;
       $('stat-low-stock').textContent = d.low_stock || 0;
 
-      // in_stock y out_stock: pedir solo el total con limit=1
       const [rIn, rOut] = await Promise.all([
         fetch('/api/products_all?view_mode=in_stock&limit=1',     { credentials: 'same-origin' }),
         fetch('/api/products_all?view_mode=out_of_stock&limit=1', { credentials: 'same-origin' }),
@@ -650,7 +1116,7 @@
     } catch (_) { /* stats no son críticos */ }
   }
 
-  // ── Estado de stock ───────────────────────────────────────────────────
+  // ── Estado de stock ───────────────────────────────────────────
   function getStockStatus(product) {
     const stock    = product.stock || 0;
     const minStock = product.min_stock || 0;
@@ -674,6 +1140,7 @@
     $('edit-status').checked     = product.status === 1;
     hide($('edit-error'));
     show($('edit-modal'));
+    loadProductAttributes(productId);
     $('edit-modal').setAttribute('aria-hidden', 'false');
   }
 
@@ -693,6 +1160,7 @@
       price:        parseFloat($('edit-price').value) || 0,
       status:       $('edit-status').checked ? 1 : 0
     };
+
     try {
       const response = await fetch('/api/products/' + productId, {
         method: 'PUT',
@@ -700,9 +1168,17 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al actualizar'); }
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Error al actualizar');
+      }
+
+      const attrsSaved = await saveProductAttributes(productId);
+      if (!attrsSaved) return;
+
       closeEditModal();
-      Notify.success('Producto actualizado correctamente');
+      if (typeof Notify !== 'undefined') Notify.success('Producto actualizado correctamente');
       loadProducts();
     } catch (error) {
       $('edit-error').textContent = error.message;
@@ -734,10 +1210,10 @@
       });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al eliminar'); }
       closeDeleteModal();
-      Notify.success('Producto eliminado correctamente');
+      if (typeof Notify !== 'undefined') Notify.success('Producto eliminado correctamente');
       loadProducts();
     } catch (error) {
-      Notify.error(error.message || 'Error al eliminar producto');
+      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al eliminar producto');
     }
   }
 
@@ -770,14 +1246,14 @@
       });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al actualizar stock'); }
       closeStockModal();
-      Notify.success('Stock actualizado correctamente');
+      if (typeof Notify !== 'undefined') Notify.success('Stock actualizado correctamente');
       loadProducts();
     } catch (error) {
-      Notify.error(error.message || 'Error al actualizar stock');
+      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al actualizar stock');
     }
   }
 
-  // ===== Event delegation para botones de la tabla =====
+  // ===== Event delegation ===== 
   function handleTableClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -795,24 +1271,38 @@
     $('sort-by').addEventListener('change', applyFilters);
     $('page-size').addEventListener('change', function() {
       pageSize = parseInt(this.value);
-      fetchPage(1);   // al cambiar el límite volvemos a la página 1
+      fetchPage(1);
     });
     $('edit-form').addEventListener('submit', handleEditSubmit);
+    $('new-attribute-form').addEventListener('submit', handleNewAttributeSubmit);
+    $('add-attribute-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      openNewAttributeModal();
+    });
     $('products-table-body').addEventListener('click', handleTableClick);
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { closeEditModal(); closeDeleteModal(); closeStockModal(); }
+      if (e.key === 'Escape') {
+        closeEditModal();
+        closeDeleteModal();
+        closeStockModal();
+        closeNewAttributeModal();
+        closeDeleteAttributeModal();
+      }
     });
-    fetchPage(1);   // carga inicial
+    fetchPage(1);
   }
 
-  // Exponer funciones globales necesarias para onclick en HTML
-  window.loadProducts       = loadProducts;
-  window.closeEditModal     = closeEditModal;
-  window.closeDeleteModal   = closeDeleteModal;
-  window.closeStockModal    = closeStockModal;
-  window.confirmDelete      = confirmDelete;
-  window.saveStockAdjustment = saveStockAdjustment;
-  window.goToPage           = goToPage;
+  // Exponer funciones globales
+  window.loadProducts            = loadProducts;
+  window.closeEditModal          = closeEditModal;
+  window.closeDeleteModal        = closeDeleteModal;
+  window.closeStockModal         = closeStockModal;
+  window.closeNewAttributeModal  = closeNewAttributeModal;
+  window.closeDeleteAttributeModal = closeDeleteAttributeModal;
+  window.confirmDelete           = confirmDelete;
+  window.confirmDeleteAttribute  = confirmDeleteAttribute;
+  window.saveStockAdjustment     = saveStockAdjustment;
+  window.goToPage                = goToPage;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
