@@ -40,7 +40,7 @@
                   color:var(--text-muted); pointer-events:none;">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
-      <input id="searchInput" type="text" placeholder="Buscar por nombre o correo..."
+      <input id="searchInput" type="text" placeholder="Buscar por nombre o correo..." max="{{Limits.USER_EMAIL_MAX}}"
              oninput="debounceSearch()"
              style="width:100%; padding:.6rem .75rem .6rem 2.25rem;">
     </div>
@@ -125,12 +125,12 @@
 
       <div class="field">
         <label class="label">Nombre de usuario <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="fieldUsername" placeholder="ej: juan_perez">
+        <input type="text" id="fieldUsername" placeholder="ej: juan_perez" max="{{Limits.USER_USERNAME_MAX}}">
       </div>
 
       <div class="field">
         <label class="label">Correo electrónico <span style="color:var(--danger)">*</span></label>
-        <input type="email" id="fieldEmail" placeholder="ej: juan@empresa.com">
+        <input type="email" id="fieldEmail" placeholder="ej: juan@empresa.com" max="{{Limits.USER_EMAIL_MAX}}">
       </div>
 
       <div class="field">
@@ -138,7 +138,7 @@
           Contraseña <span style="color:var(--danger)" id="passwordRequired">*</span>
         </label>
         <div style="display:grid; grid-template-columns:1fr auto; gap:.5rem;">
-          <input type="password" id="fieldPassword" placeholder="Mínimo 6 caracteres">
+          <input type="password" id="fieldPassword" placeholder="Mínimo 6 caracteres" max="{{Limits.USER_PASSWORD_MAX}}">
           <button class="btn-ghost" type="button" onclick="togglePassword()"
                   style="padding:.6rem .75rem; border:1px solid var(--border);
                          border-radius:10px;">

@@ -18,6 +18,7 @@
         <input 
           id="search" 
           type="search" 
+          max="{{Limits.ITEM_NAME_MAX}}"
           placeholder="Nombre, código de barras o descripción..." 
           style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem;">
         <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; opacity: 0.5; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,31 +169,31 @@
       
       <div class="field">
         <label class="label" for="edit-barcode">Código de barras</label>
-        <input type="text" id="edit-barcode" name="barcode" readonly style="opacity: 0.7; cursor: not-allowed;">
+        <input type="text" id="edit-barcode" name="barcode" max="{{Limits.ITEM_BARCODE_MAX}}" readonly style="opacity: 0.7; cursor: not-allowed;">
       </div>
       
       <div class="field">
         <label class="label" for="edit-name">Nombre *</label>
-        <input type="text" id="edit-name" name="name" required maxlength="100">
+        <input type="text" id="edit-name" name="name" required maxlength="{{Limits.ITEM_NAME_MAX}}">
       </div>
       
       <div class="field">
         <label class="label" for="edit-description">Descripción</label>
-        <textarea id="edit-description" name="description" rows="3" maxlength="255" style="resize: vertical;"></textarea>
+        <textarea id="edit-description" name="description" rows="3" maxlength="{{Limits.ITEM_DESCRIPTION_MAX}}" style="resize: vertical;"></textarea>
       </div>
       
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
         <div class="field">
           <label class="label" for="edit-quantity">Stock *</label>
-          <input type="number" id="edit-quantity" name="quantity" min="0" required>
+          <input type="number" id="edit-quantity" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}" required>
         </div>
         <div class="field">
           <label class="label" for="edit-min-quantity">Stock mínimo</label>
-          <input type="number" id="edit-min-quantity" name="min_quantity" min="0">
+          <input type="number" id="edit-min-quantity" name="min_quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}">
         </div>
         <div class="field">
           <label class="label" for="edit-price">Precio *</label>
-          <input type="number" id="edit-price" name="price" min="0" step="0.01" required>
+          <input type="number" id="edit-price" name="price" min="0" step="0.01" max="{{Limits.ITEM_PRICE_MAX}}" required>
         </div>
       </div>
       
@@ -249,7 +250,7 @@
       
       <div class="field">
         <label class="label" for="new-attr-name">Nombre del atributo *</label>
-        <input type="text" id="new-attr-name" required maxlength="100" placeholder="Ej: Color, Talla, Material">
+        <input type="text" id="new-attr-name" required maxlength="{{Limits.ITEM_ATRIBUTE_NAME_MAX}}" max="{{Limits.ITEM_ATRIBUTE_NAME_MAX}}" placeholder="Ej: Color, Talla, Material">
       </div>
 
       <div class="field">
@@ -336,7 +337,7 @@
       
       <div class="field" style="margin-bottom: 1rem;">
         <label class="label" for="stock-adjustment">Nuevo stock</label>
-        <input type="number" id="stock-adjustment" min="0" value="0">
+        <input type="number" id="stock-adjustment" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}" value="0">
       </div>
       
       <div class="form-actions">

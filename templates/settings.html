@@ -23,7 +23,7 @@
         </div>
         <div class="field" style="margin-top: 14px;">
           <label class="label">Email</label>
-          <input type="email" name="email" id="profileEmail" value="{{ user.email if user else '' }}" required placeholder="tu@email.com">
+          <input type="email" name="email" max="{{Limits.USER_EMAIL_MAX}}" id="profileEmail" value="{{ user.email if user else '' }}" required placeholder="tu@email.com">
           <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 4px;">Tu dirección de correo electrónico</small>
         </div>
         <button type="submit" class="btn" style="margin-top: 18px; width: 100%;">
@@ -48,12 +48,12 @@
         </div>
         <div class="field" style="margin-top: 14px;">
           <label class="label">Nueva contraseña</label>
-          <input type="password" name="new_password" id="newPass" required minlength="6" autocomplete="new-password">
+          <input type="password" name="new_password" id="newPass" maxlength="{{Limits.USER_PASSWORD_MAX}}" required minlength="6" autocomplete="new-password">
           <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 4px;">Mínimo 6 caracteres</small>
         </div>
         <div class="field" style="margin-top: 14px;">
           <label class="label">Repetir nueva contraseña</label>
-          <input type="password" name="confirm_password" id="confirmPass" required minlength="6" autocomplete="new-password">
+          <input type="password" name="confirm_password" id="confirmPass" maxlength="{{Limits.USER_PASSWORD_MAX}}" required minlength="6" autocomplete="new-password">
           <small id="passMatchMsg" style="font-size: 0.8rem; display: none; margin-top: 4px;"></small>
         </div>
         <button type="submit" class="btn" style="margin-top: 18px; width: 100%; --btn-bg: var(--warning); --btn-bg-2: #d97706;">

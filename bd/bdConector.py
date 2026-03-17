@@ -3,8 +3,8 @@ import sqlite3
 import contextlib
 from flask import jsonify
 from bd.bdErrors import *
-from tools.timmer import measure_time
 from tools.logger import logger
+from tools.timmer import measure_time
 from data.validators import ItemValidator, UserValidator, ValidationError
 
 from bd.mixins.users import UsersMixin

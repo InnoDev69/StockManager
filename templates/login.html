@@ -252,16 +252,17 @@
                 
                 {% if error %}
                 <div class="alert alert-error">{{ error }}</div>
-                
+                {% endif %}
+
                 <form method="POST" action="/login">
                     <div class="field">
                         <label class="label" for="login-email">Email</label>
-                        <input type="user" id="login-user" name="user" required placeholder="Usuario">
+                        <input type="user" id="login-user" name="user" required placeholder="Usuario", max="{{Limits.USER_EMAIL_MAX}}">
                     </div>
                     
                     <div class="field">
                         <label class="label" for="login-password">Contraseña</label>
-                        <input type="password" id="login-password" name="password" required placeholder="••••••••">
+                        <input type="password" id="login-password" name="password" required placeholder="••••••••", max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
 
                     <div class="change-password">
@@ -291,22 +292,22 @@
                 <form method="POST" action="/register">
                     <div class="field">
                         <label class="label" for="register-name">Nombre completo</label>
-                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez">
+                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez", max="{{Limits.USER_NAME_MAX}}">
                     </div>
                     
                     <div class="field">
                         <label class="label" for="register-email">Email</label>
-                        <input type="email" id="register-email" name="email" required placeholder="tu@email.com">
+                        <input type="email" id="register-email" name="email" required placeholder="tu@email.com" max="{{Limits.USER_EMAIL_MAX}}">
                     </div>
                     
                     <div class="field">
                         <label class="label" for="register-password">Contraseña</label>
-                        <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
                     
                     <div class="field">
                         <label class="label" for="register-confirm">Confirmar contraseña</label>
-                        <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
 
                     <div class="field">
