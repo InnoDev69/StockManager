@@ -16,7 +16,7 @@
         </svg>
         Perfil
       </h2>
-      <form method="POST" action="{{ url_for('update_profile') }}" id="profileForm">
+      <form method="POST" action="{{ url_for('settings.update_profile') }}" id="profileForm">
         <div class="field">
           <label class="label">Usuario</label>
           <input type="text" value="{{ session.get('username','') }}" disabled style="background: var(--panel); cursor: not-allowed; opacity: 0.7;">
@@ -41,7 +41,7 @@
         </svg>
         Cambiar contraseña
       </h2>
-      <form method="POST" action="{{ url_for('change_password') }}" id="passwordForm">
+      <form method="POST" action="{{ url_for('settings.change_password') }}" id="passwordForm">
         <div class="field">
           <label class="label">Contraseña actual</label>
           <input type="password" name="current_password" id="currentPass" required minlength="6" autocomplete="current-password">
