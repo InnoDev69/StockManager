@@ -1,49 +1,17 @@
-/* Reset y base */
-*,
-*::before,
-*::after { box-sizing: border-box; }
+/* ============================================================ */
+/* STOCKLY - MAIN STYLESHEET                                   */
+/* Imported modules: Variables, Typography, Components, etc    */
+/* ============================================================ */
 
-:root {
-  /* Tipografía y ritmo */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 6px 18px rgba(0,0,0,0.12);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.18);
+/* Import all CSS modules in order */
+@import url('./_variables.css');
+@import url('./_typography.css');
+@import url('./_components.css');
+@import url('./_utilities.css');
+@import url('./_layout.css');
+@import url('./_responsive.css');
 
-  /* Colores (modo claro) */
-  --bg: #0b0d12;
-  --panel: #10131a;
-  --panel-2: #121722;
-  --card: #121620;
-  --text: #e7eaf0;
-  --text-muted: #a8b0bf;
-  --border: rgba(255,255,255,0.08);
-  --brand: #4f46e5;
-  --brand-2: #6366f1;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f7f8fb;
-    --panel: #ffffff;
-    --panel-2: #f9fafb;
-    --card: #ffffff;
-    --text: #0f172a;
-    --text-muted: #475569;
-    --border: rgba(15, 23, 42, 0.08);
-    --brand: #4f46e5;
-    --brand-2: #4338ca;
-    --success: #059669;
-    --warning: #d97706;
-    --danger: #dc2626;
-  }
-}
+/* ============== NOTIFICATIONS (Toast/Modal) ============== */
 
 /* Fondo base */
 html, body { min-height: 100%; }

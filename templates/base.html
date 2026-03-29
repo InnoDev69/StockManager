@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark">
   <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+  {% import "components.html" as comp %}
+
   <header class="app-header">
     <div class="header-inner container">
-      <h1 class="brand"><a href="{{ url_for('dashboard.index') }}" style="text-decoration:none; color:inherit;">Stockly</a></h1>
-      <div class="nav-actions" style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
+      <h1 class="brand"><a href="{{ url_for('dashboard.index') }}">Stockly</a></h1>
+      <div class="nav-actions">
         {% if session.get('user_id') %}
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          <span class="text-muted" style="font-size:0.9rem;">{{ session.get('username') }}</span>
-          <span class="role-badge">
-            {{ session.get('role') }}
-          </span>
+        <div class="flex items-center gap-sm">
+          <span class="text-muted text-sm">{{ session.get('username') }}</span>
+          <span class="role-badge">{{ session.get('role') }}</span>
         </div>
-        <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost" title="Cerrar sesión">Cerrar sesión</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost">Cerrar sesión</a>
         {% else %}
         <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Iniciar sesión</a>
         {% endif %}
@@ -38,49 +38,32 @@
     {% endif %}
   </main>
 
-  <!-- Drawer / panel -->
+  <!-- Drawer / panel para formularios -->
   <div id="drawer" class="drawer hidden" aria-hidden="true">
     <div class="overlay" data-close="true"></div>
     <form id="item-form" class="card form-card" autocomplete="off">
-      <h3 id="form-title">Nuevo producto</h3>
-      <label class="field">
-        <span class="label">Nombre</span>
-        <input name="name" id="f-name" required maxlength="{{ Limits.MAX_ITEMS_CHARACTERS }}" />
-      </label>
-      <label class="field">
-        <span class="label">Stock</span>
-        <input name="stock" id="f-stock" type="number" min="0" max="{{ Limits.MAX_STOCK_VALUE }}" value="" />
-      </label>
-      <label class="field">
-        <span class="label">SKU (opcional)</span>
-        <input name="sku" id="f-sku" max="{{Limits.ITEM_BARCODE_MAX}}"/>
-      </label>
-      <div class="form-actions">
-        <button type="button" id="btn-cancel" class="btn btn-ghost">Cancelar</button>
-        <button type="submit" class="btn">Guardar</button>
-      </div>
+      <h3 id="form-title" class="m-0 mb-lg">Nuevo producto</h3>
+      
+      {{ comp.form_field('Nombre', 'name', required=true, maxlength=Limits.MAX_ITEMS_CHARACTERS) }}
+      {{ comp.form_field('Stock', 'stock', type='number', min='0', max=Limits.MAX_STOCK_VALUE) }}
+      {{ comp.form_field('SKU (opcional)', 'sku', maxlength=Limits.ITEM_BARCODE_MAX) }}
+      
+      {{ comp.form_actions(cancel_id='btn-cancel') }}
       <input type="hidden" id="f-id" />
     </form>
   </div>
 
+  <!-- Toast de notificaciones -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+  <!-- Modal de detalles de producto -->
   <div id="product-modal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="overlay" data-close="true"></div>
-    <article class="dialog card" role="document">
-      <header class="header">
-        <h3 id="pm-name">Producto</h3>
-        <button class="btn-ghost close-btn" id="pm-close" aria-label="Cerrar">✕</button>
-      </header>
-      <section class="body">
-        <div class="row">
-          <span class="meta-label">SKU</span>
-          <span class="mono" id="pm-sku">—</span>
-        </div>
-        <div class="row">
-          <span class="meta-label">Categoría</span>
-          <span id="pm-category">—</span>
-        </div>
+    <article class="dialog card max-w-md">
+      {{ comp.modal_header('Producto', 'pm-close') }}
+      <section class="modal body">
+        {{ comp.meta_label('SKU', '—', mono=true) | replace('class="row"', 'class="row" id="pm-sku-row"') }}
+        {{ comp.meta_label('Categoría', '—') | replace('class="row"', 'class="row" id="pm-category-row"') }}
         <div class="stats">
           <div>
             <div class="meta-label">Stock</div>

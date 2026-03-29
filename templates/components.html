@@ -1,0 +1,171 @@
+{# Componentes reutilizables que pueden usarse en cualquier template #}
+
+{# ============== ICONOS ============== #}
+
+{% macro icon(name, size='24') %}
+  {% if name == 'cart' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+    </svg>
+  {% elif name == 'plus' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+    </svg>
+  {% elif name == 'file' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+    </svg>
+  {% elif name == 'settings' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+    </svg>
+  {% elif name == 'download' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+    </svg>
+  {% elif name == 'search' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    </svg>
+  {% elif name == 'chart' %}
+    <svg style="width: {{ size }}px; height: {{ size }}px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18"></path>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M7 17v-5"></path>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 17v-8"></path>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 17v-6"></path>
+    </svg>
+  {% elif name == 'close' %}
+    ✕
+  {% endif %}
+{% endmacro %}
+
+{# ============== BOTONES ============== #}
+
+{% macro btn(label, href='', type='button', variant='primary', disabled=false, icon='', icon_size='16') %}
+  {% if href %}
+    <a href="{{ href }}" class="btn btn-{{ variant }}" {% if disabled %}disabled{% endif %}>
+      {% if icon %}{{ icon(icon, icon_size) }}{% endif %}
+      {{ label }}
+    </a>
+  {% else %}
+    <button type="{{ type }}" class="btn btn-{{ variant }}" {% if disabled %}disabled{% endif %}>
+      {% if icon %}{{ icon(icon, icon_size) }}{% endif %}
+      {{ label }}
+    </button>
+  {% endif %}
+{% endmacro %}
+
+{# ============== CAMPOS DE FORMULARIO ============== #}
+
+{% macro form_field(label, name, type='text', value='', required=false, placeholder='', maxlength='', min='', max='') %}
+  <label class="field">
+    <span class="label">{{ label }}</span>
+    {% if type == 'textarea' %}
+      <textarea name="{{ name }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}></textarea>
+    {% elif type == 'select' %}
+      <select name="{{ name }}" {% if required %}required{% endif %}>
+        <option value="">Seleccionar...</option>
+        {% for option in options %}
+          <option value="{{ option.value }}">{{ option.label }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <input type="{{ type }}" name="{{ name }}" placeholder="{{ placeholder }}" value="{{ value }}" {% if required %}required{% endif %} {% if maxlength %}maxlength="{{ maxlength }}"{% endif %} {% if min %}min="{{ min }}"{% endif %} {% if max %}max="{{ max }}"{% endif %} />
+    {% endif %}
+  </label>
+{% endmacro %}
+
+{# ============== HEADERS DE PÁGINA ============== #}
+
+{% macro page_header(title, subtitle='') %}
+  <header class="page-header">
+    <h1 class="page-title">{{ title }}</h1>
+    {% if subtitle %}
+      <p class="page-subtitle">{{ subtitle }}</p>
+    {% endif %}
+  </header>
+{% endmacro %}
+
+{# ============== TARJETAS ============== #}
+
+{% macro card(content, class='') %}
+  <div class="card {{ class }}">
+    {{ content }}
+  </div>
+{% endmacro %}
+
+{# ============== BADGES ============== #}
+
+{% macro badge(label, variant='default') %}
+  <span class="badge badge-{{ variant }}">{{ label }}</span>
+{% endmacro %}
+
+{# ============== STATS GRID ============== #}
+
+{% macro stats_grid(stats) %}
+  <div class="stats-grid">
+    {% for stat in stats %}
+      <div class="stat-item">
+        <div class="stat-label">{{ stat.label }}</div>
+        <div class="stat-value">{{ stat.value }}</div>
+        {% if stat.subtitle %}
+          <div class="stat-subtitle">{{ stat.subtitle }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{# ============== QUICK ACCESS ITEM ============== #}
+
+{% macro quick_access_item(title, subtitle, href, icon_name='', accent_color='') %}
+  <a href="{{ href }}" class="quick-access-item" style="text-decoration: none;">
+    <div class="quick-access-icon" {% if accent_color %}style="--qa-accent: {{ accent_color }};"{% endif %}>
+      {{ icon(icon_name or 'plus', 24) }}
+    </div>
+    <div class="quick-access-content">
+      <div class="quick-access-title">{{ title }}</div>
+      <div class="quick-access-subtitle">{{ subtitle }}</div>
+    </div>
+  </a>
+{% endmacro %}
+
+{# ============== MODAL HEADER ============== #}
+
+{% macro modal_header(title, close_id='') %}
+  <header class="header">
+    <h3>{{ title }}</h3>
+    {% if close_id %}
+      <button class="btn-ghost close-btn" id="{{ close_id }}" aria-label="Cerrar">{{ icon('close') }}</button>
+    {% endif %}
+  </header>
+{% endmacro %}
+
+{# ============== ALERTS ============== #}
+
+{% macro alert(message, variant='info') %}
+  <div class="alert alert-{{ variant }}" role="alert">
+    {{ message }}
+  </div>
+{% endmacro %}
+
+{# ============== FORM ACTIONS ============== #}
+
+{% macro form_actions(cancel_text='Cancelar', submit_text='Guardar', cancel_id='') %}
+  <div class="form-actions">
+    {% if cancel_id %}
+      <button type="button" id="{{ cancel_id }}" class="btn btn-ghost">{{ cancel_text }}</button>
+    {% endif %}
+    <button type="submit" class="btn">{{ submit_text }}</button>
+  </div>
+{% endmacro %}
+
+{# ============== META LABEL (Etiqueta de metadatos) ============== #}
+
+{% macro meta_label(label, value, mono=false) %}
+  <div class="row">
+    <span class="meta-label">{{ label }}</span>
+    <span {% if mono %}class="mono"{% endif %}>{{ value }}</span>
+  </div>
+{% endmacro %}

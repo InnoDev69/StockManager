@@ -1,0 +1,240 @@
+/* ============== COMPONENTES REUTILIZABLES ============== */
+
+/* BUTTONS */
+.btn {
+  --btn-bg: var(--brand);
+  --btn-bg-2: var(--brand-2);
+  --btn-fg: #fff;
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  color: var(--btn-fg);
+  background: linear-gradient(180deg, var(--btn-bg), var(--btn-bg-2));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 35%, transparent);
+  cursor: pointer;
+  transition: transform 0.06s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.btn:hover {
+  filter: brightness(1.05) contrast(1.02);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.998);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: color-mix(in srgb, var(--brand) 90%, white 10%);
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent);
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.btn-ghost:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+/* BADGES */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text-muted);
+}
+
+.badge-success {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 24%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+}
+
+.badge-warning {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--border));
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.badge-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 24%, var(--border));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+/* CARDS */
+.card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, transparent), var(--card));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  padding: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: var(--spacing-2xl);
+  }
+}
+
+/* ROLE BADGE (tipo especial) */
+.role-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: color-mix(in srgb, var(--brand) 86%, white 10%);
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent);
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+/* ALERTS */
+.alert {
+  padding: var(--spacing-lg) 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  border: 1px solid;
+  display: flex;
+  align-items: start;
+  gap: var(--spacing-md);
+}
+
+.alert-info {
+  background-color: color-mix(in srgb, var(--brand) 8%, transparent);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.alert-success {
+  background-color: color-mix(in srgb, var(--success) 8%, transparent);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.alert-warning {
+  background-color: color-mix(in srgb, var(--warning) 8%, transparent);
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.alert-danger {
+  background-color: color-mix(in srgb, var(--danger) 8%, transparent);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* FIELDS & FORMS */
+.field {
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.label {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--panel);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* FORM ACTIONS */
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-md);
+}
+
+/* META LABELS (para modales/info) */
+.meta-label {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+  font-weight: 600;
+}
+
+/* ROW PATTERN (dos columnas) */
+.row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md);
+  border: 0;
+  background: transparent;
+}
+
+/* MODAL/DIALOG HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.header h3 {
+  margin: 0;
+}
+
+.close-btn {
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.close-btn:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
