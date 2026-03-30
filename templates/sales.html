@@ -2,84 +2,20 @@
 
 {% block content %}
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header style="margin-bottom: 1.5rem;">
-          <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; color: white;">Historial de Ventas</h1>
-        </header>
+    <div class="container sh-root">
 
-        <!-- Filters Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3>Filtros de busqueda</h3>
+        <!-- ── Page Header ─────────────────────────────────────── -->
+        <header class="sh-page-header">
+            <div class="sh-page-header__left">
+                <div class="sh-page-header__eyebrow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Reporte de ventas
+                </div>
+                <h1 class="sh-page-header__title">Historial de Ventas</h1>
             </div>
-            <div class="card-body">
-                <form id="filterForm" class="form-grid">
-                    <div class="form-group">
-                        <label for="dateFrom">Fecha desde</label>
-                        <input type="date" id="dateFrom" name="date_from" class="input">
-                    </div>
-                    <div class="form-group">
-                        <label for="dateTo">Fecha hasta</label>
-                        <input type="date" id="dateTo" name="date_to" class="input">
-                    </div>
-                    <div class="form-group">
-                        <label for="productFilter">Producto</label>
-                        <input type="text" id="productFilter" max="{{Limits.PRODUCT_NAME_MAX}}" name="product" class="input" placeholder="Buscar por producto...">
-                    </div>
-                    <div class="form-group" style="display: flex; align-items: flex-end; gap: 0.5rem;">
-                        <button type="submit" class="btn">Filtrar</button>
-                        <button type="button" class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="stats-grid mb-4">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                </div>
-                <div class="stat-info">
-                    <p class="stat-label">Total Ventas</p>
-                    <p class="stat-value" id="totalSales">$0.00</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3h18v18H3zM8 12h8M12 8v8"/>
-                    </svg>
-                </div>
-                <div class="stat-info">
-                    <p class="stat-label">Transacciones</p>
-                    <p class="stat-value" id="totalTransactions">0</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                        <line x1="12" y1="22.08" x2="12" y2="12"/>
-                    </svg>
-                </div>
-                <div class="stat-info">
-                    <p class="stat-label">Productos Vendidos</p>
-                    <p class="stat-value" id="totalProducts">0</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sales Table -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Detalle de Ventas</h3>
-                <button class="btn btn-ghost" onclick="exportToCSV()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="sh-page-header__right">
+                <button class="btn btn-ghost sh-export-btn" onclick="exportToCSV()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
@@ -87,147 +23,255 @@
                     Exportar CSV
                 </button>
             </div>
+        </header>
 
-            <div id="sales-page-info" style="display:none; padding: 0.5rem 1.25rem; background: var(--panel-2); border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
-                Mostrando <span id="sales-from">0</span>-<span id="sales-to">0</span> de <span id="sales-total">0</span> ventas
+        <!-- ── Stats ──────────────────────────────────────────── -->
+        <div class="sh-stats-grid">
+            <div class="sh-stat">
+                <div class="sh-stat__icon sh-stat__icon--blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="sh-stat__body">
+                    <span class="sh-stat__label">Total Ventas</span>
+                    <span class="sh-stat__value" id="totalSales">$0.00</span>
+                </div>
+                <div class="sh-stat__glow sh-stat__glow--blue"></div>
             </div>
 
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Fecha</th>
-                                <th>Productos</th>
-                                <th>Cantidad Total</th>
-                                <th>Total</th>
-                                <th>Vendedor</th>
-                                <th>M&eacute;todo de Pago</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesTableBody">
-                            {% if sales %}
-                                {% for sale in sales %}
-                                <tr class="sale-row" data-index="{{ loop.index0 }}">
-                                    <td>#{{ sale.id }}</td>
-                                    <td>{{ sale.date }}</td>
-                                    <td>
-                                        <div class="product-list">
-                                            {% for product in sale.products %}
-                                            <span class="badge">{{ product.name }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    </td>
-                                    <td>{{ sale.total_quantity }}</td>
-                                    <td class="text-primary">${{ "%.2f"|format(sale.total) }}</td>
-                                    <td>{{ sale.vendedor or '—' }}</td>
-                                    <td>
-                                        <span class="badge" style="background: color-mix(in srgb, var(--brand, #00d4ff) 15%, transparent); border-color: color-mix(in srgb, var(--brand, #00d4ff) 30%, transparent);">
-                                            {{ sale.payment_method or 'Efectivo' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn-icon" onclick="viewSaleDetail({{ sale.id }})" title="Ver detalle">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                                <circle cx="12" cy="12" r="3"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                            <tr id="empty-sales-row">
-                                <td colspan="8" class="text-center text-muted">
-                                    <div style="padding: 3rem;">
-                                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 1rem; opacity: 0.3;">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <line x1="12" y1="8" x2="12" y2="12"/>
-                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                        </svg>
-                                        <p>No se encontraron ventas</p>
-                                        <p style="font-size: 0.875rem; opacity: 0.7;">Intenta ajustar los filtros de busqueda</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
+            <div class="sh-stat">
+                <div class="sh-stat__icon sh-stat__icon--green">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
                 </div>
+                <div class="sh-stat__body">
+                    <span class="sh-stat__label">Transacciones</span>
+                    <span class="sh-stat__value" id="totalTransactions">0</span>
+                </div>
+                <div class="sh-stat__glow sh-stat__glow--green"></div>
+            </div>
 
-                <div id="sales-pagination" style="display:none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label style="font-size: 0.875rem; color: var(--text-muted);">Por pagina:</label>
-                        <select id="sales-page-size" style="padding: 0.375rem 0.5rem; font-size: 0.8rem; width: auto;">
+            <div class="sh-stat">
+                <div class="sh-stat__icon sh-stat__icon--red">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                </div>
+                <div class="sh-stat__body">
+                    <span class="sh-stat__label">Productos Vendidos</span>
+                    <span class="sh-stat__value" id="totalProducts">0</span>
+                </div>
+                <div class="sh-stat__glow sh-stat__glow--red"></div>
+            </div>
+        </div>
+
+        <!-- ── Filters ─────────────────────────────────────────── -->
+        <div class="card sh-filters-card">
+            <div class="sh-filters-card__header">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filtros de búsqueda</span>
+            </div>
+            <form id="filterForm" class="sh-filter-grid">
+                <div class="sh-field">
+                    <label class="sh-label" for="dateFrom">Fecha desde</label>
+                    <input type="date" id="dateFrom" name="date_from" class="input sh-input">
+                </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="dateTo">Fecha hasta</label>
+                    <input type="date" id="dateTo" name="date_to" class="input sh-input">
+                </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="productFilter">Producto</label>
+                    <input type="text" id="productFilter" max="{{Limits.PRODUCT_NAME_MAX}}" name="product" class="input sh-input" placeholder="Buscar por producto...">
+                </div>
+                <div class="sh-filter-actions">
+                    <button type="submit" class="btn">Filtrar</button>
+                    <button type="button" class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── Table ───────────────────────────────────────────── -->
+        <div class="card sh-table-card">
+
+            <!-- Table Header -->
+            <div class="sh-table-card__header">
+                <div class="sh-table-card__title-row">
+                    <h3 class="sh-table-card__title">Detalle de Ventas</h3>
+                    <div id="sales-page-info" class="sh-page-info" style="display:none;">
+                        Mostrando <strong><span id="sales-from">0</span>–<span id="sales-to">0</span></strong>
+                        de <strong><span id="sales-total">0</span></strong> ventas
+                    </div>
+                </div>
+                <div class="sh-table-card__controls">
+                    <div class="sh-page-size-wrap" style="display:none;" id="sales-pagesize-wrap">
+                        <label class="sh-label-inline">Por página:</label>
+                        <select id="sales-page-size" class="sh-select-sm">
                             <option value="10" selected>10</option>
                             <option value="20">20</option>
                             <option value="50">50</option>
                         </select>
                     </div>
-                    <div id="sales-page-buttons" style="display: flex; gap: 0.375rem;"></div>
                 </div>
+            </div>
 
+            <!-- Table -->
+            <div class="sh-table-wrap">
+                <table class="sh-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Productos</th>
+                            <th class="sh-th--num">Cant.</th>
+                            <th class="sh-th--num">Total</th>
+                            <th>Vendedor</th>
+                            <th>Pago</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
+                        {% if sales %}
+                            {% for sale in sales %}
+                            <tr class="sale-row" data-index="{{ loop.index0 }}">
+                                <td><span class="sh-id">#{{ sale.id }}</span></td>
+                                <td class="sh-td--date">{{ sale.date }}</td>
+                                <td>
+                                    <div class="sh-badge-list">
+                                        {% for product in sale.products %}
+                                        <span class="sh-badge">{{ product.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="sh-td--num">{{ sale.total_quantity }}</td>
+                                <td class="sh-td--num sh-td--total">${{ "%.2f"|format(sale.total) }}</td>
+                                <td class="sh-td--vendedor">{{ sale.vendedor or '—' }}</td>
+                                <td>
+                                    <span class="sh-badge sh-badge--payment">
+                                        {{ sale.payment_method or 'Efectivo' }}
+                                    </span>
+                                </td>
+                                <td class="sh-td--action">
+                                    <button class="sh-btn-icon" onclick="viewSaleDetail({{ sale.id }})" title="Ver detalle">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                        <tr id="empty-sales-row">
+                            <td colspan="8">
+                                <div class="sh-empty">
+                                    <div class="sh-empty__icon">
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                        </svg>
+                                    </div>
+                                    <p class="sh-empty__title">Sin resultados</p>
+                                    <p class="sh-empty__sub">Intenta ajustar los filtros de búsqueda</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div id="sales-pagination" class="sh-pagination" style="display:none;">
+                <div id="sales-page-buttons" class="sh-pg-buttons"></div>
             </div>
         </div>
     </div>
 
-    <!-- Sale Detail Modal -->
-    <div id="saleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Detalle de Venta <span id="modalSaleId"></span></h3>
-                <button class="btn-close" onclick="closeSaleModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <div class="detail-section">
-                    <p><strong>Fecha:</strong> <span id="detailDate"></span></p>
-                    <p><strong>ID Transacci&oacute;n:</strong> <span id="detailId"></span></p>
-                    <p><strong>Vendedor:</strong> <span id="detailVendedor"></span></p>
-                    <p><strong>M&eacute;todo de pago:</strong> <span id="detailPayment"></span></p>
-                </div>
+    <!-- ── Sale Detail Modal ────────────────────────────────────── -->
+    <div id="saleModal" class="sh-modal">
+        <div class="sh-modal__backdrop" onclick="closeSaleModal()"></div>
+        <div class="sh-modal__panel">
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0 0.5rem 0; flex-wrap: wrap; gap: 0.5rem;">
-                    <h4 style="margin: 0;">Productos</h4>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                        <span id="detail-page-info" style="font-size: 0.8rem; color: var(--text-muted);"></span>
-                        <div style="display: flex; align-items: center; gap: 0.4rem;">
-                            <label style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">Por pagina:</label>
-                            <select id="detail-page-size" style="padding: 0.25rem 0.4rem; font-size: 0.75rem; width: auto;">
-                                <option value="5" selected>5</option>
-                                <option value="10">10</option>
-                                <option value="20">20</option>
-                            </select>
-                        </div>
+            <div class="sh-modal__header">
+                <div>
+                    <p class="sh-modal__eyebrow">Detalle de venta</p>
+                    <h3 class="sh-modal__title"><span id="modalSaleId"></span></h3>
+                </div>
+                <button class="sh-modal__close" onclick="closeSaleModal()" aria-label="Cerrar">&times;</button>
+            </div>
+
+            <div class="sh-modal__body">
+                <!-- Meta info -->
+                <div class="sh-modal__meta">
+                    <div class="sh-meta-item">
+                        <span class="sh-meta-label">Fecha</span>
+                        <span class="sh-meta-value" id="detailDate"></span>
+                    </div>
+                    <div class="sh-meta-item">
+                        <span class="sh-meta-label">ID Transacción</span>
+                        <span class="sh-meta-value" id="detailId"></span>
+                    </div>
+                    <div class="sh-meta-item">
+                        <span class="sh-meta-label">Vendedor</span>
+                        <span class="sh-meta-value" id="detailVendedor"></span>
+                    </div>
+                    <div class="sh-meta-item">
+                        <span class="sh-meta-label">Método de pago</span>
+                        <span class="sh-meta-value" id="detailPayment"></span>
                     </div>
                 </div>
 
-                <table class="table">
+                <!-- Products section -->
+                <div class="sh-modal__section-header">
+                    <h4 class="sh-modal__section-title">Productos</h4>
+                    <div class="sh-modal__section-controls">
+                        <span id="detail-page-info" class="sh-label-inline" style="font-size:0.78rem; color:var(--text-muted);"></span>
+                        <label class="sh-label-inline">Por página:</label>
+                        <select id="detail-page-size" class="sh-select-sm">
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+                </div>
+
+                <table class="sh-table sh-table--modal">
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Cantidad</th>
-                            <th>Precio Unit.</th>
-                            <th>Subtotal</th>
+                            <th class="sh-th--num">Cant.</th>
+                            <th class="sh-th--num">Precio Unit.</th>
+                            <th class="sh-th--num">Subtotal</th>
                         </tr>
                     </thead>
-                    <tbody id="detailTableBody">
-                    </tbody>
+                    <tbody id="detailTableBody"></tbody>
                 </table>
 
-                <div id="detail-pagination" style="display:none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                    <span id="detail-page-counter" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);"></span>
-                    <div id="detail-page-buttons" style="display: flex; gap: 0.375rem;"></div>
+                <div id="detail-pagination" class="sh-pagination sh-pagination--sm" style="display:none;">
+                    <span id="detail-page-counter" class="sh-label-inline" style="font-size:0.78rem;"></span>
+                    <div id="detail-page-buttons" class="sh-pg-buttons"></div>
                 </div>
 
-                <div class="detail-total">
-                    <h3>Total: <span id="detailTotal" class="text-primary"></span></h3>
+                <!-- Total -->
+                <div class="sh-modal__total">
+                    <span class="sh-modal__total-label">Total</span>
+                    <span class="sh-modal__total-value" id="detailTotal"></span>
                 </div>
             </div>
-            <div class="modal-footer">
+
+            <div class="sh-modal__footer">
                 <button class="btn btn-ghost" onclick="closeSaleModal()">Cerrar</button>
-                <button class="btn" onclick="printSale()">Imprimir</button>
+                <button class="btn" onclick="printSale()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Imprimir
+                </button>
             </div>
         </div>
     </div>
@@ -238,6 +282,7 @@
 
         function $(id) { return document.getElementById(id); }
 
+        /* ── Pagination renderer ─────────────────────────────── */
         function renderPagination(container, current, total, onPage) {
             if (total <= 1) { container.innerHTML = ''; return; }
 
@@ -253,19 +298,19 @@
             }
 
             let html = '<button class="pg-btn" ' + (current === 1 ? 'disabled' : 'data-pg="' + (current - 1) + '"') + ' title="Anterior">' +
-                '<svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>' +
+                '<svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>' +
                 '</button>';
 
             pages.forEach(p => {
                 if (p === '...') {
-                    html += '<span class="pg-ellipsis">...</span>';
+                    html += '<span class="pg-ellipsis">…</span>';
                 } else {
                     html += '<button class="pg-btn' + (p === current ? ' active' : '') + '" data-pg="' + p + '">' + p + '</button>';
                 }
             });
 
             html += '<button class="pg-btn" ' + (current === total ? 'disabled' : 'data-pg="' + (current + 1) + '"') + ' title="Siguiente">' +
-                '<svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+                '<svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>' +
                 '</button>';
 
             container.innerHTML = html;
@@ -277,8 +322,9 @@
             };
         }
 
+        /* ── Sales list pagination ───────────────────────────── */
         (function initSalesPagination() {
-            const rows = Array.from(document.querySelectorAll('.sale-row'));
+            const rows  = Array.from(document.querySelectorAll('.sale-row'));
             const total = rows.length;
             if (total === 0) return;
 
@@ -287,6 +333,7 @@
 
             const paginationEl = $('sales-pagination');
             const pageInfoEl   = $('sales-page-info');
+            const psWrapEl     = $('sales-pagesize-wrap');
             const fromEl       = $('sales-from');
             const toEl         = $('sales-to');
             const totalEl      = $('sales-total');
@@ -308,64 +355,55 @@
                 toEl.textContent    = end;
                 totalEl.textContent = total;
                 pageInfoEl.style.display = '';
+                psWrapEl.style.display   = '';
 
-                paginationEl.style.display = totalPages > 1 ? '' : 'none';
-                renderPagination(buttonsEl, page, totalPages, function (pg) {
-                    page = pg;
-                    render();
-                });
+                const showPag = totalPages > 1;
+                paginationEl.style.display = showPag ? '' : 'none';
+                if (showPag) renderPagination(buttonsEl, page, totalPages, function (pg) { page = pg; render(); });
             }
 
-            pageSizeSel.addEventListener('change', function () {
-                pageSize = parseInt(this.value);
-                page     = 1;
-                render();
-            });
-
+            pageSizeSel.addEventListener('change', function () { pageSize = parseInt(this.value); page = 1; render(); });
             render();
         })();
 
+        /* ── Detail modal ────────────────────────────────────── */
         let detailProducts = [];
         let detailPage     = 1;
         let detailPageSize = 5;
 
         function renderDetailTable() {
-            const tbody      = $('detailTableBody');
-            const infoEl     = $('detail-page-info');
-            const counterEl  = $('detail-page-counter');
-            const paginEl    = $('detail-pagination');
-            const buttonsEl  = $('detail-page-buttons');
+            const tbody     = $('detailTableBody');
+            const infoEl    = $('detail-page-info');
+            const counterEl = $('detail-page-counter');
+            const paginEl   = $('detail-pagination');
+            const buttonsEl = $('detail-page-buttons');
 
             const total      = detailProducts.length;
             const totalPages = Math.ceil(total / detailPageSize) || 1;
-
             if (detailPage > totalPages) detailPage = totalPages;
             if (detailPage < 1)          detailPage = 1;
 
             const start   = (detailPage - 1) * detailPageSize;
             const end     = Math.min(start + detailPageSize, total);
-            const pageProd = detailProducts.slice(start, end);
+            const slice   = detailProducts.slice(start, end);
 
-            infoEl.textContent    = 'Mostrando ' + (start + 1) + '-' + end + ' de ' + total + ' productos';
-            counterEl.textContent = 'Pagina ' + detailPage + ' de ' + totalPages;
+            infoEl.textContent    = total > detailPageSize ? (start + 1) + '–' + end + ' de ' + total : total + ' productos';
+            counterEl.textContent = 'Pág. ' + detailPage + ' / ' + totalPages;
 
             tbody.innerHTML = '';
-            pageProd.forEach(function (product) {
-                const subtotal = (Number(product.quantity) * Number(product.price)).toFixed(2);
-                const tr = document.createElement('tr');
-                tr.innerHTML =
-                    '<td>' + escapeHtml(product.name) + '</td>' +
-                    '<td>' + Number(product.quantity) + '</td>' +
-                    '<td>$' + Number(product.price).toFixed(2) + '</td>' +
-                    '<td>$' + subtotal + '</td>';
+            slice.forEach(function (p) {
+                const subtotal = (Number(p.quantity) * Number(p.price)).toFixed(2);
+                const tr       = document.createElement('tr');
+                tr.innerHTML   =
+                    '<td>' + escapeHtml(p.name) + '</td>' +
+                    '<td class="sh-td--num">' + Number(p.quantity) + '</td>' +
+                    '<td class="sh-td--num">$' + Number(p.price).toFixed(2) + '</td>' +
+                    '<td class="sh-td--num sh-td--total">$' + subtotal + '</td>';
                 tbody.appendChild(tr);
             });
 
             paginEl.style.display = totalPages > 1 ? '' : 'none';
-            renderPagination(buttonsEl, detailPage, totalPages, function (pg) {
-                detailPage = pg;
-                renderDetailTable();
-            });
+            if (totalPages > 1) renderPagination(buttonsEl, detailPage, totalPages, function (pg) { detailPage = pg; renderDetailTable(); });
         }
 
         function escapeHtml(text) {
@@ -374,22 +412,24 @@
             return d.innerHTML;
         }
 
+        /* ── Clock ───────────────────────────────────────────── */
         function updateClock() {
-            const now        = new Date();
-            const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const dateString = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const el         = $('current-time');
-            if (el) el.textContent = dateString + ' - ' + timeString;
+            const now  = new Date();
+            const el   = $('current-time');
+            if (el) el.textContent = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' — ' +
+                now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
         updateClock();
         setInterval(updateClock, 1000);
 
+        /* ── Default dates ───────────────────────────────────── */
         const today        = new Date();
-        const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(today.getDate() - 30);
+        const thirtyAgo    = new Date(today);
+        thirtyAgo.setDate(today.getDate() - 30);
         $('dateTo').valueAsDate   = today;
-        $('dateFrom').valueAsDate = thirtyDaysAgo;
+        $('dateFrom').valueAsDate = thirtyAgo;
 
+        /* ── Filter form ─────────────────────────────────────── */
         $('filterForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const params = new URLSearchParams(new FormData(this));
@@ -398,354 +438,505 @@
 
         window.clearFilters = function () {
             $('filterForm').reset();
-            const t  = new Date();
-            const tda = new Date(t);
+            const t = new Date(), tda = new Date(t);
             tda.setDate(t.getDate() - 30);
             $('dateTo').valueAsDate   = t;
             $('dateFrom').valueAsDate = tda;
             window.location.href = '{{ url_for("sales.sales") }}';
         };
 
+        /* ── View detail ─────────────────────────────────────── */
         window.viewSaleDetail = async function (saleId) {
             try {
-                const res         = await fetch('/api/sales/' + saleId, { headers: { 'Accept': 'application/json' } });
-                const contentType = res.headers.get('content-type') || '';
+                const res = await fetch('/api/sales/' + saleId, { headers: { 'Accept': 'application/json' } });
+                const ct  = res.headers.get('content-type') || '';
 
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error('HTTP ' + res.status + ' ' + res.statusText + ': ' + text.slice(0, 200));
-                }
-                if (!contentType.includes('application/json')) {
-                    const text = await res.text();
-                    throw new Error('Respuesta no JSON: ' + text.slice(0, 200));
-                }
+                if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 200));
+                if (!ct.includes('application/json')) throw new Error('Respuesta no JSON');
 
                 const data = await res.json();
 
-                $('modalSaleId').textContent  = '#' + data.id;
-                $('detailDate').textContent    = data.date;
-                $('detailId').textContent      = data.id;
-                $('detailTotal').textContent   = '$' + Number(data.total).toFixed(2);
-                $('detailVendedor').textContent = data.vendedor || '—';
-                $('detailPayment').textContent  = data.payment_method || 'Efectivo';
+                $('modalSaleId').textContent   = '#' + data.id;
+                $('detailDate').textContent     = data.date;
+                $('detailId').textContent       = data.id;
+                $('detailTotal').textContent    = '$' + Number(data.total).toFixed(2);
+                $('detailVendedor').textContent  = data.vendedor || '—';
+                $('detailPayment').textContent   = data.payment_method || 'Efectivo';
 
                 detailProducts = data.products || [];
                 detailPage     = 1;
                 detailPageSize = parseInt($('detail-page-size').value) || 5;
 
                 renderDetailTable();
-
-                $('saleModal').style.display = 'flex';
-            } catch (error) {
-                console.error('Error fetching sale detail:', error);
+                $('saleModal').classList.add('sh-modal--open');
+            } catch (err) {
+                console.error(err);
                 alert('Error al cargar el detalle de la venta');
             }
         };
 
         $('detail-page-size').addEventListener('change', function () {
-            detailPageSize = parseInt(this.value);
-            detailPage     = 1;
-            renderDetailTable();
+            detailPageSize = parseInt(this.value); detailPage = 1; renderDetailTable();
         });
 
-        window.closeSaleModal = function () {
-            $('saleModal').style.display = 'none';
-        };
+        window.closeSaleModal = function () { $('saleModal').classList.remove('sh-modal--open'); };
+        window.printSale      = function () { window.print(); };
 
-        window.onclick = function (event) {
-            const modal = $('saleModal');
-            if (event.target === modal) closeSaleModal();
-        };
-
-        window.printSale = function () { window.print(); };
-
+        /* ── CSV export ──────────────────────────────────────── */
         window.exportToCSV = function () {
-            const table = document.querySelector('.table');
-            let csv = [];
-            const rows = table.querySelectorAll('tr');
-            for (let i = 0; i < rows.length; i++) {
-                const row  = [];
-                const cols = rows[i].querySelectorAll('td, th');
-                for (let j = 0; j < cols.length - 1; j++) {
-                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
-                    data = data.replace(/"/g, '""');
-                    row.push('"' + data + '"');
-                }
-                csv.push(row.join(','));
-            }
-            const csvFile     = new Blob([csv.join('\n')], { type: 'text/csv' });
-            const downloadLink = document.createElement('a');
-            downloadLink.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
-            downloadLink.href     = window.URL.createObjectURL(csvFile);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+            const table = document.querySelector('.sh-table:not(.sh-table--modal)');
+            const rows  = table.querySelectorAll('tr');
+            const csv   = [];
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td, th')).slice(0, -1);
+                csv.push(cells.map(c => '"' + c.innerText.replace(/\n/g, ' ').replace(/"/g, '""') + '"').join(','));
+            });
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const a    = document.createElement('a');
+            a.href     = URL.createObjectURL(blob);
+            a.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
         };
 
+        /* ── Stats ───────────────────────────────────────────── */
         (function calculateStats() {
             const rows = document.querySelectorAll('#salesTableBody .sale-row');
-            if (rows.length === 0) return;
-
-            let totalSales    = 0;
-            let totalProducts = 0;
-
+            if (!rows.length) return;
+            let totalSales = 0, totalProducts = 0;
             rows.forEach(row => {
-                const totalCell    = row.cells[4];
-                const quantityCell = row.cells[3];
-                if (totalCell)    totalSales    += parseFloat(totalCell.textContent.replace('$', '').replace(',', '')) || 0;
-                if (quantityCell) totalProducts += parseInt(quantityCell.textContent) || 0;
+                totalSales    += parseFloat((row.cells[4].textContent || '').replace(/[$,]/g, '')) || 0;
+                totalProducts += parseInt(row.cells[3].textContent) || 0;
             });
-
-            $('totalSales').textContent        = '$' + totalSales.toFixed(2);
-            $('totalTransactions').textContent  = rows.length;
-            $('totalProducts').textContent      = totalProducts;
+            $('totalSales').textContent       = '$' + totalSales.toFixed(2);
+            $('totalTransactions').textContent = rows.length;
+            $('totalProducts').textContent     = totalProducts;
         })();
 
     })();
     </script>
 
     <style>
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            align-items: end;
-        }
+    /* ══════════════════════════════════════════════
+       SH (Sales History) - scoped component styles
+       Colors: uses existing CSS variables ONLY
+       ══════════════════════════════════════════════ */
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
+    /* Root */
+    .sh-root { padding-top: 2rem; padding-bottom: 3rem; }
 
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 2.2rem;
-            margin: 0.4rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            transition: all 0.3s ease;
-        }
+    /* ── Page Header ──────────────────────────────── */
+    .sh-page-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .sh-page-header__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--brand, #00d4ff);
+        margin-bottom: 0.35rem;
+        opacity: 0.85;
+    }
+    .sh-page-header__title {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+    .sh-export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-shrink: 0;
+    }
 
-        .stat-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-        }
+    /* ── Stats ────────────────────────────────────── */
+    .sh-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .sh-stat {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg, 12px);
+        overflow: hidden;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .sh-stat:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
 
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
+    .sh-stat__icon {
+        flex-shrink: 0;
+        width: 44px; height: 44px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff;
+        position: relative; z-index: 1;
+    }
+    .sh-stat__icon--blue  { background: linear-gradient(135deg, #00d4ff, #0099cc); }
+    .sh-stat__icon--green { background: linear-gradient(135deg, #00ff88, #00cc66); }
+    .sh-stat__icon--red   { background: linear-gradient(135deg, #ff6b6b, #cc5555); }
 
-        .stat-info { flex: 1; }
+    .sh-stat__body {
+        display: flex; flex-direction: column; gap: 0.2rem;
+        position: relative; z-index: 1;
+    }
+    .sh-stat__label {
+        font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.06em; color: var(--text-muted);
+    }
+    .sh-stat__value {
+        font-size: 1.6rem; font-weight: 800;
+        color: var(--text); letter-spacing: -0.02em; line-height: 1;
+    }
 
-        .stat-label {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.6);
-            margin: 0 0 0.25rem 0;
-        }
+    .sh-stat__glow {
+        position: absolute; right: -20px; bottom: -20px;
+        width: 100px; height: 100px; border-radius: 50%;
+        opacity: 0.08; filter: blur(20px);
+        pointer-events: none;
+    }
+    .sh-stat__glow--blue  { background: #00d4ff; }
+    .sh-stat__glow--green { background: #00ff88; }
+    .sh-stat__glow--red   { background: #ff6b6b; }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0;
-            color: white;
-        }
+    /* ── Filters ──────────────────────────────────── */
+    .sh-filters-card {
+        padding: 0 !important;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+    .sh-filters-card__header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.85rem 1.25rem;
+        font-size: 0.82rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+    }
+    .sh-filter-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+        padding: 1.25rem;
+    }
+    .sh-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .sh-label {
+        font-size: 0.78rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--text-muted);
+    }
+    .sh-input { margin: 0 !important; }
+    .sh-filter-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-        .table-responsive { overflow-x: auto; }
+    /* ── Table card ───────────────────────────────── */
+    .sh-table-card { padding: 0 !important; overflow: hidden; }
 
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+    .sh-table-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.25rem 0.85rem;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+    }
+    .sh-table-card__title-row {
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .sh-table-card__title {
+        margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text);
+    }
+    .sh-page-info {
+        font-size: 0.78rem; color: var(--text-muted);
+    }
+    .sh-table-card__controls { display: flex; align-items: center; gap: 0.75rem; }
 
-        .table th,
-        .table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    .sh-page-size-wrap {
+        display: flex; align-items: center; gap: 0.4rem;
+    }
+    .sh-label-inline {
+        font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;
+    }
+    .sh-select-sm {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.78rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        width: auto;
+        cursor: pointer;
+    }
 
-        .table th {
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
+    /* ── Table ────────────────────────────────────── */
+    .sh-table-wrap { overflow-x: auto; }
+    .sh-table {
+        width: 100%; border-collapse: collapse;
+    }
+    .sh-table th {
+        padding: 0.65rem 1rem;
+        text-align: left;
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        background: rgba(255,255,255,0.015);
+    }
+    .sh-table td {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        font-size: 0.875rem;
+        color: var(--text);
+        vertical-align: middle;
+    }
+    .sh-table tbody tr { transition: background 0.15s ease; }
+    .sh-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+    .sh-table tbody tr:last-child td { border-bottom: 0; }
 
-        .table tbody tr { transition: background 0.2s ease; }
-        .table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+    .sh-th--num, .sh-td--num { text-align: right; }
 
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            background: rgba(0, 212, 255, 0.2);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            margin: 0.125rem;
-        }
+    .sh-id {
+        font-size: 0.8rem; font-weight: 700;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .sh-td--date { font-size: 0.82rem; white-space: nowrap; color: var(--text-muted); }
+    .sh-td--total { font-weight: 700; color: var(--brand, #00d4ff); }
+    .sh-td--vendedor { font-size: 0.82rem; }
+    .sh-td--action { width: 48px; text-align: center; }
 
-        .product-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    /* ── Badges ───────────────────────────────────── */
+    .sh-badge-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .sh-badge {
+        display: inline-block;
+        padding: 0.2rem 0.55rem;
+        border-radius: 5px;
+        font-size: 0.72rem; font-weight: 600;
+        background: rgba(0, 212, 255, 0.12);
+        border: 1px solid rgba(0, 212, 255, 0.22);
+        color: rgba(0, 212, 255, 0.9);
+        white-space: nowrap;
+    }
+    .sh-badge--payment {
+        background: color-mix(in srgb, var(--brand, #00d4ff) 10%, transparent);
+        border-color: color-mix(in srgb, var(--brand, #00d4ff) 22%, transparent);
+        color: color-mix(in srgb, var(--brand, #00d4ff) 90%, white);
+    }
 
-        .btn-icon {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            padding: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
+    /* ── Action button ────────────────────────────── */
+    .sh-btn-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .sh-btn-icon:hover {
+        background: rgba(0, 212, 255, 0.12);
+        border-color: rgba(0, 212, 255, 0.35);
+        color: #00d4ff;
+    }
 
-        .btn-icon:hover {
-            background: rgba(0, 212, 255, 0.2);
-            border-color: rgba(0, 212, 255, 0.5);
-        }
+    /* ── Empty state ──────────────────────────────── */
+    .sh-empty {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 3rem 1rem; gap: 0.5rem; text-align: center;
+    }
+    .sh-empty__icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        color: var(--text-muted); opacity: 0.5;
+        margin-bottom: 0.5rem;
+    }
+    .sh-empty__title { font-weight: 700; color: var(--text); margin: 0; }
+    .sh-empty__sub   { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-            align-items: center;
-            justify-content: center;
-        }
+    /* ── Pagination ───────────────────────────────── */
+    .sh-pagination {
+        display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
+        padding: 0.85rem 1.25rem;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+    }
+    .sh-pagination--sm {
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 0.6rem 0 0;
+        margin-top: 0.6rem;
+    }
+    .sh-pg-buttons { display: flex; gap: 0.3rem; }
 
-        .modal-content {
-            background: rgba(20, 20, 30, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
+    .pg-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 30px; height: 30px; padding: 0 0.4rem;
+        border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
+        background: transparent; cursor: pointer;
+        font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+        transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .pg-btn:hover:not(:disabled) {
+        background: rgba(0, 212, 255, 0.1); border-color: rgba(0, 212, 255, 0.3);
+        color: var(--text);
+    }
+    .pg-btn.active {
+        background: rgba(0, 212, 255, 0.2); border-color: rgba(0, 212, 255, 0.5);
+        color: #00d4ff; font-weight: 700;
+    }
+    .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .pg-ellipsis {
+        display: inline-flex; align-items: center; padding: 0 0.2rem;
+        color: var(--text-muted); font-size: 0.78rem; user-select: none;
+    }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    /* ── Modal ────────────────────────────────────── */
+    .sh-modal {
+        position: fixed; inset: 0; z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        padding: 1rem;
+        pointer-events: none; opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .sh-modal--open { pointer-events: auto; opacity: 1; }
 
-        .modal-header h3 { margin: 0; }
+    .sh-modal__backdrop {
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(5px);
+    }
+    .sh-modal__panel {
+        position: relative; z-index: 1;
+        background: var(--panel, #161722);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 100%; max-width: 780px;
+        max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+        transform: translateY(8px) scale(0.98);
+        transition: transform 0.2s ease;
+    }
+    .sh-modal--open .sh-modal__panel { transform: translateY(0) scale(1); }
 
-        .modal-body { padding: 1.5rem; }
+    .sh-modal__header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+    }
+    .sh-modal__eyebrow {
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--brand, #00d4ff); margin: 0 0 0.2rem;
+    }
+    .sh-modal__title { margin: 0; font-size: 1.2rem; font-weight: 800; }
+    .sh-modal__close {
+        background: transparent; border: none; cursor: pointer;
+        font-size: 1.6rem; line-height: 1; color: var(--text-muted);
+        width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+        border-radius: 8px; transition: background 0.15s ease, color 0.15s ease;
+    }
+    .sh-modal__close:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    .sh-modal__body { padding: 1.5rem; }
 
-        .btn-close {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 2rem;
-            cursor: pointer;
-            line-height: 1;
-            opacity: 0.6;
-            transition: opacity 0.2s ease;
-        }
+    .sh-modal__meta {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem 1.5rem;
+        padding: 1rem 1.25rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+    }
+    .sh-meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .sh-meta-label {
+        font-size: 0.72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .sh-meta-value { font-size: 0.9rem; font-weight: 600; color: var(--text); }
 
-        .btn-close:hover { opacity: 1; }
+    .sh-modal__section-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .sh-modal__section-title { margin: 0; font-size: 0.88rem; font-weight: 700; }
+    .sh-modal__section-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
-        .detail-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
+    .sh-table--modal th { background: rgba(255,255,255,0.025); }
 
-        .detail-section p { margin: 0.5rem 0; }
+    .sh-modal__total {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 1.25rem; padding: 0.9rem 1.25rem;
+        background: rgba(0, 212, 255, 0.08);
+        border: 1px solid rgba(0, 212, 255, 0.18);
+        border-radius: 10px;
+    }
+    .sh-modal__total-label {
+        font-size: 0.82rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .sh-modal__total-value {
+        font-size: 1.4rem; font-weight: 800;
+        color: var(--brand, #00d4ff); letter-spacing: -0.02em;
+    }
 
-        .detail-total {
-            text-align: right;
-            padding: 1rem;
-            background: rgba(0, 212, 255, 0.1);
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
+    .sh-modal__footer {
+        display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border);
+    }
+    .sh-modal__footer .btn {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+    }
 
-        .detail-total h3 { margin: 0; }
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 900px) {
+        .sh-stats-grid { grid-template-columns: repeat(3, 1fr); }
+        .sh-filter-grid { grid-template-columns: 1fr 1fr; }
+        .sh-filter-actions { grid-column: span 2; }
+    }
+    @media (max-width: 640px) {
+        .sh-page-header { flex-direction: column; align-items: flex-start; }
+        .sh-stats-grid  { grid-template-columns: 1fr; }
+        .sh-filter-grid { grid-template-columns: 1fr; }
+        .sh-filter-actions { grid-column: 1; }
+        .sh-modal__meta { grid-template-columns: 1fr; }
+        .sh-table th, .sh-table td { padding: 0.65rem 0.75rem; font-size: 0.8rem; }
+    }
 
-        /* Botones de paginacion compartidos */
-        .pg-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 32px;
-            height: 32px;
-            padding: 0 0.4rem;
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            background: transparent;
-            cursor: pointer;
-            font-size: 0.8rem;
-            color: inherit;
-            transition: background 0.15s, border-color 0.15s;
-        }
-
-        .pg-btn:hover:not(:disabled) {
-            background: rgba(0, 212, 255, 0.15);
-            border-color: rgba(0, 212, 255, 0.4);
-        }
-
-        .pg-btn.active {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: rgba(0, 212, 255, 0.6);
-            font-weight: 700;
-            color: #00d4ff;
-        }
-
-        .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-        .pg-ellipsis {
-            display: inline-flex;
-            align-items: center;
-            padding: 0 0.25rem;
-            color: rgba(255, 255, 255, 0.4);
-            user-select: none;
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 768px) {
-            .form-grid   { grid-template-columns: 1fr; }
-            .stats-grid  { grid-template-columns: 1fr; }
-            .table       { font-size: 0.875rem; }
-            .table th,
-            .table td    { padding: 0.75rem 0.5rem; }
-        }
-
-        @media print {
-            body * { visibility: hidden; }
-            .modal-content, .modal-content * { visibility: visible; }
-            .modal-content { position: absolute; left: 0; top: 0; width: 100%; }
-            .modal-header button, .modal-footer { display: none; }
-            #detail-pagination { display: none !important; }
-        }
+    /* ── Print ────────────────────────────────────── */
+    @media print {
+        body * { visibility: hidden; }
+        .sh-modal__panel, .sh-modal__panel * { visibility: visible; }
+        .sh-modal__panel { position: absolute; inset: 0; max-height: none; overflow: visible; }
+        .sh-modal__close, .sh-modal__footer, #detail-pagination { display: none !important; }
+    }
     </style>
 </body>
 </html>
