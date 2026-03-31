@@ -63,6 +63,10 @@ document.querySelectorAll('input[type="number"][max]').forEach(input => {
 // Envío del formulario via API
 document.getElementById('product-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  function clearInputs() {
+    document.querySelectorAll('input').forEach(input => input.value = '');
+  }
   
   // Limpiar errores previos
   document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
@@ -89,7 +93,8 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
     
     if (response.ok) {
       Notify.success('Producto agregado exitosamente');
-      setTimeout(() => window.location.href = '/', 1500);
+      // setTimeout(() => window.location.href = '/products/new', 1500);
+      clearInputs();
     } else {
       if (result.field) {
         const errorSpan = document.querySelector(`.field-error[data-field="${result.field}"]`);

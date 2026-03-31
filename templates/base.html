@@ -7,12 +7,187 @@
   <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
+<!-- sb-open class is toggled by JS after reading localStorage -->
 <body>
   {% import "components.html" as comp %}
 
+  <!-- ╔══════════════════════════════════════════════╗
+       ║  LEFT SIDEBAR                                ║
+       ╚══════════════════════════════════════════════╝ -->
+  <aside class="sb" id="sidebar" aria-label="Menú lateral" aria-hidden="true">
+
+    <!-- Sidebar brand/header -->
+    <div class="sb__head">
+      <a href="{{ url_for('dashboard.index') }}" class="sb__brand">
+        <span class="sb__brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+        </span>
+        Stockly
+      </a>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="sb__scroll">
+
+      <!-- ── Main Navigation ────────────────────── -->
+      <nav class="sb__nav" aria-label="Navegación principal">
+        <p class="sb__section-label">Menú</p>
+
+        <a href="{{ url_for('dashboard.index') }}" class="sb__item" data-match="/">
+          <span class="sb__item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </span>
+          Dashboard
+        </a>
+
+        <a href="{{ url_for('products.product_management') }}" class="sb__item" data-match="/product_management">
+          <span class="sb__item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          </span>
+          Inventario
+        </a>
+
+        <a href="{{ url_for('sales.sales') }}" class="sb__item" data-match="/sales">
+          <span class="sb__item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </span>
+          Ventas
+        </a>
+
+        <a href="{{ url_for('metrics.metrics') }}" class="sb__item" data-match="/metrics">
+          <span class="sb__item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+            </svg>
+          </span>
+          Métricas
+        </a>
+
+        {% if session.get('role') in ['admin', 'superadmin'] %}
+        <a href="{{ url_for('users.users') }}" class="sb__item" data-match="/users">
+          <span class="sb__item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            </svg>
+          </span>
+          Administración
+          <span class="sb__item-badge">Admin</span>
+        </a>
+        {% endif %}
+      </nav>
+
+      <!-- ── Quick Actions ──────────────────────── -->
+      <div class="sb__section">
+        <p class="sb__section-label">Acciones rápidas</p>
+
+        {% block sidebar_quick_actions %}
+        <!-- Default quick actions — child templates can override this block -->
+        <a href="{{ url_for('sales.sale_new') }}" class="sb__action">
+          <span class="sb__action-icon sb__action-icon--green">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </span>
+          Nueva venta
+        </a>
+
+        <a href="{{ url_for('products.product_new') }}" class="sb__action">
+          <span class="sb__action-icon sb__action-icon--blue">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </span>
+          Nuevo producto
+        </a>
+
+        <a href="{{ url_for('products.import_preview') }}" class="sb__action">
+          <span class="sb__action-icon sb__action-icon--purple">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </span>
+          Importar CSV
+        </a>
+        {% endblock %}
+      </div>
+
+    </div><!-- /sb__scroll -->
+
+    <!-- Sidebar footer — user menu (dropdown) -->
+    {% if session.get('user_id') %}
+    <div class="sb__foot">
+      <button class="sb__user-menu" id="user-menu-trigger" aria-label="Abrir menú de usuario" aria-expanded="false" aria-controls="user-menu">
+        <div class="sb__avatar">{{ (session.get('username') or 'U')[0].upper() }}</div>
+        <div class="sb__user-info">
+          <span class="sb__user-name">{{ session.get('username') }}</span>
+          <span class="sb__user-role">{{ session.get('role') }}</span>
+        </div>
+        <svg class="sb__menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <!-- Dropdown menu -->
+      <div class="sb__menu-dropdown" id="user-menu" role="menu" aria-hidden="true">
+        <a href="{{ url_for('settings.settings') }}" class="sb__menu-item" role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/>
+          </svg>
+          Configuración
+        </a>
+        <a href="{{ url_for('settings.settings') }}" class="sb__menu-item" role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          Perfil
+        </a>
+        <div class="sb__menu-divider"></div>
+        <a href="{{ url_for('auth.logout') }}" class="sb__menu-item sb__menu-item--danger" role="menuitem">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar sesión
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+  </aside>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div class="sb__backdrop" id="sb-backdrop" aria-hidden="true"></div>
+
+  <!-- ╔══════════════════════════════════════════════╗
+       ║  HEADER                                      ║
+       ╚══════════════════════════════════════════════╝ -->
   <header class="app-header">
     <div class="header-inner container">
+
+      <!-- Toggle button -->
+      <button class="sb__toggle" id="sb-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+        <span class="sb__toggle-bar"></span>
+        <span class="sb__toggle-bar"></span>
+        <span class="sb__toggle-bar"></span>
+      </button>
+
       <h1 class="brand"><a href="{{ url_for('dashboard.index') }}">Stockly</a></h1>
+
       <div class="nav-actions">
         {% if session.get('user_id') %}
         <div class="flex items-center gap-sm">
@@ -27,36 +202,41 @@
     </div>
   </header>
 
-  <main class="container">
+  <!-- ╔══════════════════════════════════════════════╗
+       ║  MAIN CONTENT                                ║
+       ╚══════════════════════════════════════════════╝ -->
+  <main class="container sb-main">
     {% block content %}{% endblock %}
+
     {% if show_back is not defined or show_back %}
     {% block back_button %}
     <div class="back-footer">
-      <a href="javascript:history.back()" class="btn btn-ghost">Volver atrás</a>
+      <a href="javascript:history.back()" class="btn btn-ghost btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Volver atrás
+      </a>
     </div>
     {% endblock %}
     {% endif %}
   </main>
 
-  <!-- Drawer / panel para formularios -->
+  <!-- ── Existing overlays (unchanged) ────────────── -->
   <div id="drawer" class="drawer hidden" aria-hidden="true">
     <div class="overlay" data-close="true"></div>
     <form id="item-form" class="card form-card" autocomplete="off">
       <h3 id="form-title" class="m-0 mb-lg">Nuevo producto</h3>
-      
       {{ comp.form_field('Nombre', 'name', required=true, maxlength=Limits.MAX_ITEMS_CHARACTERS) }}
       {{ comp.form_field('Stock', 'stock', type='number', min='0', max=Limits.MAX_STOCK_VALUE) }}
       {{ comp.form_field('SKU (opcional)', 'sku', maxlength=Limits.ITEM_BARCODE_MAX) }}
-      
       {{ comp.form_actions(cancel_id='btn-cancel') }}
       <input type="hidden" id="f-id" />
     </form>
   </div>
 
-  <!-- Toast de notificaciones -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-  <!-- Modal de detalles de producto -->
   <div id="product-modal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="overlay" data-close="true"></div>
     <article class="dialog card max-w-md">
@@ -81,5 +261,484 @@
   <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
+
+  <!-- ── Sidebar script (self-contained, no deps) ── -->
+  <script>
+  (function () {
+    'use strict';
+
+    var LS_KEY   = 'stockly_sb_open';
+    var DESKTOP  = 1024; // px breakpoint for persistent sidebar
+
+    var body     = document.body;
+    var sidebar  = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sb-backdrop');
+    var toggle   = document.getElementById('sb-toggle');
+
+    /* ── State ─────────────────────────────────── */
+    function isDesktop() { return window.innerWidth >= DESKTOP; }
+
+    function open() {
+      body.classList.add('sb-open');
+      sidebar.setAttribute('aria-hidden', 'false');
+      toggle.setAttribute('aria-expanded', 'true');
+      if (!isDesktop()) document.documentElement.style.overflow = 'hidden';
+      try { localStorage.setItem(LS_KEY, '1'); } catch(e) {}
+    }
+
+    function close() {
+      body.classList.remove('sb-open');
+      sidebar.setAttribute('aria-hidden', 'true');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.documentElement.style.overflow = '';
+      try { localStorage.setItem(LS_KEY, '0'); } catch(e) {}
+    }
+
+    function toggle_sb() {
+      if (body.classList.contains('sb-open')) close(); else open();
+    }
+
+    /* ── Restore ───────────────────────────────── */
+    (function restoreState() {
+      try {
+        var saved = localStorage.getItem(LS_KEY);
+        // Default: open on desktop, closed on mobile
+        var shouldOpen = saved !== null ? saved === '1' : isDesktop();
+        if (shouldOpen) open();
+      } catch(e) {}
+    })();
+
+    /* ── Active link ───────────────────────────── */
+    (function markActive() {
+      var path  = window.location.pathname;
+      var items = sidebar.querySelectorAll('.sb__item[data-match]');
+      var best  = null, bestLen = 0;
+
+      items.forEach(function(a) {
+        var match = a.getAttribute('data-match');
+        if (path.startsWith(match) && match.length > bestLen) {
+          best = a; bestLen = match.length;
+        }
+      });
+
+      if (best) best.classList.add('sb__item--active');
+    })();
+
+    /* ── Events ────────────────────────────────── */
+    toggle.addEventListener('click', toggle_sb);
+    backdrop.addEventListener('click', close);
+
+    // Close on mobile when navigating (same-page links)
+    sidebar.querySelectorAll('a').forEach(function(a) {
+      a.addEventListener('click', function() {
+        if (!isDesktop()) close();
+      });
+    });
+
+    // Keyboard: Escape closes
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && body.classList.contains('sb-open')) close();
+    });
+
+    // On resize: re-apply overflow rule
+    window.addEventListener('resize', function() {
+      if (isDesktop()) document.documentElement.style.overflow = '';
+    });
+
+    /* ── User Menu (Dropdown) ──────────────────── */
+    (function setupUserMenu() {
+      var trigger = document.getElementById('user-menu-trigger');
+      var menu = document.getElementById('user-menu');
+      if (!trigger || !menu) return;
+
+      // Toggle menu
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isOpen = trigger.getAttribute('aria-expanded') === 'true';
+        trigger.setAttribute('aria-expanded', !isOpen);
+        menu.setAttribute('aria-hidden', isOpen);
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener('click', function() {
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+      });
+
+      // Close menu when clicking inside (on a menu item)
+      menu.querySelectorAll('a').forEach(function(item) {
+        item.addEventListener('click', function() {
+          trigger.setAttribute('aria-expanded', 'false');
+          menu.setAttribute('aria-hidden', 'true');
+        });
+      });
+
+      // Close menu on Escape
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          trigger.setAttribute('aria-expanded', 'false');
+          menu.setAttribute('aria-hidden', 'true');
+        }
+      });
+    })();
+
+  })();
+  </script>
+
+  <style>
+  /* ══════════════════════════════════════════════
+     SIDEBAR — scoped to .sb prefix
+     Uses existing CSS variables ONLY
+     ══════════════════════════════════════════════ */
+
+  /* ── Layout shell ─────────────────────────────
+     The sidebar is fixed; .sb-main shifts right on
+     desktop when sidebar is open.
+  ───────────────────────────────────────────────*/
+  :root { --sb-w: 252px; --sb-transition: 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  /* Sidebar panel */
+  .sb {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sb-w);
+    z-index: 55;
+    display: flex; flex-direction: column;
+    background: var(--panel, #13141f);
+    border-right: 1px solid var(--border);
+    transform: translateX(calc(-1 * var(--sb-w)));
+    transition: transform var(--sb-transition), box-shadow var(--sb-transition);
+    will-change: transform;
+    overflow: hidden;
+  }
+
+  body.sb-open .sb {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.35);
+  }
+
+  /* Backdrop (mobile only) */
+  .sb__backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 54;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity var(--sb-transition);
+    pointer-events: none;
+  }
+
+  /* Desktop: push layout, hide backdrop */
+  @media (min-width: 1024px) {
+    .sb { box-shadow: none !important; }
+
+    .app-header,
+    .sb-main {
+      transition: margin-left var(--sb-transition);
+    }
+
+    body.sb-open .app-header,
+    body.sb-open .sb-main {
+      margin-left: var(--sb-w);
+    }
+
+    .sb__backdrop { display: none !important; }
+  }
+
+  /* Mobile: overlay mode, backdrop */
+  @media (max-width: 1023px) {
+    body.sb-open .sb__backdrop {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  /* ── Header ───────────────────────────────────── */
+  .sb__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 0.75rem;
+    height: 64px; /* matches app-header */
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.015);
+  }
+
+  .sb__brand {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 1rem; font-weight: 800; letter-spacing: -0.01em;
+    color: var(--text); text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+  .sb__brand:hover { opacity: 0.8; }
+
+  .sb__brand-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--brand, #00d4ff) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 25%, transparent);
+    color: var(--brand, #00d4ff);
+    flex-shrink: 0;
+  }
+
+  .sb__close {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px;
+    background: transparent; border: 1px solid transparent;
+    cursor: pointer; color: var(--text-muted);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .sb__close:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  /* ── Scroll area ──────────────────────────────── */
+  .sb__scroll {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 0.75rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .sb__scroll::-webkit-scrollbar { width: 4px; }
+  .sb__scroll::-webkit-scrollbar-track { background: transparent; }
+  .sb__scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Section labels ───────────────────────────── */
+  .sb__section-label {
+    margin: 0 0 0.35rem 0;
+    padding: 0 0.875rem;
+    font-size: 0.67rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); opacity: 0.55;
+  }
+
+  /* ── Nav ──────────────────────────────────────── */
+  .sb__nav { padding: 0.25rem 0 0.5rem; }
+  .sb__section { padding: 0.75rem 0 0.5rem; border-top: 1px solid var(--border); margin-top: 0.25rem; }
+
+  .sb__item {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.55rem 0.875rem;
+    margin: 0.1rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.875rem; font-weight: 500; color: var(--text-muted);
+    text-decoration: none;
+    transition: background 0.12s ease, color 0.12s ease;
+    position: relative;
+  }
+  .sb__item:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+  }
+  .sb__item--active {
+    background: color-mix(in srgb, var(--brand, #00d4ff) 10%, transparent);
+    color: var(--brand, #00d4ff) !important;
+    font-weight: 600;
+  }
+  .sb__item--active::before {
+    content: '';
+    position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 3px; border-radius: 0 2px 2px 0;
+    background: var(--brand, #00d4ff);
+    margin-left: -0.5rem;
+  }
+
+  .sb__item-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    background: rgba(255,255,255,0.05);
+    transition: background 0.12s ease;
+  }
+  .sb__item:hover .sb__item-icon,
+  .sb__item--active .sb__item-icon {
+    background: color-mix(in srgb, var(--brand, #00d4ff) 12%, transparent);
+  }
+
+  .sb__item-badge {
+    margin-left: auto;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px; font-size: 0.65rem; font-weight: 700;
+    background: color-mix(in srgb, var(--brand, #00d4ff) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 25%, transparent);
+    color: var(--brand, #00d4ff);
+  }
+
+  /* ── Quick Actions ────────────────────────────── */
+  .sb__action {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.5rem 0.875rem;
+    margin: 0.1rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.825rem; font-weight: 500; color: var(--text-muted);
+    text-decoration: none;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .sb__action:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+  .sb__action-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+  }
+  .sb__action-icon--green {
+    background: color-mix(in srgb, var(--success, #10b981) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--success, #10b981) 25%, transparent);
+    color: var(--success, #10b981);
+  }
+  .sb__action-icon--blue {
+    background: color-mix(in srgb, var(--brand, #00d4ff) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 23%, transparent);
+    color: var(--brand, #00d4ff);
+  }
+  .sb__action-icon--purple {
+    background: rgba(124, 111, 255, 0.13);
+    border: 1px solid rgba(124, 111, 255, 0.23);
+    color: #7c6fff;
+  }
+  .sb__action-icon--red {
+    background: color-mix(in srgb, var(--danger, #ef4444) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 23%, transparent);
+    color: var(--danger, #ef4444);
+  }
+  .sb__action-icon--orange {
+    background: color-mix(in srgb, var(--warning, #f59e0b) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 23%, transparent);
+    color: var(--warning, #f59e0b);
+  }
+
+  .sb__foot {
+    flex-shrink: 0;
+    display: flex; align-items: center;
+    padding: 0.75rem 0.75rem;
+    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+    position: relative;
+  }
+
+  /* ── User Menu Button ────────────────────────── */
+  .sb__user-menu {
+    width: 100%; display: flex; align-items: center; gap: 0.65rem;
+    padding: 0; background: transparent; border: none;
+    border-radius: 8px; cursor: pointer;
+    font-family: inherit; color: inherit;
+    transition: background 0.15s ease;
+    position: relative;
+  }
+  .sb__user-menu:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .sb__user-menu[aria-expanded="true"] {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .sb__menu-chevron {
+    margin-left: auto; flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform 0.22s ease;
+  }
+  .sb__user-menu[aria-expanded="true"] .sb__menu-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* ── Dropdown Menu ────────────────────────────── */
+  .sb__menu-dropdown {
+    position: absolute; bottom: calc(100% + 0.75rem); left: 0.75rem; right: 0.75rem;
+    z-index: 100;
+    background: var(--panel, #13141f);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    overflow: hidden;
+  }
+  .sb__user-menu[aria-expanded="true"] + .sb__menu-dropdown {
+    opacity: 1; pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .sb__menu-item {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.7rem 0.875rem;
+    font-size: 0.85rem; font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: background 0.12s ease, color 0.12s ease;
+    border: none;
+  }
+  .sb__menu-item:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .sb__menu-item--danger {
+    color: var(--danger, #ef4444);
+  }
+  .sb__menu-item--danger:hover {
+    background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+  }
+
+  .sb__menu-divider {
+    height: 1px; background: var(--border);
+    margin: 0.35rem 0;
+  }
+
+  /* ── Avatar styling (also used in menu) ───────── */
+
+  /* ── Avatar styling (also used in menu) ───────── */
+  .sb__avatar {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 800;
+    background: color-mix(in srgb, var(--brand, #00d4ff) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 28%, transparent);
+    color: var(--brand, #00d4ff);
+  }
+
+  .sb__user-info { 
+    flex: 1; min-width: 0; 
+    display: flex; flex-direction: column; gap: 0.15rem; 
+  }
+  .sb__user-name {
+    font-size: 0.8rem; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sb__user-role {
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-muted); opacity: 0.75;
+  }
+
+  /* ── Toggle button (in header) ────────────────── */
+  .sb__toggle {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 36px; height: 36px; padding: 6px;
+    background: transparent; border: 1px solid transparent; border-radius: 9px;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .sb__toggle:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--border);
+  }
+  .sb__toggle-bar {
+    display: block; height: 2px; border-radius: 2px;
+    background: var(--text-muted);
+    transition: transform 0.22s ease, opacity 0.22s ease, width 0.22s ease;
+    transform-origin: center;
+  }
+  /* Animate into X when open */
+  body.sb-open .sb__toggle .sb__toggle-bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  body.sb-open .sb__toggle .sb__toggle-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  body.sb-open .sb__toggle .sb__toggle-bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* ── Responsive tweaks ────────────────────────── */
+  @media (max-width: 1023px) {
+    /* On mobile, sidebar slides over content */
+    body.sb-open .app-header,
+    body.sb-open .sb-main { margin-left: 0 !important; }
+  }
+  </style>
 </body>
 </html>

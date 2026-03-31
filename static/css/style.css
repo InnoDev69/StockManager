@@ -366,6 +366,12 @@ a, h1, h2, h3, h4, h5, h6, p, label, small, span { font-family: inherit; }
 }
 .back-footer .btn {
   min-width: 160px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; }

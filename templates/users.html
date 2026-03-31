@@ -751,27 +751,15 @@ function formatDate(str) {
 }
 
 function showToast(msg, type = "success") {
-  const colors = {
-    success: "var(--success)", danger: "var(--danger)",
-    warning: "#f59e0b",        info:   "var(--brand)"
-  };
-  const t = document.createElement("div");
-  t.style.cssText = `
-    pointer-events:auto; display:flex; align-items:center; gap:.6rem;
-    padding:.75rem 1rem; border-radius:10px; font-size:.875rem; font-weight:500;
-    background:var(--card); border:1px solid ${colors[type] || colors.info};
-    color:var(--text); box-shadow:var(--shadow-md); min-width:240px;
-    animation:slideUp .2s ease;`;
-  t.innerHTML = `
-    <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
-                 background:${colors[type]};"></span>
-    <span style="flex:1">${msg}</span>
-    <button onclick="this.parentElement.remove()"
-            style="background:none;border:none;cursor:pointer;color:var(--text-muted);
-                   padding:0;font-size:1rem;line-height:1;">×</button>`;
-  document.getElementById("toastContainer").appendChild(t);
-  setTimeout(() => t.style.opacity = 0, 3600);
-  setTimeout(() => t.remove(), 4000);
+  if (type === "success"){
+    NotificationManager.success(msg);
+  }
+  else if (type === "danger"){
+    NotificationManager.error(msg);
+  }
+  else if (type === "warning"){
+    NotificationManager.warning(msg);
+  }
 }
 
 loadUsers();
