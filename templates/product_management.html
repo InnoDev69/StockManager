@@ -4,9 +4,25 @@
 
 {% block content %}
 <!-- Header -->
-<header style="margin-bottom: 1.5rem;">
-  <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">Administrar Productos</h1>
-  <p class="text-muted" style="margin: 0;">Edita, elimina o gestiona el inventario completo</p>
+<header style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; justify-content: space-between;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+      <span style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand);">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </span>
+      <h1 style="margin: 0; font-size: 1.75rem; font-weight: 700;">Administrar Productos</h1>
+    </div>
+    <p class="text-muted" style="margin: 0; margin-left: 3rem;">Edita, elimina o gestiona el inventario completo</p>
+  </div>
+  <a href="{{ url_for('products.product_new') }}" class="btn" style="display: flex; align-items: center; gap: 6px; --btn-bg: var(--brand); --btn-bg-2: #4338ca;">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Nuevo producto
+  </a>
 </header>
 
 <!-- Barra de búsqueda y filtros -->
@@ -161,7 +177,14 @@
   <div class="overlay" onclick="closeEditModal()"></div>
   <div class="dialog card" style="width: min(650px, 90vw); max-height: 90vh; overflow-y: auto;">
     <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); z-index: 10;">
-      <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Editar Producto</h3>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand);">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </span>
+        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Editar Producto</h3>
+      </div>
       <button class="btn-ghost close-btn" onclick="closeEditModal()" style="padding: 0.5rem;">✕</button>
     </header>
     <form id="edit-form" style="padding: 1.25rem; display: grid; gap: 1rem;">
@@ -242,7 +265,14 @@
   <div class="overlay" onclick="closeNewAttributeModal()"></div>
   <div class="dialog card" style="width: min(450px, 90vw);">
     <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border);">
-      <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Nuevo Atributo</h3>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success);">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </span>
+        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Nuevo Atributo</h3>
+      </div>
       <button class="btn-ghost close-btn" onclick="closeNewAttributeModal()" style="padding: 0.5rem;">✕</button>
     </header>
     <form id="new-attribute-form" style="padding: 1.25rem; display: grid; gap: 1rem;">
@@ -285,7 +315,7 @@
   <div class="overlay" onclick="closeDeleteModal()"></div>
   <div class="dialog card" style="width: min(420px, 90vw); text-align: center;">
     <div style="padding: 2rem;">
-      <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+      <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: color-mix(in srgb, var(--danger) 12%, transparent); display: flex; align-items: center; justify-content: center;">
         <svg style="width: 32px; height: 32px; color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
         </svg>
@@ -327,7 +357,14 @@
   <div class="overlay" onclick="closeStockModal()"></div>
   <div class="dialog card" style="width: min(380px, 90vw);">
     <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Ajustar Stock</h3>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning);">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 0 1 0 2.828l-7 7a2 2 0 0 1-2.828 0l-7-7A1.994 1.994 0 0 1 3 12V7a4 4 0 0 1 4-4z"/><circle cx="7" cy="7" r=".5"/>
+          </svg>
+        </span>
+        <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Ajustar Stock</h3>
+      </div>
       <button class="btn-ghost close-btn" onclick="closeStockModal()" style="padding: 0.5rem;">✕</button>
     </header>
     <div style="padding: 1.25rem;">
@@ -369,8 +406,9 @@
   .status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 12px;
+    gap: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -378,27 +416,27 @@
   }
 
   .status-badge.in-stock {
-    background: rgba(16, 185, 129, 0.1);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
     color: var(--success);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
   }
 
   .status-badge.low-stock {
-    background: rgba(245, 158, 11, 0.1);
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
     color: var(--warning);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
   }
 
   .status-badge.out-of-stock {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
     color: var(--danger);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
   }
 
   .action-btn {
     padding: 0.5rem;
     border-radius: 6px;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -411,9 +449,9 @@
   .action-btn.edit  { color: var(--brand); }
   .action-btn.stock { color: var(--success); }
   .action-btn.delete { color: var(--danger); }
-  .action-btn:hover.edit   { background: rgba(79, 70, 229, 0.1); }
-  .action-btn:hover.stock  { background: rgba(16, 185, 129, 0.1); }
-  .action-btn:hover.delete { background: rgba(239, 68, 68, 0.1); }
+  .action-btn:hover.edit   { background: color-mix(in srgb, var(--brand) 12%, transparent); border-color: color-mix(in srgb, var(--brand) 25%, transparent); }
+  .action-btn:hover.stock  { background: color-mix(in srgb, var(--success) 12%, transparent); border-color: color-mix(in srgb, var(--success) 25%, transparent); }
+  .action-btn:hover.delete { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
 
   .modal .dialog {
     animation: modalSlideIn 0.2s ease;
@@ -585,11 +623,12 @@
 
   .alert-error {
     padding: 0.75rem 1rem;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
     border-radius: 6px;
     color: var(--danger);
     font-size: 0.875rem;
+    font-weight: 500;
   }
 </style>
 
