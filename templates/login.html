@@ -5,311 +5,471 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stockly - Login</title>
     <style>
-        :root{
+        :root {
           --bg: #0b0f12;
           --card: #0f1720;
-          --accent: #00d1ff;
+          --accent: #544ee8;
           --muted: #94a3b8;
           --text: #e6f0f6;
           --glass: rgba(255,255,255,0.03);
           --border: rgba(255,255,255,0.04);
           --danger: #ff6b6b;
         }
-        html,body{
-          height:100%;
-          margin:0;
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
+          height: 100%;
+          margin: 0;
           font-family: Inter, system-ui, Arial, sans-serif;
-          background: linear-gradient(180deg,var(--bg), #081018 80%);
-          color:var(--text);
-          -webkit-font-smoothing:antialiased;
-          -moz-osx-font-smoothing:grayscale;
+          background: var(--bg);
+          color: var(--text);
+          -webkit-font-smoothing: antialiased;
+          overflow-x: hidden;
         }
-        .header-inner{
-          display:flex;
-          align-items:center;
-          gap:1rem;
-          max-width:980px;
-          margin:0 auto;
+
+        /* ── Abstract background ─────────────────── */
+        .bg-scene {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          overflow: hidden;
+          background: radial-gradient(ellipse 120% 80% at 60% -10%, #0d0b1e 0%, var(--bg) 55%);
         }
-        header{
+
+        /* Floating glass orbs */
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(1px);
+          animation: float linear infinite;
+          will-change: transform;
+        }
+
+        /* Large translucent circles */
+        .orb-1 {
+          width: 420px; height: 420px;
+          top: -100px; left: -80px;
+          background: radial-gradient(circle at 35% 35%,
+            rgba(84, 78, 232, 0.10) 0%,
+            rgba(60, 50, 180, 0.06) 40%,
+            transparent 70%);
+          border: 1px solid rgba(84, 78, 232, 0.07);
+          animation-duration: 22s;
+          animation-delay: 0s;
+        }
+        .orb-2 {
+          width: 560px; height: 560px;
+          top: 30%; right: -180px;
+          background: radial-gradient(circle at 60% 40%,
+            rgba(84, 78, 232, 0.08) 0%,
+            rgba(120, 80, 220, 0.05) 45%,
+            transparent 70%);
+          border: 1px solid rgba(100, 80, 220, 0.06);
+          animation-duration: 30s;
+          animation-delay: -8s;
+        }
+        .orb-3 {
+          width: 300px; height: 300px;
+          bottom: -60px; left: 25%;
+          background: radial-gradient(circle at 50% 50%,
+            rgba(60, 40, 160, 0.10) 0%,
+            rgba(84, 78, 232, 0.05) 50%,
+            transparent 70%);
+          border: 1px solid rgba(84, 78, 232, 0.06);
+          animation-duration: 18s;
+          animation-delay: -5s;
+        }
+
+        /* Medium glass panels (rotated rectangles) */
+        .panel {
+          position: absolute;
+          border-radius: 28px;
+          backdrop-filter: blur(0px);
+          animation: drift linear infinite;
+          will-change: transform;
+        }
+        .panel-1 {
+          width: 220px; height: 320px;
+          top: 12%; left: 8%;
+          background: linear-gradient(135deg,
+            rgba(255,255,255,0.025) 0%,
+            rgba(84, 78, 232, 0.025) 50%,
+            transparent 100%);
+          border: 1px solid rgba(255,255,255,0.045);
+          transform: rotate(-18deg);
+          animation-duration: 26s;
+          animation-delay: -3s;
+        }
+        .panel-2 {
+          width: 160px; height: 240px;
+          top: 55%; right: 6%;
+          background: linear-gradient(135deg,
+            rgba(255,255,255,0.02) 0%,
+            rgba(100, 80, 220, 0.025) 60%,
+            transparent 100%);
+          border: 1px solid rgba(255,255,255,0.035);
+          transform: rotate(12deg);
+          animation-duration: 20s;
+          animation-delay: -11s;
+        }
+        .panel-3 {
+          width: 100px; height: 160px;
+          top: 5%; right: 22%;
+          background: linear-gradient(135deg,
+            rgba(84, 78, 232, 0.05) 0%,
+            rgba(255,255,255,0.015) 100%);
+          border: 1px solid rgba(84, 78, 232, 0.07);
+          transform: rotate(30deg);
+          animation-duration: 15s;
+          animation-delay: -7s;
+        }
+        .panel-4 {
+          width: 80px; height: 120px;
+          bottom: 18%; left: 10%;
+          background: linear-gradient(135deg,
+            rgba(255,255,255,0.02) 0%,
+            rgba(84, 78, 232, 0.035) 100%);
+          border: 1px solid rgba(255,255,255,0.04);
+          transform: rotate(-8deg);
+          animation-duration: 24s;
+          animation-delay: -15s;
+        }
+
+        /* Thin line accents */
+        .line {
+          position: absolute;
+          background: linear-gradient(90deg, transparent, rgba(84, 78, 232, 0.18), transparent);
+          height: 1px;
+          animation: slideLine linear infinite;
+        }
+        .line-1 { width: 500px; top: 28%; left: -100px; animation-duration: 20s; animation-delay: 0s; transform: rotate(-6deg); }
+        .line-2 { width: 380px; top: 62%; right: -80px; animation-duration: 25s; animation-delay: -10s; transform: rotate(4deg); }
+        .line-3 { width: 280px; top: 80%; left: 5%; animation-duration: 18s; animation-delay: -6s; transform: rotate(-12deg); }
+
+        /* Small floating dots */
+        .dot {
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(124, 118, 255, 0.22);
+          animation: blink ease-in-out infinite;
+        }
+        .dot-1 { width: 5px; height: 5px; top: 20%; left: 30%; animation-duration: 4s; animation-delay: 0s; }
+        .dot-2 { width: 3px; height: 3px; top: 45%; left: 70%; animation-duration: 6s; animation-delay: -2s; }
+        .dot-3 { width: 4px; height: 4px; top: 70%; left: 55%; animation-duration: 5s; animation-delay: -1s; }
+        .dot-4 { width: 3px; height: 3px; top: 15%; right: 35%; animation-duration: 7s; animation-delay: -3s; }
+        .dot-5 { width: 5px; height: 5px; top: 85%; right: 20%; animation-duration: 4.5s; animation-delay: -1.5s; }
+
+        @keyframes float {
+          0%   { transform: translateY(0px) translateX(0px); }
+          25%  { transform: translateY(-18px) translateX(10px); }
+          50%  { transform: translateY(-8px) translateX(20px); }
+          75%  { transform: translateY(-24px) translateX(5px); }
+          100% { transform: translateY(0px) translateX(0px); }
+        }
+        @keyframes drift {
+          0%   { transform: rotate(var(--r, -18deg)) translateY(0); }
+          33%  { transform: rotate(var(--r, -18deg)) translateY(-14px); }
+          66%  { transform: rotate(var(--r, -18deg)) translateY(-6px); }
+          100% { transform: rotate(var(--r, -18deg)) translateY(0); }
+        }
+        @keyframes slideLine {
+          0%   { opacity: 0.4; transform: translateX(0) rotate(var(--a, -6deg)); }
+          50%  { opacity: 0.8; transform: translateX(40px) rotate(var(--a, -6deg)); }
+          100% { opacity: 0.4; transform: translateX(0) rotate(var(--a, -6deg)); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50%       { opacity: 0.8; transform: scale(1.4); }
+        }
+
+        /* ── Header (hidden) ─────────────────────── */
+        header {
+          display: none;
+          position: relative; z-index: 10;
           background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
-          padding:1rem 1.5rem;
-          border-bottom:1px solid var(--border);
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid var(--border);
           backdrop-filter: blur(6px);
         }
-        h1{
-          margin:0;
-          font-size:1.125rem;
-          color:var(--accent);
-          letter-spacing:0.2px;
+        .header-inner {
+          display: flex; align-items: center; gap: 1rem;
+          max-width: 980px; margin: 0 auto;
         }
-        .btn{
-          display:inline-block;
-          padding:0.45rem 0.8rem;
-          border-radius:8px;
-          background:var(--accent);
-          color:#041018;
-          font-weight:600;
-          text-decoration:none;
-          border: none;
-          cursor: pointer;
-          transition: transform .08s ease, box-shadow .08s ease, opacity .12s ease;
+        h1 {
+          margin: 0; font-size: 1.125rem;
+          color: var(--accent); letter-spacing: 0.2px;
         }
-        .btn:hover{
-          opacity: 0.9;
-        }
-        .btn:active{ 
-          transform: translateY(1px);
-        }
-        .btn-ghost{
-          background:transparent;
-          color:var(--text);
-          border:1px solid var(--glass);
-        }
-        .text-muted{ 
-          color:var(--muted);
-        }
-        .card{
-          background: linear-gradient(180deg, var(--card), rgba(15,23,32,0.98));
-          padding:1.5rem;
-          border-radius:10px;
-          box-shadow: 0 6px 18px rgba(2,6,23,0.6);
-          border: 1px solid var(--glass);
-        }
-        .hidden{ 
-          display:none !important;
-        }
-        .field{ 
-          display:block;
-          margin:0.8rem 0;
-        }
-        .field .label{ 
-          display:block;
-          color:var(--muted);
-          font-size:0.875rem;
-          margin-bottom:6px;
-          font-weight: 500;
-        }
-        .field input{
-          width:100%;
-          padding:0.7rem;
-          background:transparent;
-          border:1px solid var(--glass);
-          color:var(--text);
-          border-radius:8px;
-          font-size:0.95rem;
-          box-sizing: border-box;
-        }
-        .field input:focus{
-          outline: none;
-          border-color: var(--accent);
-          box-shadow: 0 0 0 2px rgba(0,209,255,0.1);
-        }
-        .form-actions{ 
-          display:flex;
-          gap:0.6rem;
-          margin-top:1.2rem;
-        }
-        .form-actions .btn{
-          flex: 1;
-        }
-        .auth-container{
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: calc(100vh - 80px);
+
+        /* ── Auth layout ─────────────────────────── */
+        .auth-container {
+          position: relative; z-index: 10;
+          display: flex; align-items: center; justify-content: center;
+          min-height: 100vh;
           padding: 20px;
         }
-        .auth-card{
-          width: 100%;
-          max-width: 420px;
+        .auth-card {
+          width: 100%; max-width: 420px;
         }
-        .auth-card h2{
-          margin: 0 0 0.5rem 0;
-          font-size: 1.5rem;
+
+        /* ── Card ────────────────────────────────── */
+        .card {
+          background: linear-gradient(145deg,
+            rgba(15,23,32,0.92) 0%,
+            rgba(10,16,24,0.96) 100%);
+          padding: 2rem;
+          border-radius: 16px;
+          box-shadow:
+            0 0 0 1px rgba(84, 78, 232, 0.12),
+            0 8px 32px rgba(0,0,0,0.55),
+            0 2px 8px rgba(0,0,0,0.4),
+            inset 0 1px 0 rgba(255,255,255,0.045);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+
+        /* ── Brand inside card ───────────────────── */
+        .card-brand {
+          display: inline-flex; align-items: center; gap: 0.45rem;
+          font-size: 0.78rem; font-weight: 800;
+          text-transform: uppercase; letter-spacing: 0.12em;
+          color: rgba(84, 78, 232, 0.9);
+          margin-bottom: 1.1rem;
+        }
+        .card-brand::before {
+          content: '';
+          display: inline-block;
+          width: 8px; height: 8px; border-radius: 3px;
+          background: linear-gradient(135deg, #544ee8, #7c77f0);
+        }
+
+        /* Card inner top accent line */
+        .card::before {
+          content: '';
+          display: block;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(84, 78, 232, 0.35), transparent);
+          margin: -2rem -2rem 1.75rem;
+        }
+
+        .auth-card h2 {
+          margin: 0 0 0.35rem 0;
+          font-size: 1.45rem; font-weight: 700;
           color: var(--text);
+          letter-spacing: -0.02em;
         }
-        .auth-card p{
+        .auth-card p {
           margin: 0 0 1.5rem 0;
-          color: var(--muted);
-          font-size: 0.9rem;
+          color: var(--muted); font-size: 0.875rem;
         }
-        .toggle-text{
-          text-align: center;
-          margin-top: 1rem;
-          font-size: 0.9rem;
+
+        /* ── Fields ──────────────────────────────── */
+        .field {
+          display: block; margin: 0.85rem 0;
         }
-        .toggle-text a{
-          color: var(--accent);
-          text-decoration: none;
+        .field .label {
+          display: block; color: var(--muted);
+          font-size: 0.78rem; font-weight: 600;
+          text-transform: uppercase; letter-spacing: 0.06em;
+          margin-bottom: 7px;
+        }
+        .field input, .field select {
+          width: 100%;
+          padding: 0.7rem 0.85rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.07);
+          color: var(--text);
+          border-radius: 10px;
+          font-size: 0.925rem;
+          transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+        .field input:focus, .field select:focus {
+          outline: none;
+          border-color: rgba(84, 78, 232, 0.55);
+          background: rgba(84, 78, 232, 0.05);
+          box-shadow: 0 0 0 3px rgba(84, 78, 232, 0.14);
+        }
+        .field input::placeholder { color: rgba(148,163,184,0.45); }
+
+        select {
+          -webkit-appearance: none; appearance: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2394a3b8' d='M7 10l5 5 5-5z'/></svg>");
+          background-repeat: no-repeat;
+          background-position: right 10px center;
+          background-size: 14px;
           cursor: pointer;
-          font-weight: 600;
         }
-        .toggle-text a:hover{
-          text-decoration: underline;
+        select option { background-color: #0f1720; color: var(--text); }
+
+        /* ── Buttons ─────────────────────────────── */
+        .btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          padding: 0.65rem 1rem;
+          border-radius: 10px;
+          font-size: 0.9rem; font-weight: 700;
+          border: none; cursor: pointer;
+          transition: transform .08s ease, filter .12s ease, box-shadow .12s ease;
+          text-decoration: none;
         }
-        .alert{
-          padding: 0.75rem;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-          font-size: 0.9rem;
+        .btn-primary {
+          background: linear-gradient(180deg, #544ee8, #3f3ab8);
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(84, 78, 232, 0.35);
         }
-        .alert-error{
-          background: rgba(255,107,107,0.1);
-          border: 1px solid rgba(255,107,107,0.3);
+        .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 6px 22px rgba(84, 78, 232, 0.45); }
+        .btn-primary:active { transform: translateY(1px); }
+
+        .form-actions { display: flex; gap: 0.6rem; margin-top: 1.5rem; }
+        .form-actions .btn { flex: 1; }
+
+        /* ── Forgot / toggle ─────────────────────── */
+        .change-password {
+          text-align: right; margin-top: 0.5rem;
+        }
+        .change-password a {
+          color: var(--muted); font-size: 0.82rem;
+          text-decoration: none; transition: color .15s ease;
+        }
+        .change-password a:hover { color: #7c77f0; }
+
+        .toggle-text {
+          text-align: center; margin-top: 1.25rem;
+          font-size: 0.875rem; color: var(--muted);
+        }
+        .toggle-text a {
+          color: #7c77f0; text-decoration: none;
+          cursor: pointer; font-weight: 600;
+          transition: opacity .15s ease;
+        }
+        .toggle-text a:hover { opacity: 0.8; text-decoration: underline; }
+
+        /* ── Alerts ──────────────────────────────── */
+        .alert {
+          padding: 0.7rem 0.9rem;
+          border-radius: 8px; margin-bottom: 1rem;
+          font-size: 0.875rem;
+        }
+        .alert-error {
+          background: rgba(255,107,107,0.08);
+          border: 1px solid rgba(255,107,107,0.25);
           color: var(--danger);
         }
-        .alert-success{
-          background: rgba(0,209,255,0.1);
-          border: 1px solid rgba(0,209,255,0.3);
+        .alert-success {
+          background: rgba(0,209,255,0.08);
+          border: 1px solid rgba(0,209,255,0.2);
           color: var(--accent);
         }
-        @media (max-width:600px){
-          .auth-container{
-            padding: 12px;
-          }
-          header{
-            padding: 0.8rem 1rem;
-          }
-        }
-        /* Select dark / contrastante (estilo minimalista) */
-        select {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 100%;
-        padding: 0.6rem 2.8rem 0.6rem 0.6rem; /* espacio para el icono a la derecha */
-        background: transparent;
-        border: 1px solid var(--glass);
-        color: var(--text);
-        border-radius: 8px;
-        font-size: 0.95rem;
-        box-sizing: border-box;
-        transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
-        /* icono de flecha (SVG embebido). color concordante con --text */
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23e6f0f6' d='M7 10l5 5 5-5z'/></svg>");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        background-size: 12px 12px;
-        cursor: pointer;
+        .hidden { display: none !important; }
+
+        /* ── Divider between fields ──────────────── */
+        .fields-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+          margin: 1.25rem 0;
         }
 
-        /* Quitar flecha nativa en IE/Edge */
-        select::-ms-expand { display: none; }
-
-        /* For Firefox focus ring fix */
-        select:-moz-focusring { color: transparent; text-shadow: 0 0 0 var(--text); }
-
-        /* Estilos para las opciones del desplegable (aplica en la mayoría de navegadores) */
-        select option,
-        select optgroup {
-        background-color: var(--card); /* fondo oscuro */
-        color: var(--text);            /* texto claro */
+        @media (max-width: 600px) {
+          .auth-container { padding: 12px; }
+          header { padding: 0.8rem 1rem; }
+          .card { padding: 1.5rem; }
+          .card::before { margin: -1.5rem -1.5rem 1.5rem; }
         }
-
-        /* Estado seleccionado / hover en opciones (otros navegadores usan esto) */
-        select option:checked,
-        select option:hover {
-        background-color: rgba(0,209,255,0.12); /* acento sutil */
-        color: var(--text);
-        }
-
-        /* Focus */
-        select:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 4px 18px rgba(0,209,255,0.08);
-        }
-
-        /* Disabled / read-only */
-        select:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        }
-
-        /* Ajustes móviles */
-        @media (max-width: 420px) {
-        select {
-            padding-right: 2.6rem;
-            background-position: right 8px center;
-        }
-        }
-
     </style>
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <h1>Stockly</h1>
-        </div>
-    </header>
 
+    <!-- ── Abstract background scene ──────────────── -->
+    <div class="bg-scene" aria-hidden="true">
+        <!-- Orbs -->
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <!-- Glass panels -->
+        <div class="panel panel-1"></div>
+        <div class="panel panel-2"></div>
+        <div class="panel panel-3"></div>
+        <div class="panel panel-4"></div>
+        <!-- Line accents -->
+        <div class="line line-1"></div>
+        <div class="line line-2"></div>
+        <div class="line line-3"></div>
+        <!-- Dots -->
+        <div class="dot dot-1"></div>
+        <div class="dot dot-2"></div>
+        <div class="dot dot-3"></div>
+        <div class="dot dot-4"></div>
+        <div class="dot dot-5"></div>
+    </div>
+
+
+    <!-- ── Auth forms ───────────────────────────────── -->
     <div class="auth-container">
         <div class="auth-card">
-            <!-- Login Form -->
+
+            <!-- Login -->
             <div id="loginForm" class="card">
-                <h2>Iniciar Sesión</h2>
-                <p class="text-muted">Ingresa a tu cuenta de Stockly</p>
-                
+                <div class="card-brand">Stockly</div>
+                <h2>Bienvenido</h2>
+                <p>Ingresa a tu cuenta de Stockly</p>
+
                 {% if error %}
                 <div class="alert alert-error">{{ error }}</div>
                 {% endif %}
 
                 <form method="POST" action="/login">
                     <div class="field">
-                        <label class="label" for="login-email">Email</label>
-                        <input type="user" id="login-user" name="user" required placeholder="Usuario", max="{{Limits.USER_EMAIL_MAX}}">
+                        <label class="label" for="login-user">Usuario</label>
+                        <input type="text" id="login-user" name="user" required placeholder="Tu usuario" max="{{Limits.USER_EMAIL_MAX}}">
                     </div>
-                    
                     <div class="field">
                         <label class="label" for="login-password">Contraseña</label>
-                        <input type="password" id="login-password" name="password" required placeholder="••••••••", max="{{Limits.USER_PASSWORD_MAX}}">
+                        <input type="password" id="login-password" name="password" required placeholder="••••••••" max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
-
                     <div class="change-password">
-                        <a href="/reset-password" class="text-muted">¿Olvidaste tu contraseña?</a>
+                        <a href="/reset-password">¿Olvidaste tu contraseña?</a>
                     </div>
-                    
                     <div class="form-actions">
-                        <button type="submit" class="btn">Ingresar</button>
+                        <button type="submit" class="btn btn-primary">Ingresar</button>
                     </div>
                 </form>
-                
+
                 <div class="toggle-text">
-                    <span class="text-muted">¿No tienes cuenta? </span>
+                    <span>¿No tienes cuenta? </span>
                     <a onclick="toggleForms()">Regístrate aquí</a>
                 </div>
             </div>
 
-            <!-- Register Form -->
+            <!-- Register -->
             <div id="registerForm" class="card hidden">
-                <h2>Crear Cuenta</h2>
-                <p class="text-muted">Regístrate para empezar a gestionar tu inventario</p>
-                
+                <div class="card-brand">Stockly</div>
+                <h2>Crear cuenta</h2>
+                <p>Regístrate para gestionar tu inventario</p>
+
                 {% if error %}
                 <div class="alert alert-error">{{ error }}</div>
                 {% endif %}
-                
+
                 <form method="POST" action="/register">
                     <div class="field">
                         <label class="label" for="register-name">Nombre completo</label>
-                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez", max="{{Limits.USER_NAME_MAX}}">
+                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez" max="{{Limits.USER_NAME_MAX}}">
                     </div>
-                    
                     <div class="field">
                         <label class="label" for="register-email">Email</label>
                         <input type="email" id="register-email" name="email" required placeholder="tu@email.com" max="{{Limits.USER_EMAIL_MAX}}">
                     </div>
-                    
+
+                    <div class="fields-divider"></div>
+
                     <div class="field">
                         <label class="label" for="register-password">Contraseña</label>
                         <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
-                    
                     <div class="field">
                         <label class="label" for="register-confirm">Confirmar contraseña</label>
                         <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}">
                     </div>
-
                     <div class="field">
                         <label class="label" for="register-role">Rol</label>
                         <select id="register-role" name="role" required>
@@ -317,33 +477,27 @@
                             <option value="admin">Administrador</option>
                         </select>
                     </div>
-                    
                     <div class="form-actions">
-                        <button type="submit" class="btn">Crear cuenta</button>
+                        <button type="submit" class="btn btn-primary">Crear cuenta</button>
                     </div>
                 </form>
-                
+
                 <div class="toggle-text">
-                    <span class="text-muted">¿Ya tienes cuenta? </span>
+                    <span>¿Ya tienes cuenta? </span>
                     <a onclick="toggleForms()">Inicia sesión aquí</a>
                 </div>
             </div>
+
         </div>
     </div>
 
     <script>
         function toggleForms() {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            
-            loginForm.classList.toggle('hidden');
-            registerForm.classList.toggle('hidden');
+            document.getElementById('loginForm').classList.toggle('hidden');
+            document.getElementById('registerForm').classList.toggle('hidden');
         }
-
-        // Check if we should show register form (from URL parameter or Flask flash)
         window.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('register') === 'true') {
+            if (new URLSearchParams(window.location.search).get('register') === 'true') {
                 toggleForms();
             }
         });
