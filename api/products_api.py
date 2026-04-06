@@ -3,12 +3,16 @@ from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin
 from data.validators import ItemValidator, ValidationError
 from tools.logger import logger
+from bd.bdErrors import DatabaseError
+from api.error_handlers import handle_db_error
+import sqlite3
 
 ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
 
 products_api = Blueprint("products_api", __name__)
 
 @products_api.route("/products_all", methods=["GET"])
+@require_auth
 def get_all_products():
     """
     Obtiene productos del inventario con paginacion server-side.
@@ -35,10 +39,6 @@ def get_all_products():
         200: Exito
         401: No autorizado
     """
-
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
 
     # ── Parametros ────────────────────────────────────────────
     search    = request.args.get("search", "").strip()
@@ -75,34 +75,35 @@ def get_all_products():
 
     where_clause = " AND ".join(where)
 
-    # ── COUNT total ───────────────────────────────────────────
-    count_query = f"SELECT COUNT(*) FROM items WHERE {where_clause}"
-    total = db.execute_query(count_query, tuple(params))[0][0]
-    pages = max(1, -(-total // limit))  # ceil division
+    with db.transaction() as cur:
+        # ── COUNT total ───────────────────────────────────────────
+        count_query = f"SELECT COUNT(*) FROM items WHERE {where_clause}"
+        total = cur.execute(count_query, tuple(params)).fetchone()[0]
+        pages = max(1, -(-total // limit))  # ceil division
 
-    # ── Pagina actual ─────────────────────────────────────────
-    data_query = f"""
-        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
-        FROM items
-        WHERE {where_clause}
-        ORDER BY {sort_column} {order}
-        LIMIT ? OFFSET ?
-    """
-    rows = db.execute_query(data_query, tuple(params) + (limit, offset))
+        # ── Pagina actual ─────────────────────────────────────────
+        data_query = f"""
+            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
+            FROM items
+            WHERE {where_clause}
+            ORDER BY {sort_column} {order}
+            LIMIT ? OFFSET ?
+        """
+        rows = cur.execute(data_query, tuple(params) + (limit, offset)).fetchall()
 
-    products = [
-        {
-            "id":          row[0],
-            "barcode":     row[1],
-            "name":        row[2],
-            "description": row[3],
-            "stock":       row[4],
-            "min_stock":   row[5],
-            "price":       row[6],
-            "status":      row[7],
-        }
-        for row in rows
-    ]
+        products = [
+            {
+                "id":          row[0],
+                "barcode":     row[1],
+                "name":        row[2],
+                "description": row[3],
+                "stock":       row[4],
+                "min_stock":   row[5],
+                "price":       row[6],
+                "status":      row[7],
+            }
+            for row in rows
+        ]
 
     return jsonify({
         "data":  products,
@@ -113,6 +114,7 @@ def get_all_products():
     }), 200
     
 @products_api.route("/products", methods=["GET"])
+@require_auth
 def get_products():
     """
     Obtiene productos activos del inventario con paginacion server-side.
@@ -139,10 +141,6 @@ def get_products():
         200: Exito
         401: No autorizado
     """
-
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
 
     search    = request.args.get("search", "").strip()
     view_mode = request.args.get("view_mode", "all")
@@ -211,6 +209,7 @@ def get_products():
     }), 200
 
 @products_api.route("/products/<int:product_id>", methods=["GET"])
+@require_auth
 def get_product(product_id):
     """
     Obtiene un producto específico por su ID (No muestra los deshabilitados).
@@ -236,10 +235,6 @@ def get_product(product_id):
         404: Producto no encontrado
     """
     
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
     rows = db.execute_query(
         "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE id = ?",
         (product_id,)
@@ -262,6 +257,7 @@ def get_product(product_id):
     return jsonify(product), 200
 
 @products_api.route("/products", methods=["POST"])
+@require_admin
 def create_product():
     """
     Crea un nuevo producto en el inventario.
@@ -288,13 +284,6 @@ def create_product():
         500: Error en la base de datos
     """
     
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
-    
     data = request.get_json()
     
     required_fields = ["barcode", "name", "quantity", "min_quantity", "price"]
@@ -317,12 +306,19 @@ def create_product():
             data["min_quantity"],
             data["price"]
         )
+        logger.info(f"Producto '{data['name']}' creado por {session.get('user_id')}")
         return jsonify({"message": "Producto creado exitosamente"}), 201
     
+    except ValidationError as e:
+        return jsonify({"error": f"{e.field}: {e.message}"}), 400
+    except (sqlite3.IntegrityError, sqlite3.OperationalError, DatabaseError) as e:
+        return handle_db_error(e, f"create_product")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.exception("Unexpected error in create_product")
+        return jsonify({"error": "Error interno"}), 500
 
 @products_api.route("/products/<int:product_id>", methods=["PUT"])
+@require_admin
 def update_product(product_id):
     """
     Actualiza un producto existente.
@@ -350,13 +346,6 @@ def update_product(product_id):
         401: No autorizado
         403: Permiso denegado (no es admin)
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
     
     data = request.get_json()
     
@@ -393,6 +382,7 @@ def update_product(product_id):
     return jsonify({"message": "Producto actualizado"}), 200
 
 @products_api.route("/products/<int:product_id>", methods=["DELETE"])
+@require_admin
 def delete_product(product_id):
     """
     Elimina un producto del inventario.
@@ -412,11 +402,6 @@ def delete_product(product_id):
         403: Permiso denegado (no es admin)
     """
     
-    auth_error = require_auth()
-    if auth_error:
-        logger.error(f"Unauthorized delete attempt for product ID {product_id}")
-        return auth_error
-    
     if session.get("role") != "admin":
         logger.warning(f"Forbidden delete attempt for product ID {product_id} by user ID {session.get('user_id')}")
         return jsonify({"error": "Permiso denegado"}), 403
@@ -425,6 +410,7 @@ def delete_product(product_id):
     return jsonify({"message": "Producto eliminado"}), 200
 
 @products_api.route("/items", methods=["GET"])
+@require_auth
 def search_items():
     """
     Busca productos para autocompletado.
@@ -447,10 +433,6 @@ def search_items():
         200: Búsqueda exitosa (puede retornar array vacío)
         401: No autorizado
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
     
     query_param = request.args.get("q", "").strip()
     if not query_param:
@@ -476,6 +458,7 @@ def search_items():
     return jsonify(items), 200
 
 @products_api.route("/products/<int:item_id>/attributes", methods=["POST"])
+@require_admin
 def create_product_attribute_for_item(item_id):
     """
     POST /api/products/{item_id}/attributes
@@ -502,10 +485,6 @@ def create_product_attribute_for_item(item_id):
         403: Permiso denegado (no es admin)
         404: Producto no encontrado
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
     
     if session.get("role") != "admin":
         return jsonify({"ok": False, "error": "Permiso denegado"}), 403
@@ -595,56 +574,44 @@ def list_product_attributes():
     return jsonify({"ok": True, "data": data}), 200
 
 @products_api.route("/products/<int:item_id>/attributes", methods=["GET"])
+@require_auth
 def get_product_attributes(item_id):
     """GET /api/products/1/attributes"""
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
     
     if db.get_item_details(item_id) is None:
         return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
     
     try:
-        attr_rows = db.list_item_attributes()
+        rows = db.execute_query("""
+            SELECT 
+                a.id, a.name, a.code, a.data_type, a.required,
+                COALESCE(v.value, NULL)
+            FROM item_attributes a
+            LEFT JOIN item_attribute_values v 
+                ON v.item_id = ? AND v.attribute_id = a.id
+            ORDER BY a.name
+        """, (item_id,))
         
-        attributes = []
-        for attr_row in attr_rows:
-            attr_id = attr_row[0]
-            attr_name = attr_row[1]
-            attr_code = attr_row[2]
-            attr_type = attr_row[3]
-            attr_required = attr_row[4]
-            
-            value_rows = db.execute_query(
-                """
-                SELECT value FROM item_attribute_values 
-                WHERE item_id = ? AND attribute_id = ?
-                """,
-                (item_id, attr_id)
-            )
-            
-            value = value_rows[0][0] if value_rows and value_rows[0][0] else None
-            
-            attributes.append({
-                "attribute_id": attr_id,
-                "name": attr_name,
-                "code": attr_code,
-                "data_type": attr_type,
-                "required": bool(attr_required),
-                "value": value
-            })
+        attributes = [
+            {
+                "attribute_id": row[0],
+                "name": row[1],
+                "code": row[2],
+                "data_type": row[3],
+                "required": bool(row[4]),
+                "value": row[5]
+            }
+            for row in rows
+        ]
         
-        return jsonify({
-            "ok": True,
-            "data": attributes
-        }), 200
+        return jsonify({"ok": True, "data": attributes}), 200
     
     except Exception as e:
         logger.error(f"Error obteniendo atributos: {str(e)}")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 @products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
+@require_admin
 def upsert_product_attributes(item_id):
     """
     PUT /api/products/1/attributes
@@ -669,33 +636,48 @@ def upsert_product_attributes(item_id):
         return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
 
     try:
+        attr_ids_to_validate = [int(a.get("attribute_id")) for a in attrs if a.get("attribute_id")]
+        
+        if not attr_ids_to_validate:
+            return jsonify({"ok": False, "error": "Sin atributos para actualizar"}), 400
+        
+        placeholders = ",".join("?" * len(attr_ids_to_validate))
+        attr_rows = db.execute_query(
+            f"""
+            SELECT id, name, code, data_type, required, status
+            FROM item_attributes
+            WHERE id IN ({placeholders})
+            """,
+            tuple(attr_ids_to_validate)
+        )
+        
+        attr_map = {row[0]: row for row in attr_rows}
+        
         for row in attrs:
-            attribute_id = row.get("attribute_id")
+            attribute_id = int(row.get("attribute_id"))
             value = row.get("value")
 
-            if not attribute_id:
-                return jsonify({"ok": False, "error": "attribute_id obligatorio"}), 400
-
-            attr = db.get_item_attribute_by_id(int(attribute_id))
-            if not attr:
+            if attribute_id not in attr_map:
                 return jsonify({"ok": False, "error": f"Atributo {attribute_id} inexistente"}), 400
 
-            _, name, _, data_type, required, status = attr
+            _, name, _, data_type, required, status = attr_map[attribute_id]
             
-            # Validaciones q rompe bola
             if int(required) == 1 and (value is None or str(value).strip() == ""):
                 return jsonify({"ok": False, "error": f"Atributo requerido: {name}"}), 400
 
             if not db._validate_attribute_value(data_type, value):
-                return jsonify({"ok": False, "error": f"Valor invalido: {name} debe ser {data_type}"}), 400
+                return jsonify({"ok": False, "error": f"Valor inválido: {name} debe ser {data_type}"}), 400
 
-            db.set_item_attribute_value(item_id, int(attribute_id), value)
+            db.set_item_attribute_value(item_id, attribute_id, value)
 
         return jsonify({"ok": True, "message": "Atributos guardados"}), 200
+    
     except Exception as e:
+        logger.exception(f"Error en upsert_product_attributes: {e}")
         return jsonify({"ok": False, "error": str(e)}), 400
     
 @products_api.route("/attributes/<int:attribute_id>", methods=["DELETE"])
+@require_admin
 def delete_product_attribute(attribute_id):
     """
     DELETE /api/attributes/{attribute_id}
@@ -714,13 +696,6 @@ def delete_product_attribute(attribute_id):
         401: No autorizado
         403: Permiso denegado (no es admin)
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
-    if session.get("role") != "admin":
-        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
     
     #Verifica si exite
     attr = db.get_item_attribute_by_id(attribute_id)
@@ -748,17 +723,11 @@ def delete_product_attribute(attribute_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     
 @products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
+@require_admin
 def update_product_attributes(item_id):
     """
     PUT /api/products/{item_id}/attributes
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
-    if session.get("role") != "admin":
-        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
     
     if db.get_item_details(item_id) is None:
         return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
@@ -770,41 +739,58 @@ def update_product_attributes(item_id):
         return jsonify({"ok": False, "error": "attributes debe ser un array"}), 400
     
     try:
-        db.execute_query(
-            "DELETE FROM item_attribute_values WHERE item_id = ?",
-            (item_id,),
-            fetch=False
+        attr_ids = [a.get("attribute_id") for a in attributes if a.get("attribute_id")]
+        attr_ids = list(set(attr_ids))
+        
+        if not attr_ids:
+            db.execute_query(
+                "DELETE FROM item_attribute_values WHERE item_id = ?",
+                (item_id,),
+                fetch=False
+            )
+            return jsonify({"ok": True, "message": "Atributos limpiados"}), 200
+        
+        placeholders = ",".join("?" * len(attr_ids))
+        attr_defs = db.execute_query(
+            f"""
+            SELECT id, name, data_type, required
+            FROM item_attributes
+            WHERE id IN ({placeholders})
+            """,
+            tuple(attr_ids)
         )
         
-        for attr in attributes:
-            attr_id = attr.get("attribute_id")
-            value = attr.get("value")
+        attr_map = {row[0]: row for row in attr_defs}
+        
+        with db.transaction() as cur:
+            cur.execute(
+                "DELETE FROM item_attribute_values WHERE item_id = ?",
+                (item_id,)
+            )
             
-            if attr_id is None:
-                continue
-            
-            attr_def = db.get_item_attribute_by_id(attr_id)
-            if not attr_def:
-                logger.warning(f"Atributo {attr_id} no existe para producto {item_id}")
-                continue
-            
-            if int(attr_def[4]) == 1 and (value is None or str(value).strip() == ""):
-                return jsonify({
-                    "ok": False, 
-                    "error": f"Atributo obligatorio: {attr_def[1]}"
-                }), 400
-            
-            if value is not None and str(value).strip():
-                db.execute_query(
-                    """
-                    INSERT INTO item_attribute_values (item_id, attribute_id, value)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(item_id, attribute_id)
-                    DO UPDATE SET value = excluded.value
-                    """,
-                    (item_id, attr_id, str(value).strip()),
-                    fetch=False
-                )
+            for attr in attributes:
+                attr_id = attr.get("attribute_id")
+                value = attr.get("value")
+                
+                if attr_id is None or attr_id not in attr_map:
+                    continue
+                
+                attr_id_int, name, data_type, required = attr_map[attr_id]
+                
+                if int(required) == 1 and (value is None or str(value).strip() == ""):
+                    return jsonify({
+                        "ok": False, 
+                        "error": f"Atributo obligatorio: {name}"
+                    }), 400
+                
+                if value is not None and str(value).strip():
+                    cur.execute(
+                        """
+                        INSERT INTO item_attribute_values (item_id, attribute_id, value)
+                        VALUES (?, ?, ?)
+                        """,
+                        (item_id, attr_id, str(value).strip())
+                    )
         
         logger.info(f"Atributos actualizados para producto {item_id}")
         return jsonify({
@@ -813,7 +799,7 @@ def update_product_attributes(item_id):
         }), 200
     
     except Exception as e:
-        logger.error(f"Error actualizando atributos: {str(e)}")
+        logger.exception(f"Error actualizando atributos: {e}")
         return jsonify({
             "ok": False, 
             "error": str(e)

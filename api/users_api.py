@@ -1,6 +1,8 @@
 import secrets
+import sqlite3
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import generate_password_hash
+from api.error_handlers import handle_db_error
 from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin
 from data.validators import UserValidator, ValidationError
@@ -15,14 +17,9 @@ def generate_reset_code():
     return f"{secrets.randbelow(10**6):06d}"
 
 @users_api.route("/users", methods=["GET"])
+@require_admin
 def get_users():
     """Lista todos los usuarios con paginación."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     search = request.args.get("search", "").strip()
     page   = max(1, request.args.get("page", 1, type=int))
@@ -76,14 +73,9 @@ def get_users():
 
 
 @users_api.route("/users/<int:user_id>", methods=["GET"])
+@require_admin
 def get_user(user_id):
     """Obtiene un usuario específico."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     rows = db.execute_query(
         "SELECT id, username, email, role, status, created_at FROM users WHERE id = ?",
@@ -104,14 +96,9 @@ def get_user(user_id):
 
 
 @users_api.route("/users", methods=["POST"])
+@require_admin
 def create_user():
     """Crea un nuevo usuario."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     data = request.get_json()
     required = ["username", "email", "password", "role"]
@@ -129,26 +116,29 @@ def create_user():
 
     hashed = generate_password_hash(data["password"])
     try:
-        db.execute_query(
-            "INSERT INTO users (username, email, password, role, status) VALUES (?, ?, ?, ?, 1)",
-            (data["username"].strip(), data["email"].strip(), hashed, data["role"]),
-            fetch=False
-        )
-        logger.info(f"Usuario creado: {data['username']} por admin ID {session.get('user_id')}")
+        UserValidator.validate_email(data["email"])
+    except ValidationError as e:
+        return jsonify({"error": f"{e.field}: {e.message}"}), 400
+    
+    try:
+        db.execute_query("INSERT INTO users ...", fetch=False)
+        logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
+    
+    except sqlite3.IntegrityError as e:
+        if "email" in str(e):
+            return jsonify({"error": "Este correo ya está registrado"}), 409
+        if "username" in str(e):
+            return jsonify({"error": "Este usuario ya existe"}), 409
+        return handle_db_error(e, "create_user")
+    
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+        return handle_db_error(e, "create_user")
 
 @users_api.route("/users/<int:user_id>", methods=["PUT"])
+@require_admin
 def update_user(user_id):
     """Actualiza un usuario existente."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     data = request.get_json()
     updates = []
@@ -184,14 +174,9 @@ def update_user(user_id):
 
 
 @users_api.route("/users/<int:user_id>", methods=["DELETE"])
+@require_admin
 def delete_user(user_id):
     """Deshabilita un usuario (baja lógica)."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     if user_id == session.get("user_id"):
         return jsonify({"error": "No puedes darte de baja a ti mismo"}), 400
@@ -206,14 +191,9 @@ def delete_user(user_id):
 
 
 @users_api.route("/users/<int:user_id>/activity", methods=["GET"])
+@require_admin
 def get_user_activity(user_id):
     """Obtiene los movimientos/ventas de un usuario."""
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
 
     page   = max(1, request.args.get("page", 1, type=int))
     limit  = min(100, max(1, request.args.get("limit", 10, type=int)))

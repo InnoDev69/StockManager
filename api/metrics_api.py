@@ -6,6 +6,7 @@ from api.auth_utils import require_auth
 metrics_api = Blueprint("metrics_api", __name__)
 
 @metrics_api.route("/stats", methods=["GET"])
+@require_auth
 def get_stats():
     """
     Obtiene estadísticas del dashboard.
@@ -28,23 +29,20 @@ def get_stats():
         401: No autorizado
     """
     
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    
-    total_products = db.execute_query("SELECT COUNT(*) FROM items")[0][0]
-    
-    low_stock = db.execute_query(
-        "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0"
-    )[0][0]
-    
-    sales_today = db.execute_query(
-        "SELECT COUNT(*) FROM sells WHERE DATE(date) = DATE('now')"
-    )[0][0]
-    
-    low_stock_items = db.execute_query(
-        "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
-    )
+    with db.transaction() as cur:
+        total_products = cur.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        
+        low_stock = cur.execute(
+            "SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0"
+        ).fetchone()[0]
+        
+        sales_today = cur.execute(
+            "SELECT COUNT(*) FROM sells WHERE DATE(date) = DATE('now')"
+        ).fetchone()[0]
+        
+        low_stock_items = cur.execute(
+            "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
+        ).fetchall()
     
     low_stock_list = [
         {
@@ -64,6 +62,7 @@ def get_stats():
     }), 200
     
 @metrics_api.route('/metrics', methods=['GET'])
+@require_auth
 def get_metrics():
     """
     Obtiene métricas del negocio para el dashboard de analytics.
@@ -78,10 +77,6 @@ def get_metrics():
     Returns:
         JSON: Métricas completas del negocio
     """
-    
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
     
     period = request.args.get('period', 7, type=int)
     date_from = request.args.get('from')

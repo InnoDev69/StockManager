@@ -88,6 +88,10 @@
                     <label class="sh-label" for="productFilter">Producto</label>
                     <input type="text" id="productFilter" max="{{Limits.PRODUCT_NAME_MAX}}" name="product" class="input sh-input" placeholder="Buscar por producto...">
                 </div>
+                <div class="sh-field">
+                    <label class="sh-label" for="vendedorFilter">Vendedor</label>
+                    <input type="text" id="vendedorFilter" name="vendedor" class="input sh-input" placeholder="Buscar por vendedor...">
+                </div>
                 <div class="sh-filter-actions">
                     <button type="submit" class="btn">Filtrar</button>
                     <button type="button" class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
@@ -624,28 +628,36 @@
     }
     .sh-filters-card__header {
         display: flex; align-items: center; gap: 0.5rem;
-        padding: 0.85rem 1.25rem;
-        font-size: 0.82rem; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.07em;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.7rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.09em;
         color: var(--text-muted);
         border-bottom: 1px solid var(--border);
-        background: rgba(255,255,255,0.02);
+        background: rgba(255,255,255,0.018);
     }
+    .sh-filters-card__header svg { opacity: 0.6; }
     .sh-filter-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr auto;
-        gap: 1rem;
+        grid-template-columns: 1fr 1fr 1fr 1fr auto;
+        gap: 0.875rem 1rem;
         align-items: end;
-        padding: 1.25rem;
+        padding: 1.1rem 1.25rem 1.25rem;
     }
     .sh-field { display: flex; flex-direction: column; gap: 0.35rem; }
     .sh-label {
-        font-size: 0.78rem; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 0.05em;
-        color: var(--text-muted);
+        font-size: 0.68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--text-muted); opacity: 0.7;
     }
     .sh-input { margin: 0 !important; }
-    .sh-filter-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .sh-filter-actions {
+        display: flex; gap: 0.45rem; align-items: center;
+        padding-bottom: 1px;
+    }
+    .sh-filter-actions .btn-ghost {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.82rem;
+    }
 
     /* ── Table card ───────────────────────────────── */
     .sh-table-card { padding: 0 !important; overflow: hidden; }
@@ -919,7 +931,7 @@
     @media (max-width: 900px) {
         .sh-stats-grid { grid-template-columns: repeat(3, 1fr); }
         .sh-filter-grid { grid-template-columns: 1fr 1fr; }
-        .sh-filter-actions { grid-column: span 2; }
+        .sh-filter-actions { grid-column: span 2; justify-content: flex-start; }
     }
     @media (max-width: 640px) {
         .sh-page-header { flex-direction: column; align-items: flex-start; }

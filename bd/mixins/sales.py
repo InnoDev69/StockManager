@@ -1,5 +1,5 @@
 from bd.bdErrors import DatabaseError
-
+from tools.local_time import localDate
 
 class SalesMixin:
     """Métodos de registro y consulta de ventas."""
@@ -16,8 +16,8 @@ class SalesMixin:
                 SELECT
                     (SELECT COUNT(*) FROM items WHERE status = 1),
                     (SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0 AND status = 1),
-                    (SELECT COUNT(*) FROM sells WHERE DATE(date) = DATE('now'))
-            """)
+                    (SELECT COUNT(*) FROM sells WHERE DATE(date) = ?)
+            """, (localDate(),))
             total, low, today = cur.fetchone()
 
             cur.execute(
@@ -51,28 +51,31 @@ class SalesMixin:
             DatabaseError: Si el producto no existe o hay error SQL
         """
         with self._cursor() as cur:
-            cur.execute(
-                "INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)",
-                (item_id, vendedor, payment_method),
-            )
-            sell_id = cur.lastrowid
+            try:
+                cur.execute(
+                    "INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)",
+                    (item_id, vendedor, payment_method),
+                )
+                sell_id = cur.lastrowid
 
-            cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
-            row = cur.fetchone()
-            if not row:
-                return
-            price, current_qty = row
-            if current_qty < quantity:
-                raise ValueError("Stock insuficiente")
+                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+                row = cur.fetchone()
+                if not row:
+                    return
+                price, current_qty = row
+                if current_qty < quantity:
+                    raise ValueError("Stock insuficiente")
 
-            cur.execute(
-                "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
-                (sell_id, item_id, quantity, price, vendedor, payment_method),
-            )
-            cur.execute(
-                "UPDATE items SET quantity = ? WHERE id = ?",
-                (current_qty - quantity, item_id),
-            )
+                cur.execute(
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sell_id, item_id, quantity, price, vendedor, payment_method),
+                )
+                cur.execute(
+                    "UPDATE items SET quantity = ? WHERE id = ?",
+                    (current_qty - quantity, item_id),
+                )
+            except Exception as e:
+                raise DatabaseError(f"Error al registrar venta: {e}")
 
     def record_bulk_sale(self, items, vendedor, payment_method="Efectivo"):
         """
@@ -93,12 +96,15 @@ class SalesMixin:
         if not items:
             raise ValueError("La lista de items no puede estar vacía")
 
-        with self._cursor() as cur:
-            cur.execute(
-                "INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)",
-                (items[0]["item_id"], vendedor, payment_method),
-            )
-            sell_id = cur.lastrowid
+        with self.transaction() as cur:
+            try:
+                cur.execute(
+                    "INSERT INTO sells (item_id, vendedor, payment_method, date) VALUES (?, ?, ?, ?)",
+                    (items[0]["item_id"], vendedor, payment_method, localDate()),
+                )
+                sell_id = cur.lastrowid
+            except Exception as e:
+                raise DatabaseError(f"Error al registrar venta: {e}")
 
             for item in items:
                 item_id = item["item_id"]

@@ -47,25 +47,60 @@ def sale_new():
 @sales_bp.route("/sales", methods=["GET"])
 def sales():
     """
-    Muestra el historial de ventas.
+    Muestra el historial de ventas con filtros.
     
     Requiere login: True.
     
+    Query Parameters:
+        date_from (str, optional): Fecha inicial YYYY-MM-DD
+        date_to (str, optional): Fecha final YYYY-MM-DD
+        product (str, optional): Filtro por nombre de producto
+        vendedor (str, optional): Filtro por nombre de vendedor
+    
     Returns:
-        Template: sales.html con datos de ventas
+        Template: sales.html con datos de ventas filtrados
     """
     
     if not session.get("user_id"):
         return redirect(url_for("auth.login"))
     
+    # Obtener parámetros de filtro
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+    product_q = request.args.get("product", "").strip()
+    vendedor_q = request.args.get("vendedor", "").strip()
+    
+    # Construir WHERE clause dinámico
+    where_clauses = ["1=1"]
+    params = []
+    
+    if date_from:
+        where_clauses.append("DATE(s.date) >= ?")
+        params.append(date_from)
+    if date_to:
+        where_clauses.append("DATE(s.date) <= ?")
+        params.append(date_to)
+    if product_q:
+        where_clauses.append("i.name LIKE ?")
+        params.append(f"%{product_q}%")
+    if vendedor_q:
+        where_clauses.append("s.vendedor LIKE ?")
+        params.append(f"%{vendedor_q}%")
+    
+    where_clause = " AND ".join(where_clauses)
+    
+    # Ejecutar consulta con filtros
     sales_data = db.execute_query(
-        "SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method "
-        "FROM sells s "
-        "JOIN details d ON s.id = d.sell_id "
-        "JOIN items i ON d.item_id = i.id "
-        "ORDER BY s.date DESC"
+        f"SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method "
+        f"FROM sells s "
+        f"JOIN details d ON s.id = d.sell_id "
+        f"JOIN items i ON d.item_id = i.id "
+        f"WHERE {where_clause} "
+        f"ORDER BY s.date DESC",
+        tuple(params)
     )
     
+    # Agrupar por venta
     sales_dict = {}
     for row in sales_data:
         sale_id = row[0]

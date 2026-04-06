@@ -11,6 +11,7 @@ from routes import all_blueprints
 from data.limits import Limits
 from tools.logger import logger
 from tools.scheduler import SCHEDULER
+from bd.bdInstance import db
 
 load_dotenv()
 
@@ -44,6 +45,10 @@ def handle_exception(e):
     error_id = str(uuid.uuid4())[:8].upper()
     logger.exception(f"Excepción no capturada en {request.path}: {str(e)}")
     return render_template("500.html", error_id=error_id, error=e), 500
+
+@app.teardown_appcontext
+def close_db(exception=None):
+    db.close_conn()
 
 # --- Señales ---
 def signal_handler(sig, frame):

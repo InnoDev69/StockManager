@@ -1,30 +1,70 @@
+# api/auth_utils.py
+from functools import wraps
 from flask import jsonify, session
 
-def require_auth():
+def require_auth(f):
     """
-    Verifica si el usuario está autenticado.
-    Retorna un error JSON si no está autenticado.
+    Decorador: Verifica que usuario esté autenticado.
     
-    Requiere login: True.
-    
-    Returns:
-        None si está autenticado, o una respuesta JSON de error si no lo está.
+    Uso:
+        @require_auth
+        def get_products():
+            # user_id ya está disponible en session
+            username = session.get("username")
     """
-    
-    user_id = session.get("user_id")
-    #logger.info(f"require_auth check: user_id={user_id}, cookies={dict(request.cookies)}")
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    return None
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
-def require_admin():
+def require_admin(f):
     """
-    Verifica autenticación + rol admin.
-    Retorna None si es admin, o una respuesta JSON de error.
+    Decorador: Verifica autenticación + rol admin.
+    
+    Uso:
+        @require_admin
+        def create_product():
+            # Solo llega acá si está autenticado Y es admin
     """
-    auth_error = require_auth()
-    if auth_error:
-        return auth_error
-    if session.get("role") != "admin":
-        return jsonify({"error": "Permiso denegado"}), 403
-    return None
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        if session.get("role") != "admin":
+            return jsonify({"error": "Permiso denegado"}), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_role(role_required):
+    """
+    Decorador parametrizado: Verifica un rol específico.
+    
+    Uso:
+        @require_role("admin")
+        def create_product():
+            pass
+        
+        @require_role("vendedor")
+        def create_sale():
+            pass
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = session.get("user_id")
+            if not user_id:
+                return jsonify({"error": "Unauthorized"}), 401
+            
+            user_role = session.get("role")
+            if user_role != role_required:
+                return jsonify({"error": f"Se requiere rol: {role_required}"}), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
