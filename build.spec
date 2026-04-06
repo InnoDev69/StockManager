@@ -43,6 +43,7 @@ a = Analysis(
         ('.env', '.'),
     ] + webview_datas + gi_datas,
     hiddenimports=[
+        'pytz',
         'flask',
         'werkzeug.security',
         'werkzeug.serving',
