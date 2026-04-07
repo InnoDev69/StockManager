@@ -1,6 +1,5 @@
 import sqlite3
 
-from jaraco import context
 from tools.logger import logger
 from flask import jsonify
 from bd.bdErrors import DatabaseError
