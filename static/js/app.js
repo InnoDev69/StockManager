@@ -67,42 +67,41 @@ function renderProducts(products) {
   
   products.forEach(product => {
     const card = template.content.cloneNode(true);
+    const article = card.querySelector('article');
     
-    card.querySelector('.sku').textContent = product.barcode;
+    card.querySelector('.sku').textContent = product.barcode || 'N/A';
     card.querySelector('.name').textContent = product.name;
     card.querySelector('.category').textContent = product.description || '';
     card.querySelector('.stock').textContent = product.stock;
-    card.querySelector('.price').textContent = `$${product.price.toFixed(2)}`;
+    card.querySelector('.price').textContent = `$${(product.price || 0).toFixed(2)}`;
+    card.querySelector('.expiration-date').textContent = product.expiration_date || '—';
     
     const badge = card.querySelector('.product-badge');
-    if (product.stock === 0) {
+    const stock = product.stock || 0;
+    const min = product.min_stock || 0;
+    
+    if (product.status === 0) {
+      badge.textContent = 'Inactivo';
+      badge.style.background = 'rgba(239,68,68,0.15)';
+      badge.style.color = 'var(--danger, #ef4444)';
+    } else if (stock === 0) {
       badge.textContent = 'Agotado';
-      badge.style.background = 'rgba(239, 68, 68, 0.2)';
-      badge.style.color = 'var(--danger)';
-    } else if (product.stock <= product.min_stock) {
-      badge.textContent = 'Bajo stock';
-      badge.style.background = 'rgba(245, 158, 11, 0.2)';
+      badge.style.background = 'rgba(239,68,68,0.15)';
+      badge.style.color = 'var(--danger, #ef4444)';
+    } else if (stock <= min) {
+      badge.textContent = 'Stock bajo';
+      badge.style.background = 'rgba(245,158,11,0.15)';
       badge.style.color = 'var(--warning, #f59e0b)';
     } else {
-      badge.textContent = 'Disponible';
-      badge.style.background = 'rgba(16, 185, 129, 0.2)';
+      badge.textContent = 'En stock';
+      badge.style.background = 'rgba(16,185,129,0.15)';
       badge.style.color = 'var(--success, #10b981)';
     }
     
-    const viewBtn = card.querySelector('.btn-action.view');
-    if (viewBtn) {
-      viewBtn.onclick = () => viewProduct(product.id);
-    }
-    
-    const editLink = card.querySelector('.btn-action.edit');
-    if (editLink) {
-      editLink.href = `/products/${product.id}/edit`;
-    }
-    
-    const deleteBtn = card.querySelector('.btn-action.delete');
-    if (deleteBtn) {
-      deleteBtn.onclick = () => deleteProduct(product.id);
-    }
+    // ✅ ADD EVENT LISTENER AL CLICK
+    article.addEventListener('click', function() {
+      window.location.href = '/products/' + product.id;
+    });
     
     container.appendChild(card);
   });

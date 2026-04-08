@@ -43,6 +43,10 @@ def get_stats():
         low_stock_items = cur.execute(
             "SELECT id, name, barrs_code, quantity FROM items WHERE quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
         ).fetchall()
+        
+        expire_soon_items = cur.execute(
+            "SELECT expiration_date FROM items WHERE expiration_date IS NOT NULL AND DATE(expiration_date) <= DATE('now', '+7 days') ORDER BY expiration_date ASC LIMIT 10"
+        ).fetchall()
     
     low_stock_list = [
         {
@@ -58,7 +62,8 @@ def get_stats():
         "products": total_products,
         "low_stock": low_stock,
         "sales_today": sales_today,
-        "low_stock_list": low_stock_list
+        "low_stock_list": low_stock_list,
+        "expire_soon": len(expire_soon_items)
     }), 200
     
 @metrics_api.route('/metrics', methods=['GET'])

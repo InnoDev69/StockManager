@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="/static/css/calendar-picker.css">
+<script src="/static/js/calendar-picker.js"></script>
+
 <div class="card" style="max-width:720px; margin:1rem auto;">
   <h2>Agregar Producto</h2>
   <form id="product-form">
@@ -41,6 +44,12 @@
              value="{{ form_data.price or '0.00' }}" />
       <span class="field-error" data-field="Precio"></span>
     </div>
+    <div class="field">
+      <label class="label">Fecha de expiración (opcional)</label>
+      <input type="text" name="expiration_date" placeholder="14/05/2027" 
+       pattern="\d{2}/\d{2}/\d{4}" maxlength="10" />
+      <span class="field-error" data-field="Fecha de expiración"></span>
+    </div>
     <div class="form-actions">
       <a href="/" class="btn btn-ghost">Cancelar</a>
       <button class="btn" type="submit">Agregar</button>
@@ -58,6 +67,11 @@ document.querySelectorAll('input[type="number"][max]').forEach(input => {
     if (value > max) this.value = max;
     if (value < min) this.value = min;
   });
+});
+
+new CalendarPicker('input[name="expiration_date"]', {
+  minYear: 2024,
+  maxYear: 2050
 });
 
 // Envío del formulario via API
@@ -79,7 +93,12 @@ document.getElementById('product-form').addEventListener('submit', async (e) => 
     description: form.description.value.trim(),
     quantity: parseInt(form.quantity.value) || 0,
     min_quantity: parseInt(form.min_quantity.value) || 0,
-    price: parseFloat(form.price.value) || 0
+    price: parseFloat(form.price.value) || 0,
+    expiration_date: form.expiration_date.value ? 
+    (() => {
+      const [d, m, y] = form.expiration_date.value.split('/');
+      return `${y}-${m}-${d}`;
+    })() : null
   };
   
   try {

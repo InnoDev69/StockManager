@@ -6,7 +6,7 @@ from bd.bdErrors import DatabaseError
 class ItemsMixin:
     """Métodos de gestión de productos/inventario."""
 
-    def add_item(self, barrs_code: str, description, name, quantity, min_quantity, price: float):
+    def add_item(self, barrs_code: str, description, name, quantity, min_quantity, expiration_date, price: float):
         """
         Agrega un nuevo producto al inventario.
 
@@ -16,6 +16,7 @@ class ItemsMixin:
             name (str): Nombre del producto
             quantity (int): Cantidad inicial en stock
             min_quantity (int): Stock mínimo antes de alerta
+            expiration_date (str|None): Fecha de expiración (puede ser None)
             price (float): Precio de venta
 
         Raises:
@@ -26,8 +27,8 @@ class ItemsMixin:
         """
         barrs_code = str(barrs_code).strip() if barrs_code else None
         self.execute_query(
-            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, price) VALUES (?, ?, ?, ?, ?, ?)",
-            (barrs_code, description, name, quantity, min_quantity, price),
+            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, expiration_date, price) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (barrs_code, description, name, quantity, min_quantity, expiration_date, price),
         )
 
     def get_item_by_barcode(self, barcode):
@@ -38,10 +39,10 @@ class ItemsMixin:
             barcode (str): Código de barras del producto
 
         Returns:
-            tuple|None: (id, barrs_code, name, description, quantity, price) o None
+            tuple|None: (id, barrs_code, name, description, quantity, expiration_date, price) o None
         """
         rows = self.execute_query(
-            "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code = ?",
+            "SELECT id, barrs_code, name, description, quantity, expiration_date, price FROM items WHERE barrs_code = ?",
             (barcode,),
         )
         return rows[0] if rows else None
@@ -83,7 +84,7 @@ class ItemsMixin:
             dict|None: Detalles del producto o None si no existe
         """
         rows = self.execute_query(
-            "SELECT barrs_code, description, name, quantity, min_quantity, price, status FROM items WHERE id = ?",
+            "SELECT barrs_code, description, name, quantity, min_quantity, expiration_date, price, status FROM items WHERE id = ?",
             (item_id,),
         )
         if not rows:
@@ -98,6 +99,7 @@ class ItemsMixin:
             "min_quantity": row[4],
             "price": row[5],
             "status": row[6],
+            "expiration_date": row[7],
         }
 
     def get_item_status(self, item_id):
@@ -266,3 +268,41 @@ class ItemsMixin:
             (attribute_id,)
         )
         return rows[0] if rows else None
+    
+    def get_item_by_id(self, item_id):
+        """
+        Obtener detalles completos de un producto por ID.
+        Convierte tipos de dato apropiadamente.
+        """
+        query = """
+            SELECT id, barrs_code, name, description, quantity as stock, 
+                min_quantity, price, status, expiration_date
+            FROM items WHERE id = ?
+        """
+        result = self.execute_query(query, (item_id,))
+        
+        if not result:
+            raise ValueError(f"Producto con ID {item_id} no encontrado")
+        
+        row = result[0]
+        
+        product = {
+            "id": row[0],
+            "barrs_code": row[1],
+            "name": row[2],
+            "description": row[3],
+            "stock": row[4],
+            "min_stock": row[5],
+            "price": row[6],
+            "status": row[7],
+            "expiration_date": row[8],
+        }
+        
+        try:
+            product['price'] = float(product['price']) if product['price'] else 0.0
+        except (ValueError, TypeError):
+            product['price'] = 0.0
+        
+        product['stock'] = int(product['stock']) if product.get('stock') else 0
+        
+        return product

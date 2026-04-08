@@ -3,6 +3,10 @@
 {% block title %}Administrar Productos - Stockly{% endblock %}
 
 {% block content %}
+
+<link rel="stylesheet" href="/static/css/calendar-picker.css">
+<script src="/static/js/calendar-picker.js"></script>
+
 <!-- Header -->
 <header style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; justify-content: space-between;">
   <div>
@@ -120,6 +124,7 @@
           <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Mín.</th>
           <th style="padding: 0.875rem 1rem; text-align: right; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Precio</th>
           <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Estado</th>
+          <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha de expiración</th>
           <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Acciones</th>
         </tr>
       </thead>
@@ -213,6 +218,10 @@
         <div class="field">
           <label class="label" for="edit-min-quantity">Stock mínimo</label>
           <input type="number" id="edit-min-quantity" name="min_quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}">
+        </div>
+        <div class="field">
+          <label class="label" for="edit-expiration-date">Fecha de expiración</label>
+          <input type="text" id="edit-expiration-date" name="expiration_date" placeholder="14/05/2027" pattern="\d{2}/\d{2}/\d{4}" maxlength="10">
         </div>
         <div class="field">
           <label class="label" for="edit-price">Precio *</label>
@@ -1078,6 +1087,7 @@
           '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.min_stock || 0) + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:right;"><span class="mono" style="font-weight:600;">$' + price + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:center;"><span class="status-badge ' + status.cssClass + '">' + status.text + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.expiration_date || '—') + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:center;">' +
             '<div style="display:flex;gap:0.25rem;justify-content:center;">' +
               '<button class="action-btn stock" data-action="stock" data-id="' + p.id + '" title="Ajustar stock"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></button>' +
@@ -1177,6 +1187,7 @@
     $('edit-quantity').value     = product.stock || 0;
     $('edit-min-quantity').value = product.min_stock || 0;
     $('edit-price').value        = product.price || 0;
+    $('edit-expiration-date').value = product.expiration_date || '';
     $('edit-status').checked     = product.status === 1;
     hide($('edit-error'));
     show($('edit-modal'));
@@ -1198,6 +1209,7 @@
       quantity:     parseInt($('edit-quantity').value) || 0,
       min_quantity: parseInt($('edit-min-quantity').value) || 0,
       price:        parseFloat($('edit-price').value) || 0,
+      expiration_date: $('edit-expiration-date').value || null,
       status:       $('edit-status').checked ? 1 : 0
     };
 
@@ -1328,6 +1340,10 @@
         closeNewAttributeModal();
         closeDeleteAttributeModal();
       }
+      new CalendarPicker('input[name="expiration_date"]', {
+        minYear: 2024,
+        maxYear: 2050
+        });
     });
     fetchPage(1);
   }

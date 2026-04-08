@@ -1,7 +1,7 @@
 import secrets
 import sqlite3
 from flask import Blueprint, jsonify, request, session
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from api.error_handlers import handle_db_error
 from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin
@@ -392,3 +392,45 @@ def change_password():
     db.delete_reset_code(email=data["email"])
     
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200
+
+@users_api.route("/login", methods=["POST"])
+def api_login():
+    """
+    Login vía API (JSON) para Thunder Client, Postman, etc.
+    
+    Body:
+        {
+            "username": "usuario",
+            "password": "contraseña"
+        }
+    """
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    
+    if not username or not password:
+        return jsonify({"error": "Usuario y contraseña requeridos"}), 400
+    
+    rows = db.execute_query(
+        "SELECT id, password, role FROM users WHERE username = ? OR email = ?", 
+        (username, username)
+    )
+    
+    if not rows:
+        return jsonify({"error": "Credenciales inválidas"}), 401
+    
+    user_id, pw_hash, role = rows[0]
+    if not check_password_hash(pw_hash, password):
+        return jsonify({"error": "Credenciales inválidas"}), 401
+    
+    # Crear sesión
+    session["user_id"] = user_id
+    session["username"] = username
+    session["role"] = role
+    
+    return jsonify({
+        "success": True,
+        "user_id": user_id,
+        "username": username,
+        "role": role
+    }), 200

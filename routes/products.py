@@ -2,6 +2,7 @@ import csv
 import io
 import time
 import uuid
+from api.auth_utils import require_auth, require_admin
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from bd.bdInstance import db
 from bd.bdConector import ValidationError
@@ -27,6 +28,7 @@ def cleanup_temp_imports():
             del temp_imports[k]
 
 @products_bp.route("/products/new", methods=["GET", "POST"])
+@require_admin
 def product_new():
     """
     Crear un nuevo producto en el inventario.
@@ -49,9 +51,6 @@ def product_new():
     Returns:
         Template/Redirect: Formulario en GET, redirect a dashboard en POST
     """
-    
-    if not session.get("user_id") or session.get("role") != "admin":
-        return redirect(url_for("dashboard.index"))
     
     empty_form = {
         "barrs_code": "",
@@ -109,6 +108,7 @@ def legacy_product_form():
     return redirect(url_for("products.product_new"))
 
 @products_bp.route("/product_management")
+@require_admin
 def product_management():
     """
     Página de administración de productos.
@@ -121,16 +121,11 @@ def product_management():
     Returns:
         Template: product_management.html con la interfaz de gestión
     """
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
-    
-    role = session.get("role", "user")
-    if role != "admin":
-        flash("Acceso denegado", "error")
     
     return render_template("product_management.html")
 
 @products_bp.route("/import", methods=["GET"])
+@require_admin
 def import_preview():
     """
     Vista previa de importación CSV.
@@ -144,9 +139,6 @@ def import_preview():
         Template: import.html con formulario de importación
         JSON: Vista previa de datos si es POST (legacy support)
     """
-    
-    if not session.get("user_id") or session.get("role") != "admin":
-        return redirect(url_for("dashboard.index"))
     
     if request.method == "GET":
         return render_template("import.html")
@@ -185,6 +177,7 @@ def import_preview():
     }
     
 @products_bp.route("/import/confirm", methods=["POST"])
+@require_admin
 def confirm_import():
     """
     Confirmar e importar productos desde CSV.
@@ -206,9 +199,6 @@ def confirm_import():
     Returns:
         Redirect: A dashboard con mensaje de productos importados
     """
-    
-    if not session.get("user_id") or session.get("role") != "admin":
-        return redirect(url_for("dashboard.index"))
     
     temp_key = request.form.get('temp_key')
     if temp_key not in temp_imports:
@@ -242,3 +232,21 @@ def confirm_import():
     
     flash(f"{imported} productos importados correctamente")
     return redirect(url_for('dashboard.index'))
+
+@products_bp.route("/products/<int:product_id>")
+@require_auth
+def product_detail(product_id):
+    """
+    Detalles de un producto específico.
+    
+    Muestra información completa del producto, incluyendo stock y fecha de vencimiento.
+    Solo usuarios autenticados pueden acceder.
+    
+    Requiere login: True.
+    
+        Args:
+                product_id (int): ID del producto a mostrar
+    
+    """
+    product = db.get_item_by_id(product_id)
+    return render_template("product_detail.html", product=product)

@@ -97,7 +97,7 @@ class ItemValidator:
     """Validador específico para productos."""
     
     @staticmethod
-    def validate(barrs_code, description, name, quantity, min_quantity, price, status) -> dict:
+    def validate(barrs_code, description, name, quantity, min_quantity, price, expiration_date, status) -> dict:
         """
         Valida todos los campos de un producto.
         
@@ -131,6 +131,10 @@ class ItemValidator:
             "price": Validator.validate_number(
                 "Precio", price, 
                 min_val=0, max_val=Limits.ITEM_PRICE_MAX, allow_float=True
+            ),
+            "expiration_date": Validator.validate_string(
+                "Fecha de expiración", expiration_date, 
+                Limits.ITEM_EXPIRATION_DATE_MAX, required=False
             ),
             "status": Validator.validate_number(
                 "Estado", status, 

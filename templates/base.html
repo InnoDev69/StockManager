@@ -68,6 +68,7 @@
           Ventas
         </a>
 
+        {% if session.get('role') == 'admin' %}
         <a href="{{ url_for('metrics.metrics') }}" class="sb__item" data-match="/metrics">
           <span class="sb__item-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -77,6 +78,7 @@
           </span>
           Métricas
         </a>
+        {% endif %}
 
         {% if session.get('role') == 'admin' %}
         <a href="{{ url_for('users.users') }}" class="sb__item" data-match="/users">

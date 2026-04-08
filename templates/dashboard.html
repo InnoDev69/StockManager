@@ -138,15 +138,10 @@
 
 <!-- KPIs Section -->
 <section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
-  {% if DEBUG %}
-    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-      <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Estado API</div>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <div id="health-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: var(--glass);"></div>
-        <div id="health" class="mono" style="font-size: 1.25rem; font-weight: 600;">Verificando...</div>
-      </div>
-    </div>
-  {% endif %}
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Expira pronto</div>
+    <div id="count" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">{{ stats.expire_soon | default(0) }}</div>
+  </div>
 
   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Productos</div>
@@ -190,7 +185,7 @@
       </div>
     </div>
 
-    <div style="min-width: 200px;">
+    <div style="min-width: 200px; display: none;">
       <label for="filter-category" class="text-muted" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Categoría</label>
       <select id="filter-category" aria-label="Filtrar por categoría" style="width: 100%;">
         <option value="">Todas las categorías</option>
@@ -374,16 +369,19 @@
         <h3 class="name" style="margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.4;">Nombre del producto</h3>
         <div class="category text-muted" style="font-size: 0.875rem; margin-top: 0.25rem;"></div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--glass);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--glass);">
         <div>
-          <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Stock</div>
-          <div class="mono stock" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0</div>
+          <div class="text-muted" style="font-size: 0.7rem;">Stock</div>
+          <div class="mono stock" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">0</div>
         </div>
         <div style="text-align: right;">
-          <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Precio</div>
-          <div class="mono price" style="font-size: 1.25rem; font-weight: 600;">$0.00</div>
+          <div class="text-muted" style="font-size: 0.7rem;">Precio</div>
+          <div class="mono price" style="font-size: 1.1rem; font-weight: 600;">$0.00</div>
         </div>
-      </div>
+        <div style="grid-column: span 2; border-top: 1px solid var(--glass); margin-top: 5px; pt: 5px;">
+          <div class="text-muted" style="font-size: 0.7rem;">Vencimiento: <span class="mono expiration-date" style="color: var(--text);">—</span></div>
+        </div>
+        </div>
     </div>
   </article>
 </template>
@@ -758,6 +756,7 @@
           clone.querySelector('.stock').textContent  = stock;
           clone.querySelector('.stock').style.color  = stock === 0 ? 'var(--danger)' : stock <= min ? 'var(--warning)' : 'var(--success)';
           clone.querySelector('.price').textContent  = '$' + (p.price || 0).toFixed(2);
+          clone.querySelector('.expiration-date').textContent = p.expiration_date || '—';
 
           // Click → ir al detalle del producto
           card.addEventListener('click', function() {

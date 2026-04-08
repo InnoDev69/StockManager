@@ -83,7 +83,7 @@ def get_all_products():
 
         # ── Pagina actual ─────────────────────────────────────────
         data_query = f"""
-            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
+            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date
             FROM items
             WHERE {where_clause}
             ORDER BY {sort_column} {order}
@@ -101,6 +101,7 @@ def get_all_products():
                 "min_stock":   row[5],
                 "price":       row[6],
                 "status":      row[7],
+                "expiration_date": row[8],
             }
             for row in rows
         ]
@@ -177,7 +178,7 @@ def get_products():
 
     rows = db.execute_query(
         f"""
-        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date
         FROM items
         WHERE {where_clause}
         ORDER BY {sort_column} {order}
@@ -196,6 +197,7 @@ def get_products():
             "min_stock":   row[5],
             "price":       row[6],
             "status":      row[7],
+            "expiration_date": row[8],
         }
         for row in rows
     ]
@@ -228,7 +230,8 @@ def get_product(product_id):
         - stock (int): Cantidad disponible
         - min_stock (int): Stock mínimo
         - price (float): Precio
-    
+        - expiration_date (str): Fecha de expiración
+        
     Status Codes:
         200: Producto encontrado
         401: No autorizado
@@ -236,7 +239,7 @@ def get_product(product_id):
     """
     
     rows = db.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, min_quantity, price FROM items WHERE id = ?",
+        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date FROM items WHERE id = ?",
         (product_id,)
     )
     
@@ -251,7 +254,8 @@ def get_product(product_id):
         "description": row[3],
         "stock": row[4],
         "min_stock": row[5],
-        "price": row[6]
+        "price": row[6],
+        "expiration_date": row[7],
     }
     
     return jsonify(product), 200
@@ -272,6 +276,7 @@ def create_product():
         quantity (int): Cantidad inicial en stock
         min_quantity (int): Stock mínimo de alerta
         price (float): Precio de venta
+        expiration_date (str, optional): Fecha de expiración
     
     Returns:
         JSON: {"message": "Producto creado exitosamente"}
@@ -293,7 +298,7 @@ def create_product():
     try:
         data = ItemValidator.validate(data.get("barcode", ""), data.get("description", ""), data.get("name", ""), 
                                     data.get("quantity"), data.get("min_quantity"), 
-                                    data.get("price"), 1)
+                                    data.get("price"), data.get("expiration_date"), 1)
     except ValidationError as e:
         return jsonify({"error": e.field + ": " + e.message}), 400
     
@@ -304,6 +309,7 @@ def create_product():
             data["name"],
             data["quantity"],
             data["min_quantity"],
+            data["expiration_date"],
             data["price"]
         )
         logger.info(f"Producto '{data['name']}' creado por {session.get('user_id')}")
@@ -335,6 +341,7 @@ def update_product(product_id):
         quantity (int, optional): Nueva cantidad en stock
         min_quantity (int, optional): Nuevo stock mínimo
         price (float, optional): Nuevo precio
+        expiration_date (str, optional): Nueva fecha de expiración
         status (int, optional): Nuevo estado (1=activo, 0=deshabilitado)
     
     Returns:
@@ -358,12 +365,13 @@ def update_product(product_id):
         "quantity": "quantity",
         "min_quantity": "min_quantity",
         "price": "price",
+        "expiration_date": "expiration_date",
         "status": "status"
     }
     try:
         data = ItemValidator.validate("0", data.get("description", ""), data.get("name", ""), 
                                     data.get("quantity"), data.get("min_quantity"), 
-                                    data.get("price"), data.get("status"))
+                                    data.get("price"), data.get("expiration_date"), data.get("status"))
     except ValidationError as e:
         return jsonify({"error": e.field + ": " + e.message}), 400
     
