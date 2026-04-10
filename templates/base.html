@@ -187,7 +187,77 @@
 
       <h1 class="brand"><a href="{{ url_for('dashboard.index') }}">Stockly</a></h1>
 
-      <div class="nav-actions">
+      <div class="nav-actions" style="display: flex; align-items: center; gap: 1rem;">
+          <div id="notifications-container" style="position: relative;">
+            
+            <button id="notifications-btn" style="
+              background: none;
+              border: none;
+              cursor: pointer;
+              padding: 8px;
+              display: flex;
+              color: var(--text-muted); /* Usa tu color de texto suave */
+            ">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <span id="notif-badge" style="
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                background: var(--danger); /* Tu color de alerta */
+                color: #fff;
+                border-radius: 50%;
+                width: 16px;
+                height: 16px;
+                font-size: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                border: 2px solid var(--card); /* Esto crea el recorte visual */
+              ">0</span>
+            </button>
+
+            <div id="notifications-panel" style="
+              position: absolute;
+              top: 100%;
+              right: 0;
+              width: 320px;
+              background: var(--card); /* Fondo igual a tus tarjetas */
+              border: 1px solid var(--border); /* Tu color de borde */
+              border-radius: var(--radius-md);
+              box-shadow: var(--shadow-lg);
+              margin-top: 10px;
+              z-index: 1000;
+              overflow: hidden;
+              display: none;
+            ">
+              <div style="
+                padding: 12px 16px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+                <span style="font-weight: 600; color: var(--text); font-size: 14px;">Notificaciones</span>
+                <button id="mark-all-read-btn" style="background:none; border:none; color: var(--brand); font-size: 12px; cursor:pointer; font-weight: 500;">
+                  Marcar como leídas
+                </button>
+              </div>
+
+              <div id="notifications-list" style="max-height: 300px; overflow-y: auto;">
+              </div>
+
+              <div style="padding: 10px; text-align: center; border-top: 1px solid var(--border);">
+                <a href="{{ url_for('notifications.notifications_history') }}" style="color: var(--text); text-decoration: none; font-size: 13px; font-weight: 500;">
+                  Ver todas
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {% if session.get('user_id') %}
         <div class="flex items-center gap-sm">
           <span class="text-muted text-sm">{{ session.get('username') }}</span>
@@ -255,6 +325,152 @@
       </section>
     </article>
   </div>
+
+  <script>
+  (function() {
+    const notifBtn = document.getElementById('notifications-btn');
+    const notifPanel = document.getElementById('notifications-panel');
+    const notifList = document.getElementById('notifications-list');
+    const badge = document.getElementById('notif-badge');
+    const markAllReadBtn = document.getElementById('mark-all-read-btn');
+
+    let unreadCount = 0;
+    let eventSource = null;
+
+    // Actualizar el badge con el contador de notificaciones no leídas
+    function updateBadge(count) {
+      unreadCount = count;
+      if (count > 0) {
+        badge.textContent = count > 9 ? '9+' : count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+      console.log('Badge updated:', count, 'unread notifications');
+    }
+
+    function renderNotifications(notifications) {
+      if (notifications.length === 0) {
+        notifList.innerHTML = '<div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted);">No hay notificaciones</div>';
+        return;
+      }
+
+      notifList.innerHTML = notifications.map(notif => `
+        <div style="
+          padding: 1rem;
+          border-bottom: 1px solid var(--border);
+          cursor: pointer;
+          transition: background 0.15s ease;
+          background: rgba(79, 70, 229, 0.05);
+        " onmouseover="this.style.background='rgba(79, 70, 229, 0.1)'" onmouseout="this.style.background='rgba(79, 70, 229, 0.05)'" onclick="window.markAsRead(${notif.id})">
+          <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <span style="
+              width: 10px;
+              height: 10px;
+              border-radius: 50%;
+              background: var(--brand);
+              margin-top: 0.375rem;
+              flex-shrink: 0;
+            "></span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">${notif.title}</div>
+              <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">${notif.message || ''}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${new Date(notif.created_at).toLocaleString('es-ES')}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Conectar a SSE stream
+    function connectSSE() {
+      console.log('Conectando a SSE stream...');
+      eventSource = new EventSource('/api/notifications/stream');
+
+      eventSource.addEventListener('init', (event) => {
+        console.log('Evento init recibido');
+        const data = JSON.parse(event.data);
+        updateBadge(data.count || 0);
+        if (notifPanel.style.display === 'block') {
+          renderNotifications(data.notifications || []);
+        }
+      });
+
+      eventSource.addEventListener('update', (event) => {
+        console.log('Evento update recibido');
+        const data = JSON.parse(event.data);
+        updateBadge(data.count || 0);
+        if (notifPanel.style.display === 'block') {
+          renderNotifications(data.notifications || []);
+        }
+      });
+
+      eventSource.onerror = () => {
+        console.error('Error en SSE, reconectando en 5 segundos...');
+        eventSource.close();
+        setTimeout(connectSSE, 5000);
+      };
+    }
+
+    // Toggle panel
+    notifBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = notifPanel.style.display !== 'none';
+      notifPanel.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) {
+        // Cuando se abre, SIEMPRE hacer fetch de notificaciones actualizadas
+        fetch('/api/notifications/unread')
+          .then(res => res.json())
+          .then(data => renderNotifications(data.notifications || []))
+          .catch(err => console.error('Error cargando notificaciones:', err));
+      }
+    });
+
+    // Cerrar panel al hacer click fuera
+    document.addEventListener('click', () => {
+      notifPanel.style.display = 'none';
+    });
+
+    // Marcar como leída
+    window.markAsRead = async (notificationId) => {
+      try {
+        await fetch(`/api/notifications/${notificationId}/read`, { method: 'POST' });
+        // Recargar lista de notificaciones no leídas
+        const res = await fetch('/api/notifications/unread');
+        const data = await res.json();
+        updateBadge(data.unread_count || 0);
+        if (notifPanel.style.display === 'block') {
+          renderNotifications(data.notifications || []);
+        }
+      } catch (error) {
+        console.error('Error marcando notificación como leída:', error);
+      }
+    };
+
+    // Marcar todas como leídas
+    markAllReadBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await fetch('/api/notifications/read-all', { method: 'POST' });
+        // Recargar lista después de marcar todas como leídas
+        const res = await fetch('/api/notifications/unread');
+        const data = await res.json();
+        updateBadge(data.unread_count || 0);
+        renderNotifications(data.notifications || []);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    });
+
+    // Conectar al SSE stream al iniciar
+    connectSSE();
+
+    // Cerrar conexión si el usuario se va
+    window.addEventListener('beforeunload', () => {
+      if (eventSource) eventSource.close();
+    });
+  })();
+  </script>
 
   <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

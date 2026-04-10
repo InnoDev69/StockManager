@@ -1,0 +1,3 @@
+class Var:
+    ATTRIBUTE_CARACTERISTICS_ENABLED = False
+    

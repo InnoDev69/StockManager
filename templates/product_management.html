@@ -237,6 +237,7 @@
         <label for="edit-status" style="cursor: pointer; font-weight: 500;">Producto habilitado</label>
       </div>
 
+      {% if Var.ATTRIBUTE_CARACTERISTICS_ENABLED %}
       <!-- SECCIÓN DE ATRIBUTOS DINÁMICOS -->
       <div id="attributes-section" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -258,6 +259,7 @@
         </div>
         <div id="attributes-container" style="display: grid; gap: 1.25rem;"></div>
       </div>
+      {% endif %}
 
       <div id="edit-error" class="alert-error" style="display: none; margin-top: 0.5rem;"></div>
       
@@ -1318,35 +1320,89 @@
 
   // ===== Inicialización =====
   function init() {
-    $('search').addEventListener('input', debounce(applyFilters, 400));
-    $('filter-stock').addEventListener('change', applyFilters);
-    $('sort-by').addEventListener('change', applyFilters);
-    $('page-size').addEventListener('change', function() {
+  // Validar elementos y agregar listeners solo si existen
+  const searchInput = $('search');
+  if (searchInput) {
+    searchInput.addEventListener('input', debounce(applyFilters, 400));
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #search');
+  }
+
+  const filterStock = $('filter-stock');
+  if (filterStock) {
+    filterStock.addEventListener('change', applyFilters);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #filter-stock');
+  }
+
+  const sortBy = $('sort-by');
+  if (sortBy) {
+    sortBy.addEventListener('change', applyFilters);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #sort-by');
+  }
+
+  const pageSize_el = $('page-size');
+  if (pageSize_el) {
+    pageSize_el.addEventListener('change', function() {
       pageSize = parseInt(this.value);
       fetchPage(1);
     });
-    $('edit-form').addEventListener('submit', handleEditSubmit);
-    $('new-attribute-form').addEventListener('submit', handleNewAttributeSubmit);
-    $('add-attribute-btn').addEventListener('click', (e) => {
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #page-size');
+  }
+
+  const editForm = $('edit-form');
+  if (editForm) {
+    editForm.addEventListener('submit', handleEditSubmit);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #edit-form');
+  }
+
+  const newAttrForm = $('new-attribute-form');
+  if (newAttrForm) {
+    newAttrForm.addEventListener('submit', handleNewAttributeSubmit);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #new-attribute-form');
+  }
+
+  const addAttrBtn = $('add-attribute-btn');
+  if (addAttrBtn) {
+    addAttrBtn.addEventListener('click', (e) => {
       e.preventDefault();
       openNewAttributeModal();
     });
-    $('products-table-body').addEventListener('click', handleTableClick);
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeEditModal();
-        closeDeleteModal();
-        closeStockModal();
-        closeNewAttributeModal();
-        closeDeleteAttributeModal();
-      }
-      new CalendarPicker('input[name="expiration_date"]', {
-        minYear: 2024,
-        maxYear: 2050
-        });
-    });
-    fetchPage(1);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #add-attribute-btn');
   }
+
+  const tableBody = $('products-table-body');
+  if (tableBody) {
+    tableBody.addEventListener('click', handleTableClick);
+  } else {
+    console.warn('⚠️ Elemento no encontrado: #products-table-body');
+  }
+
+  // Keydown listener para cerrar modales con ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeEditModal();
+      closeDeleteModal();
+      closeStockModal();
+      closeNewAttributeModal();
+      closeDeleteAttributeModal();
+    }
+  });
+
+  // Inicializar CalendarPicker para campos de fecha de expiración
+  new CalendarPicker('input[name="expiration_date"]', {
+    minYear: {{ Limits.CALENDAR_YEAR_MIN }},
+    maxYear: {{ Limits.CALENDAR_YEAR_MAX }}
+  });
+
+  // Cargar productos inicialmente
+  fetchPage(1);
+}
 
   // Exponer funciones globales
   window.loadProducts            = loadProducts;

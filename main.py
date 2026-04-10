@@ -7,6 +7,7 @@ from flask import Flask, render_template, request
 from dotenv import load_dotenv
 
 from api import api_bp
+from data.variables import Var
 from routes import all_blueprints
 from data.limits import Limits
 from tools.logger import logger
@@ -21,7 +22,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
 # --- Context processors ---
 @app.context_processor
 def inject_limits():
-    return {"Limits": Limits}
+    return {"Limits": Limits, "Var": Var}
 
 # --- Registra blueprints ---
 app.register_blueprint(api_bp, url_prefix="/api")

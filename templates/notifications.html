@@ -1,0 +1,925 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones - StockManager{% endblock %}
+
+{% block content %}
+<div class="notif-page">
+
+  <!-- ── Header ──────────────────────────────────────── -->
+  <div class="notif-page__header">
+    <div class="notif-page__header-left">
+      <div class="notif-page__icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="notif-page__title">Notificaciones</h1>
+        <p class="notif-page__subtitle">
+          <span id="hdr-count">—</span> notificaciones · <span id="hdr-unread">—</span> sin leer
+        </p>
+      </div>
+    </div>
+
+    <div class="notif-page__header-right">
+      <div class="notif-page__live">
+        <span class="notif-page__live-dot" id="live-dot"></span>
+        <span class="notif-page__live-label" id="live-label">En vivo</span>
+      </div>
+      <button id="mark-all-read-btn" class="notif-btn notif-btn--ghost">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Marcar todas como leídas
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Filters ─────────────────────────────────────── -->
+  <div class="notif-filters">
+    <!-- Tab-style type filter -->
+    <div class="notif-filters__tabs" id="type-tabs">
+      <button class="notif-tab notif-tab--active" data-type="">Todas</button>
+      <button class="notif-tab" data-type="info">
+        <span class="notif-tab__dot notif-tab__dot--info"></span>Info
+      </button>
+      <button class="notif-tab" data-type="success">
+        <span class="notif-tab__dot notif-tab__dot--success"></span>Éxito
+      </button>
+      <button class="notif-tab" data-type="warning">
+        <span class="notif-tab__dot notif-tab__dot--warning"></span>Aviso
+      </button>
+      <button class="notif-tab" data-type="error">
+        <span class="notif-tab__dot notif-tab__dot--error"></span>Error
+      </button>
+    </div>
+
+    <div class="notif-filters__right">
+      <!-- Status toggle pills -->
+      <div class="notif-toggle-group" id="status-toggle">
+        <button class="notif-toggle notif-toggle--active" data-status="">Todos</button>
+        <button class="notif-toggle" data-status="unread">Sin leer</button>
+        <button class="notif-toggle" data-status="read">Leídas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast for new notifications ────────────────── -->
+  <div id="new-notif-toast" class="notif-toast" style="display:none;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span id="new-notif-toast-text">Hay nuevas notificaciones</span>
+    <button onclick="dismissToast()" class="notif-toast__close">✕</button>
+  </div>
+
+  <!-- ── List ────────────────────────────────────────── -->
+  <div class="notif-list-wrap">
+    <!-- Loading skeleton -->
+    <div id="loading-state" class="notif-skeletons">
+      <div class="notif-skeleton"></div>
+      <div class="notif-skeleton"></div>
+      <div class="notif-skeleton"></div>
+    </div>
+
+    <!-- Actual list -->
+    <div id="page-notifications-list" class="notif-list" style="display:none;"></div>
+
+    <!-- Load more button -->
+    <div id="load-more-wrap" style="display:none; text-align:center; padding:1.5rem 0;">
+      <button id="load-more-btn" class="notif-btn notif-btn--ghost">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+        </svg>
+        Cargar más
+      </button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="notif-empty" style="display:none;">
+      <div class="notif-empty__icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <p class="notif-empty__title">Sin notificaciones</p>
+      <p class="notif-empty__sub">No hay resultados para los filtros seleccionados</p>
+      <button class="notif-btn notif-btn--ghost" onclick="clearFilters()">Limpiar filtros</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STYLES
+═══════════════════════════════════════════════════════ -->
+<style>
+/* ── Page shell ─────────────────────────────────── */
+.notif-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.notif-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.notif-page__header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.notif-page__icon-wrap {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand, #00d4ff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 22%, transparent);
+  color: var(--brand, #00d4ff);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-page__title {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--text, #e5e7eb);
+  letter-spacing: -0.02em;
+}
+
+.notif-page__subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.83rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.notif-page__header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Live indicator */
+.notif-page__live {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.notif-page__live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success, #10b981);
+  box-shadow: 0 0 0 0 rgba(16,185,129,0.4);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.notif-page__live-dot.stale {
+  background: var(--text-muted, #9ca3af);
+  animation: none;
+  box-shadow: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+}
+
+/* ── Buttons ─────────────────────────────────────── */
+.notif-btn {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.83rem; font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.notif-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border, #374151);
+  color: var(--text-muted, #9ca3af);
+}
+.notif-btn--ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text, #e5e7eb);
+  border-color: var(--border-hover, #4b5563);
+}
+
+/* ── Filters ─────────────────────────────────────── */
+.notif-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--card, #1f2937);
+  border: 1px solid var(--border, #374151);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+/* Type tabs */
+.notif-filters__tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.notif-tab {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem; font-weight: 500;
+  border-radius: 7px;
+  border: none; cursor: pointer;
+  background: transparent;
+  color: var(--text-muted, #9ca3af);
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+.notif-tab:hover { background: rgba(255,255,255,0.05); color: var(--text, #e5e7eb); }
+.notif-tab--active {
+  background: color-mix(in srgb, var(--brand, #00d4ff) 12%, transparent);
+  color: var(--brand, #00d4ff);
+  font-weight: 600;
+}
+
+.notif-tab__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.notif-tab__dot--info    { background: var(--brand, #00d4ff); }
+.notif-tab__dot--success { background: var(--success, #10b981); }
+.notif-tab__dot--warning { background: var(--warning, #f59e0b); }
+.notif-tab__dot--error   { background: var(--danger, #ef4444); }
+
+/* Status toggle */
+.notif-toggle-group {
+  display: flex;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.notif-toggle {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem; font-weight: 500;
+  border: none; cursor: pointer;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #9ca3af);
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+.notif-toggle:hover { color: var(--text, #e5e7eb); }
+.notif-toggle--active {
+  background: var(--card, #1f2937);
+  color: var(--text, #e5e7eb);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ── New notification toast ──────────────────────── */
+.notif-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  background: color-mix(in srgb, var(--brand, #00d4ff) 10%, var(--card, #1f2937));
+  border: 1px solid color-mix(in srgb, var(--brand, #00d4ff) 30%, transparent);
+  border-radius: 10px;
+  color: var(--brand, #00d4ff);
+  font-size: 0.85rem; font-weight: 500;
+  animation: slide-in 0.3s ease;
+}
+
+.notif-toast__close {
+  margin-left: auto;
+  background: none; border: none;
+  color: inherit; cursor: pointer;
+  font-size: 0.75rem; padding: 0 0.25rem;
+  opacity: 0.7;
+}
+.notif-toast__close:hover { opacity: 1; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Skeleton loaders ────────────────────────────── */
+.notif-skeletons { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.notif-skeleton {
+  height: 100px;
+  border-radius: 12px;
+  background: linear-gradient(90deg,
+    var(--card, #1f2937) 25%,
+    color-mix(in srgb, var(--border, #374151) 60%, var(--card, #1f2937)) 50%,
+    var(--card, #1f2937) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+.notif-skeleton:nth-child(2) { height: 80px; animation-delay: 0.15s; }
+.notif-skeleton:nth-child(3) { height: 90px; animation-delay: 0.3s; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Notifications list ──────────────────────────── */
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Notification card ───────────────────────────── */
+.notif-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0 1rem;
+  align-items: start;
+  background: var(--card, #1f2937);
+  border: 1px solid var(--border, #374151);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  animation: card-in 0.25s ease both;
+  position: relative;
+  overflow: hidden;
+}
+
+.notif-card:hover {
+  border-color: var(--border-hover, #4b5563);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.notif-card.is-new {
+  animation: card-new 0.4s ease both;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes card-new {
+  0%   { opacity: 0; transform: translateX(-10px); background: color-mix(in srgb, var(--brand,#00d4ff) 8%, var(--card,#1f2937)); }
+  60%  { background: color-mix(in srgb, var(--brand,#00d4ff) 5%, var(--card,#1f2937)); }
+  100% { opacity: 1; transform: translateX(0); background: var(--card,#1f2937); }
+}
+
+/* Unread accent stripe */
+.notif-card.unread::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+  background: var(--brand, #00d4ff);
+}
+.notif-card.unread.type-success::before { background: var(--success, #10b981); }
+.notif-card.unread.type-warning::before { background: var(--warning, #f59e0b); }
+.notif-card.unread.type-error::before   { background: var(--danger, #ef4444); }
+
+/* Icon cell */
+.notif-card__icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.notif-card__icon--info    { background: rgba(0,212,255,0.12); color: var(--brand, #00d4ff); }
+.notif-card__icon--success { background: rgba(16,185,129,0.12); color: var(--success, #10b981); }
+.notif-card__icon--warning { background: rgba(245,158,11,0.12); color: var(--warning, #f59e0b); }
+.notif-card__icon--error   { background: rgba(239,68,68,0.12);  color: var(--danger, #ef4444); }
+
+/* Body */
+.notif-card__body { min-width: 0; }
+
+.notif-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.notif-card__title {
+  margin: 0;
+  font-size: 0.93rem; font-weight: 600;
+  color: var(--text, #e5e7eb);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.notif-card__badge {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.badge--info    { background: rgba(0,212,255,0.15);   color: var(--brand, #00d4ff); }
+.badge--success { background: rgba(16,185,129,0.15);  color: var(--success, #10b981); }
+.badge--warning { background: rgba(245,158,11,0.15);  color: var(--warning, #f59e0b); }
+.badge--error   { background: rgba(239,68,68,0.15);   color: var(--danger, #ef4444); }
+
+.notif-card__unread-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--brand, #00d4ff);
+  flex-shrink: 0;
+}
+
+.notif-card__msg {
+  margin: 0;
+  font-size: 0.855rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.5;
+}
+
+.notif-card__time {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+  opacity: 0.7;
+}
+
+/* Actions cell */
+.notif-card__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+}
+
+.notif-action-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem; font-weight: 500;
+  border-radius: 7px;
+  border: 1px solid var(--border, #374151);
+  background: transparent;
+  color: var(--text-muted, #9ca3af);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.notif-action-btn:hover {
+  background: var(--brand, #00d4ff);
+  color: #0f1219;
+  border-color: var(--brand, #00d4ff);
+}
+
+.notif-read-check {
+  color: var(--success, #10b981);
+  font-size: 0.8rem; font-weight: 600;
+  padding: 0.35rem 0;
+  white-space: nowrap;
+}
+
+/* ── Empty state ─────────────────────────────────── */
+.notif-empty {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.notif-empty__icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border, #374151);
+  color: var(--text-muted, #9ca3af);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 0.5rem;
+  opacity: 0.6;
+}
+
+.notif-empty__title {
+  margin: 0;
+  font-size: 1rem; font-weight: 600;
+  color: var(--text, #e5e7eb);
+}
+
+.notif-empty__sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 680px) {
+  .notif-page { padding: 1rem; }
+  .notif-filters { flex-direction: column; align-items: flex-start; }
+  .notif-filters__tabs { flex-wrap: wrap; }
+  .notif-card { grid-template-columns: auto 1fr; }
+  .notif-card__actions { grid-column: 2; }
+  .notif-page__header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPT
+═══════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  // ── State ───────────────────────────────────────────
+  let allNotifications   = [];
+  let filteredNotifications = [];
+  let activeType         = '';
+  let activeStatus       = '';
+  let pollInterval       = null;
+  let lastKnownIds       = new Set();
+  let isFirstLoad        = true;
+  let currentOffset      = 0;
+  const PAGE_SIZE        = 10;
+  let hasMoreNotifications = true;
+
+  // ── Icons per type ──────────────────────────────────
+  const ICONS = {
+    info: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+    success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,
+    warning: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+    error: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  };
+
+  // ── DOM refs ────────────────────────────────────────
+  const listEl      = document.getElementById('page-notifications-list');
+  const emptyEl     = document.getElementById('empty-state');
+  const loadingEl   = document.getElementById('loading-state');
+  const hdrCount    = document.getElementById('hdr-count');
+  const hdrUnread   = document.getElementById('hdr-unread');
+  const liveDot     = document.getElementById('live-dot');
+  const liveLabel   = document.getElementById('live-label');
+  const toastEl     = document.getElementById('new-notif-toast');
+  const toastText   = document.getElementById('new-notif-toast-text');
+
+  // ── Init ────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    loadNotifications();
+    setupFilters();
+    setupMarkAll();
+    connectSSEStream();
+  });
+
+  // ── Fetch initial state ──────────────────────────────
+  async function loadNotifications(silent = false) {
+    try {
+      currentOffset = 0;
+      const res = await fetch(`/api/notifications/all?limit=${PAGE_SIZE}&offset=0`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      const incoming = Array.isArray(data) ? data : [];
+
+      lastKnownIds = new Set(incoming.map(n => n.id));
+      allNotifications = incoming;
+      hasMoreNotifications = incoming.length >= PAGE_SIZE;
+      isFirstLoad = false;
+      currentOffset = PAGE_SIZE;
+
+      setLive(true);
+      updateHeader();
+      applyFilters(silent);
+    } catch (e) {
+      console.error('Error cargando notificaciones:', e);
+      setLive(false);
+      if (!silent) showError();
+    }
+  }
+
+  // ── Load more notifications ─────────────────────────
+  async function loadMoreNotifications() {
+    try {
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      const loadMoreWrap = document.getElementById('load-more-wrap');
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = 'Cargando...';
+
+      const res = await fetch(`/api/notifications/all?limit=${PAGE_SIZE}&offset=${currentOffset}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      const incoming = Array.isArray(data) ? data : [];
+      
+      // Filtrar solo nuevas notificaciones que no hemos visto (evitar duplicados)
+      const newNotifs = incoming.filter(n => !lastKnownIds.has(n.id));
+      
+      // Agregar solo las nuevas notificaciones al final
+      allNotifications.push(...newNotifs);
+      newNotifs.forEach(n => lastKnownIds.add(n.id));
+
+      // Verificar si hay más (basado en si obtuvimos menos de PAGE_SIZE)
+      hasMoreNotifications = incoming.length >= PAGE_SIZE && newNotifs.length > 0;
+      currentOffset += PAGE_SIZE;
+
+      // Re-renderizar
+      applyFilters();
+
+      // Actualizar estado del botón
+      if (!hasMoreNotifications) {
+        loadMoreWrap.style.display = 'none';
+      } else {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = 'Cargar más';
+      }
+    } catch (e) {
+      console.error('Error cargando más notificaciones:', e);
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Error al cargar';
+    }
+  }
+
+  // ── Server-Sent Events (push real, sin polling) ─────
+  let eventSource = null;
+
+  function connectSSEStream() {
+    console.log('[SSE notifications.html] Conectando al stream...');
+    
+    eventSource = new EventSource('/api/notifications/stream');
+
+    // Evento init — estado inicial
+    eventSource.addEventListener('init', (e) => {
+      const data = JSON.parse(e.data);
+      console.log('[SSE] Init event recibido');
+      setLive(true);
+    });
+
+    // Evento notification — nueva notificación en tiempo real
+    eventSource.addEventListener('notification', (e) => {
+      const data = JSON.parse(e.data);
+      const newNotif = data.notification;
+      
+      if (newNotif && !lastKnownIds.has(newNotif.id)) {
+        console.log('[SSE] Nueva notificación:', newNotif.title);
+        
+        // Agregar a la lista
+        allNotifications.unshift(newNotif);
+        lastKnownIds.add(newNotif.id);
+        
+        // Mostrar toast y animar
+        showNewNotifToast(1);
+        setTimeout(() => {
+          const el = document.querySelector(`.notif-card[data-id="${newNotif.id}"]`);
+          if (el) el.classList.add('is-new');
+        }, 50);
+        
+        // Actualizar header y re-renderizar
+        updateHeader();
+        applyFilters();
+      }
+    });
+
+    // Heartbeat — solo para mantener la conexión
+    eventSource.addEventListener('message', (e) => {
+      if (e.data.includes('heartbeat')) {
+        console.log('[SSE] Heartbeat recibido');
+      }
+    });
+
+    // Error — reconectar automáticamente
+    eventSource.addEventListener('error', (e) => {
+      console.error('[SSE] Error en stream:', e);
+      setLive(false);
+      eventSource.close();
+      
+      // Reconectar después de 3 segundos
+      setTimeout(connectSSEStream, 3000);
+    });
+
+    // Limpiar al navegar
+    window.addEventListener('beforeunload', () => {
+      if (eventSource) {
+        eventSource.close();
+        console.log('[SSE] Stream cerrado');
+      }
+    });
+  }
+
+  // ── Render ──────────────────────────────────────────
+  function applyFilters(silent = false) {
+    filteredNotifications = allNotifications.filter(n => {
+      const typeOk   = !activeType   || n.type === activeType;
+      const statusOk = !activeStatus ||
+        (activeStatus === 'read'   && n.is_read) ||
+        (activeStatus === 'unread' && !n.is_read);
+      return typeOk && statusOk;
+    });
+
+    if (!silent) render();
+    else render();
+  }
+
+  function render() {
+    loadingEl.style.display = 'none';
+
+    if (filteredNotifications.length === 0) {
+      listEl.style.display = 'none';
+      emptyEl.style.display = 'flex';
+      document.getElementById('load-more-wrap').style.display = 'none';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    listEl.style.display  = 'flex';
+    
+    // Mostrar botón "Cargar más" solo si hay más notificaciones y sin filtros activos
+    const loadMoreWrap = document.getElementById('load-more-wrap');
+    if (hasMoreNotifications && !activeType && !activeStatus) {
+      loadMoreWrap.style.display = 'block';
+    } else {
+      loadMoreWrap.style.display = 'none';
+    }
+
+    listEl.innerHTML = filteredNotifications.map((n, i) => {
+      const type     = n.type || 'info';
+      const isUnread = !n.is_read;
+      const time     = formatRelative(n.created_at);
+
+      return `
+        <div class="notif-card ${isUnread ? 'unread' : ''} type-${type}"
+             data-id="${n.id}"
+             style="animation-delay:${Math.min(i * 0.04, 0.3)}s">
+
+          <div class="notif-card__icon notif-card__icon--${type}">
+            ${ICONS[type] || ICONS.info}
+          </div>
+
+          <div class="notif-card__body">
+            <div class="notif-card__top">
+              <h3 class="notif-card__title">${escapeHtml(n.title)}</h3>
+              <span class="notif-card__badge badge--${type}">${type}</span>
+              ${isUnread ? '<span class="notif-card__unread-dot"></span>' : ''}
+            </div>
+            ${n.message ? `<p class="notif-card__msg">${escapeHtml(n.message)}</p>` : ''}
+            <p class="notif-card__time">${time}</p>
+          </div>
+
+          <div class="notif-card__actions">
+            ${isUnread
+              ? `<button class="notif-action-btn" onclick="markAsRead(${n.id})">Marcar leída</button>`
+              : `<span class="notif-read-check">✓ Leída</span>`
+            }
+            ${n.action_url
+              ? `<a href="${n.action_url}" class="notif-action-btn" style="text-decoration:none;">Ver →</a>`
+              : ''
+            }
+          </div>
+
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Header counters ─────────────────────────────────
+  function updateHeader() {
+    const total  = allNotifications.length;
+    const unread = allNotifications.filter(n => !n.is_read).length;
+    hdrCount.textContent  = total;
+    hdrUnread.textContent = unread;
+  }
+
+  // ── Live indicator ──────────────────────────────────
+  function setLive(ok) {
+    if (ok) {
+      liveDot.className   = 'notif-page__live-dot';
+      liveLabel.textContent = 'En vivo';
+    } else {
+      liveDot.className   = 'notif-page__live-dot stale';
+      liveLabel.textContent = 'Sin conexión';
+    }
+  }
+
+  // ── Toast ───────────────────────────────────────────
+  function showNewNotifToast(count) {
+    toastText.textContent = count === 1
+      ? 'Hay 1 notificación nueva'
+      : `Hay ${count} notificaciones nuevas`;
+    toastEl.style.display = 'flex';
+    clearTimeout(toastEl._timer);
+    toastEl._timer = setTimeout(() => toastEl.style.display = 'none', 6000);
+  }
+
+  window.dismissToast = function () {
+    toastEl.style.display = 'none';
+  };
+
+  // ── Filters setup ───────────────────────────────────
+  function setupFilters() {
+    // Type tabs
+    document.getElementById('type-tabs').addEventListener('click', function (e) {
+      const btn = e.target.closest('.notif-tab');
+      if (!btn) return;
+      document.querySelectorAll('.notif-tab').forEach(b => b.classList.remove('notif-tab--active'));
+      btn.classList.add('notif-tab--active');
+      activeType = btn.dataset.type;
+      applyFilters();
+    });
+
+    // Status toggle
+    document.getElementById('status-toggle').addEventListener('click', function (e) {
+      const btn = e.target.closest('.notif-toggle');
+      if (!btn) return;
+      document.querySelectorAll('.notif-toggle').forEach(b => b.classList.remove('notif-toggle--active'));
+      btn.classList.add('notif-toggle--active');
+      activeStatus = btn.dataset.status;
+      applyFilters();
+    });
+  }
+
+  function setupMarkAll() {
+    document.getElementById('mark-all-read-btn').addEventListener('click', markAllAsRead);
+    document.getElementById('load-more-btn').addEventListener('click', loadMoreNotifications);
+  }
+
+  window.clearFilters = function () {
+    activeType = ''; activeStatus = '';
+    document.querySelectorAll('.notif-tab').forEach((b, i) => b.classList.toggle('notif-tab--active', i === 0));
+    document.querySelectorAll('.notif-toggle').forEach((b, i) => b.classList.toggle('notif-toggle--active', i === 0));
+    applyFilters();
+  };
+
+  // ── Actions ─────────────────────────────────────────
+  window.markAsRead = async function (id) {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+      const n = allNotifications.find(x => x.id === id);
+      if (n) n.is_read = 1;
+      updateHeader();
+      applyFilters();
+    } catch (e) {
+      console.error('Error:', e);
+    }
+  };
+
+  async function markAllAsRead() {
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+      allNotifications.forEach(n => (n.is_read = 1));
+      updateHeader();
+      applyFilters();
+    } catch (e) {
+      console.error('Error:', e);
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────
+  function escapeHtml(text) {
+    if (text == null) return '';
+    return String(text).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c])
+    );
+  }
+
+  function formatRelative(dateStr) {
+    const date = new Date(dateStr);
+    const diff = Date.now() - date.getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+
+    if (mins < 1)   return 'Ahora mismo';
+    if (mins < 60)  return `Hace ${mins} min`;
+    if (hours < 24) return `Hace ${hours} h`;
+    if (days < 7)   return `Hace ${days} día${days > 1 ? 's' : ''}`;
+    return date.toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function showError() {
+    loadingEl.style.display = 'none';
+    listEl.style.display    = 'none';
+    emptyEl.style.display   = 'flex';
+    emptyEl.querySelector('.notif-empty__title').textContent = 'Error al cargar';
+    emptyEl.querySelector('.notif-empty__sub').textContent   = 'No se pudieron obtener las notificaciones';
+  }
+
+})();
+</script>
+{% endblock %}

@@ -12,6 +12,7 @@ from bd.mixins.items import ItemsMixin
 from bd.mixins.sales import SalesMixin
 from bd.mixins.metrics import MetricsMixin
 from bd.mixins.password_reset import PasswordResetMixin
+from bd.mixins.notifications import NotificationsMixin
 
 _thread_local = threading.local()
 
@@ -22,6 +23,7 @@ class BDConector(
     SalesMixin,
     MetricsMixin,
     PasswordResetMixin,
+    NotificationsMixin,
 ):
     """
     Conector de base de datos SQLite con gestión automática de transacciones.
@@ -32,7 +34,7 @@ class BDConector(
     - SalesMixin: registro y consulta de ventas
     - MetricsMixin: métricas y reportes
     - PasswordResetMixin: recuperación de contraseña
-
+    - NotificationsMixin: gestión de notificaciones
     Attributes:
         db_path (str): Ruta al archivo de base de datos SQLite
     """
@@ -137,7 +139,7 @@ class BDConector(
         """
         items_table_query = """
         CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY NOT NULL,
             barrs_code TEXT UNIQUE,
             description TEXT,
             name TEXT NOT NULL,
@@ -201,6 +203,20 @@ class BDConector(
             FOREIGN KEY (attribute_id) REFERENCES item_attributes(id)
         )
         """
+        
+        notifications_table_query = """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT,
+            type TEXT DEFAULT 'info',  -- info, warning, success, error
+            action_url TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
 
         with self._cursor() as cur:
             cur.execute(users_table_query)
@@ -210,7 +226,8 @@ class BDConector(
             cur.execute(reset_codes_table_query)
             cur.execute(item_attributes_table_query)
             cur.execute(item_attribute_values_table_query)
-
+            cur.execute(notifications_table_query)
+    
             logger.info("[DB] Creando índices para optimizar consultas...")
 
             # Índice compuesto para las queries de ventas filtradas por fecha y vendedor
@@ -224,6 +241,9 @@ class BDConector(
             cur.execute("CREATE INDEX IF NOT EXISTS idx_details_item_id ON details(item_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_items_name ON items(name)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendedor ON sells(vendedor)")
+            
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)")
 
         self._run_migrations()
 
@@ -244,6 +264,7 @@ class BDConector(
             ("users",   "created_at",     "TEXT DEFAULT NULL"),
             ("sells",   "date",           "TEXT NOT NULL"),
             ("items", "expiration_date", "TEXT"),
+            ("items", "id", "INTEGER PRIMARY KEY NOT NULL"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

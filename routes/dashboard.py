@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, render_template, session, redirect, url_for
+from api.auth_utils import require_auth, require_admin
 from bd.bdInstance import db
 
 dashboard_bp = Blueprint('dashboard', __name__)

@@ -4,8 +4,10 @@ import time
 import uuid
 from api.auth_utils import require_auth, require_admin
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from api.notifications_api import notify_user
 from bd.bdInstance import db
 from bd.bdConector import ValidationError
+from tools import logger
 
 products_bp = Blueprint('products', __name__)
 
@@ -63,6 +65,10 @@ def product_new():
     
     if request.method == "GET":
         return render_template("product_form.html", form_data=empty_form)
+    
+    if request.form.get("barrs_code", "").strip() == "":
+        flash("El código de barras no puede estar vacío", "error")
+        return render_template("product_form.html", form_data=empty_form)
 
     form_data = {
         "barrs_code": request.form.get("barrs_code", "").strip(),
@@ -87,6 +93,7 @@ def product_new():
             price
         )
         flash("Producto agregado")
+        
         return redirect(url_for("dashboard.index"))
     
     except ValidationError as e:

@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from api.auth_utils import require_auth, require_admin
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
 
 settings_bp = Blueprint('settings', __name__)
 
 @settings_bp.route("/settings", methods=["GET"])
+@require_auth
 def settings():
     """
     Página de configuración del usuario.
@@ -20,9 +22,6 @@ def settings():
         Template: settings.html con datos del usuario actual
     """
     
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
-    
     user_id = session.get("user_id")
     user_data = db.execute_query("SELECT username, email FROM users WHERE id = ?", (user_id,))
     user = None
@@ -32,6 +31,7 @@ def settings():
     return render_template("settings.html", user=user, show_back=False)
 
 @settings_bp.route("/settings/profile", methods=["POST"])
+@require_auth
 def update_profile():
     """
     Actualizar información de perfil del usuario.
@@ -45,9 +45,6 @@ def update_profile():
         Redirect: A página de configuración con mensaje de éxito/error
     """
     
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
-    
     email = request.form.get("email", "").strip()
     user_id = session.get("user_id")
     
@@ -60,6 +57,7 @@ def update_profile():
     return redirect(url_for("settings.settings"))
 
 @settings_bp.route("/settings/password", methods=["POST"])
+@require_auth
 def change_password():
     """
     Cambiar contraseña del usuario.
@@ -77,9 +75,6 @@ def change_password():
     Returns:
         Redirect: A configuración con mensaje de éxito/error
     """
-    
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
     
     current = request.form.get("current_password", "")
     new_pwd = request.form.get("new_password", "")

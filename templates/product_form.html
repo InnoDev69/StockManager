@@ -10,7 +10,7 @@
       <label class="label">Código de barras</label>
       <div style="display:flex; gap:0.5rem;">
         <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
-               value="{{ form_data.barrs_code or '' }}" maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
+               value="{{ form_data.barrs_code or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
       </div>
       <span class="field-error" data-field="Código de barras"></span>
     </div>
@@ -70,8 +70,8 @@ document.querySelectorAll('input[type="number"][max]').forEach(input => {
 });
 
 new CalendarPicker('input[name="expiration_date"]', {
-  minYear: 2024,
-  maxYear: 2050
+  minYear: {{ Limits.CALENDAR_YEAR_MIN }},
+  maxYear: {{ Limits.CALENDAR_YEAR_MAX }}
 });
 
 // Envío del formulario via API

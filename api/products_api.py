@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, session
+from api.notifications_api import notify_user
 from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin
 from data.validators import ItemValidator, ValidationError
@@ -313,6 +314,8 @@ def create_product():
             data["price"]
         )
         logger.info(f"Producto '{data['name']}' creado por {session.get('user_id')}")
+        db.create_notification(user_id=session.get('user_id'), title="Producto agregado", message=f"El producto '{data['name']}' ha sido agregado al inventario.", notification_type='success')
+        notify_user(session.get('user_id'))
         return jsonify({"message": "Producto creado exitosamente"}), 201
     
     except ValidationError as e:
@@ -387,6 +390,10 @@ def update_product(product_id):
     query = f"UPDATE items SET {', '.join(updates)} WHERE id = ?"
     
     db.execute_query(query, tuple(params), fetch=False)
+    
+    db.create_notification(user_id=session.get('user_id'), title="Producto actualizado", message=f"El producto '{data.get('name', 'ID ' + str(product_id))}' ha sido actualizado.", notification_type='success')
+    notify_user(session.get('user_id'))
+    
     return jsonify({"message": "Producto actualizado"}), 200
 
 @products_api.route("/products/<int:product_id>", methods=["DELETE"])
@@ -415,6 +422,8 @@ def delete_product(product_id):
         return jsonify({"error": "Permiso denegado"}), 403
     
     db.disable_item(product_id)
+    db.create_notification(user_id=session.get('user_id'), title="Producto eliminado", message=f"El producto ha sido eliminado.", notification_type='warning')
+    notify_user(session.get('user_id'))
     return jsonify({"message": "Producto eliminado"}), 200
 
 @products_api.route("/items", methods=["GET"])

@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, session
+from api.notifications_api import notify_user
 from bd.bdInstance import db
 from api.auth_utils import require_auth
 from tools.logger import logger
@@ -53,6 +54,9 @@ def create_sale():
     vendedor = session.get("username", "unknown")
     payment_method = data.get("payment_method", "Efectivo")
     db.record_product_sale(item_id, qty, vendedor, payment_method)
+    
+    db.create_notification(user_id=session.get('user_id'), title="Venta registrada", message=f"Has vendido {qty} unidades de '{name}'.", notification_type='success')
+    notify_user(session.get('user_id'))
     
     return jsonify({
         "message": f"Venta registrada: {name} x{qty}",

@@ -1,6 +1,7 @@
 # api/auth_utils.py
 from functools import wraps
-from flask import jsonify, session
+from tempfile import template
+from flask import jsonify, render_template, render_template, session
 
 def require_auth(f):
     """
@@ -16,7 +17,7 @@ def require_auth(f):
     def decorated_function(*args, **kwargs):
         user_id = session.get("user_id")
         if not user_id:
-            return jsonify({"error": "Unauthorized"}), 401
+            return render_template("login.html")
         return f(*args, **kwargs)
     return decorated_function
 

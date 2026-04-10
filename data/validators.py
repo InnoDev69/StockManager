@@ -110,7 +110,7 @@ class ItemValidator:
         return {
             "barrs_code": Validator.validate_string(
                 "Código de barras", barrs_code, 
-                Limits.ITEM_BARCODE_MAX, required=False
+                Limits.ITEM_BARCODE_MAX, required=True
             ),
             "description": Validator.validate_string(
                 "Descripción", description, 

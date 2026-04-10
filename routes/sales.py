@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from api.auth_utils import require_auth, require_admin
 from bd.bdInstance import db
 
 sales_bp = Blueprint('sales', __name__)
 
 @sales_bp.route("/sales/new", methods=["GET", "POST"])
+@require_auth
 def sale_new():
     """
     Crear una nueva venta.
@@ -21,8 +23,6 @@ def sale_new():
         Template/Redirect: Formulario en GET, redirect a dashboard en POST
     """
     
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
     if request.method == "GET":
         return render_template("sale_form.html")
     barcode = request.form.get("barcode", "").strip()
@@ -41,10 +41,12 @@ def sale_new():
     if stock < qty:
         return render_template("sale_form.html", error="Stock insuficiente")
     db.record_sale(item_id, qty)
+    
     flash(f"Venta registrada: {name} x{qty}")
     return redirect(url_for("dashboard.index"))
 
 @sales_bp.route("/sales", methods=["GET"])
+@require_auth
 def sales():
     """
     Muestra el historial de ventas con filtros.
@@ -60,9 +62,6 @@ def sales():
     Returns:
         Template: sales.html con datos de ventas filtrados
     """
-    
-    if not session.get("user_id"):
-        return redirect(url_for("auth.login"))
     
     # Obtener parámetros de filtro
     date_from = request.args.get("date_from")

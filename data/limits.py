@@ -1,4 +1,5 @@
-PRODUCT_NAME=12
+import datetime
+
 class Limits:
     """Límites de caracteres y valores para validación."""
     
@@ -19,3 +20,7 @@ class Limits:
     USER_EMAIL_MAX = 100
     USER_ROLE_MAX = 20
     USER_CODE_MAX = 6
+    
+    # Calendario
+    CALENDAR_YEAR_MAX = datetime.datetime.now().year + 10
+    CALENDAR_YEAR_MIN = datetime.datetime.now().year - 1
