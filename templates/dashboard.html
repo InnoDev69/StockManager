@@ -269,9 +269,6 @@
             <div class="mono" style="font-size: 1.25rem; font-weight: 700; color: var(--warning, #f59e0b);">{{ item.stock }}</div>
             <div class="text-muted" style="font-size: 0.75rem;">unidades</div>
           </div>
-          {% if role == 'admin' %}
-          <a href="/products/{{ item.id }}/edit" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Reponer</a>
-          {% endif %}
         </div>
       </li>
       {% endfor %}

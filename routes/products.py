@@ -29,86 +29,21 @@ def cleanup_temp_imports():
         for k in sorted_keys[:len(temp_imports) - TEMP_IMPORT_MAX_ENTRIES]:
             del temp_imports[k]
 
-@products_bp.route("/products/new", methods=["GET", "POST"])
+@products_bp.route("/products/new", methods=["GET"])
 @require_admin
 def product_new():
     """
-    Crear un nuevo producto en el inventario.
+    Muestra el formulario para crear un nuevo producto.
     
     Solo usuarios con rol 'admin' pueden acceder.
+    La creación se realiza via API JSON (POST /api/products).
     
     Requiere login: True.
     
-    GET: Muestra formulario de creación
-    POST: Procesa y guarda el nuevo producto
-    
-    Form Data (POST):
-        barrs_code (str): Código de barras del producto
-        name (str): Nombre del producto
-        description (str): Descripción detallada
-        quantity (int): Cantidad en stock inicial
-        min_quantity (int): Stock mínimo (alerta de bajo stock)
-        price (float): Precio de venta
-    
     Returns:
-        Template/Redirect: Formulario en GET, redirect a dashboard en POST
+        Template: product_form.html (vacío, se envía por AJAX)
     """
-    
-    empty_form = {
-        "barrs_code": "",
-        "name": "",
-        "description": "",
-        "quantity": 0,
-        "min_quantity": 0,
-        "price": "0.00"
-    }
-    
-    if request.method == "GET":
-        return render_template("product_form.html", form_data=empty_form)
-    
-    if request.form.get("barrs_code", "").strip() == "":
-        flash("El código de barras no puede estar vacío", "error")
-        return render_template("product_form.html", form_data=empty_form)
-
-    form_data = {
-        "barrs_code": request.form.get("barrs_code", "").strip(),
-        "name": request.form.get("name", "").strip(),
-        "description": request.form.get("description", "").strip(),
-        "quantity": request.form.get("quantity", "0"),
-        "min_quantity": request.form.get("min_quantity", "0"),
-        "price": request.form.get("price", "0")
-    }
-    
-    try:
-        quantity = int(form_data["quantity"])
-        min_quantity = int(form_data["min_quantity"])
-        price = float(form_data["price"])
-        
-        db.add_item(
-            form_data["barrs_code"],
-            form_data["description"],
-            form_data["name"],
-            quantity,
-            min_quantity,
-            price
-        )
-        flash("Producto agregado")
-        
-        return redirect(url_for("dashboard.index"))
-    
-    except ValidationError as e:
-        return render_template(
-            "product_form.html",
-            error=e.message,
-            error_field=e.field,
-            form_data=form_data
-        )
-    except (ValueError, TypeError) as e:
-        return render_template(
-            "product_form.html",
-            error="Valor numérico inválido",
-            form_data=form_data
-        )
+    return render_template("product_form.html", form_data={})
         
 #Compatibilidad
 def legacy_product_form():

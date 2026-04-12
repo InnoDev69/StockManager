@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from api.auth_utils import require_auth, require_admin
+from api.notifications_api import notify_user
 from bd.bdInstance import db
 
 sales_bp = Blueprint('sales', __name__)
@@ -23,27 +24,7 @@ def sale_new():
         Template/Redirect: Formulario en GET, redirect a dashboard en POST
     """
     
-    if request.method == "GET":
-        return render_template("sale_form.html")
-    barcode = request.form.get("barcode", "").strip()
-    try:
-        qty = int(request.form.get("quantity", "1"))
-    except ValueError:
-        return render_template("sale_form.html", error="Cantidad inválida")
-
-    item = db.get_item_by_barcode(barcode)
-    if not item:
-        return render_template("sale_form.html", error="Producto no encontrado")
-
-    # item: (id, barrs_code, name, description, quantity, price)
-    item_id, barrs_code, name, description, stock, price = item
-
-    if stock < qty:
-        return render_template("sale_form.html", error="Stock insuficiente")
-    db.record_sale(item_id, qty)
-    
-    flash(f"Venta registrada: {name} x{qty}")
-    return redirect(url_for("dashboard.index"))
+    return render_template("sale_form.html")
 
 @sales_bp.route("/sales", methods=["GET"])
 @require_auth

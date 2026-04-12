@@ -93,6 +93,9 @@ def create_sales_bulk():
 
     data = request.get_json(silent=True) or {}
     items = data.get("items", [])
+    
+    message = f"Venta registrada de los productos { ', '.join(db.get_item_name(it.get('item_id')) for it in items)} con cantidades {', '.join(str(it.get('quantity')) for it in items)}."
+    
     if not isinstance(items, list) or not items:
         return jsonify({"error": "Formato inválido: items[] requerido"}), 400
 
@@ -158,6 +161,10 @@ def create_sales_bulk():
         try:
             sale_id = db.record_bulk_sale(validated_items, vendedor, payment_method)
             logger.info(f"Bulk sale {sale_id} created by {vendedor} with {len(validated_items)} items")
+            
+            db.create_notification(user_id=session.get('user_id'), title="Venta registrada", message=message, notification_type='success')
+            notify_user(session.get('user_id'))
+            
             return jsonify({
                 "ok": True,
                 "sale_id": sale_id,
