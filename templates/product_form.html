@@ -47,7 +47,9 @@
     <div class="field">
       <label class="label">Fecha de expiración (opcional)</label>
       <input type="text" name="expiration_date" placeholder="14/05/2027" 
-       pattern="\d{2}/\d{2}/\d{4}" maxlength="10" />
+       pattern="\d{2}/\d{2}/\d{4}" maxlength="10"
+       data-calendar-min-year="{{ Limits.CALENDAR_YEAR_MIN }}"
+       data-calendar-max-year="{{ Limits.CALENDAR_YEAR_MAX }}" />
       <span class="field-error" data-field="Fecha de expiración"></span>
     </div>
     <div class="form-actions">
@@ -56,78 +58,5 @@
     </div>
   </form>
 </div>
-<script>
-// Limitar valores numéricos
-document.querySelectorAll('input[type="number"][max]').forEach(input => {
-  input.addEventListener('input', function() {
-    const max = parseFloat(this.max);
-    const min = parseFloat(this.min) || 0;
-    let value = parseFloat(this.value);
-    
-    if (value > max) this.value = max;
-    if (value < min) this.value = min;
-  });
-});
-
-new CalendarPicker('input[name="expiration_date"]', {
-  minYear: {{ Limits.CALENDAR_YEAR_MIN }},
-  maxYear: {{ Limits.CALENDAR_YEAR_MAX }}
-});
-
-// Envío del formulario via API
-document.getElementById('product-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  function clearInputs() {
-    document.querySelectorAll('input').forEach(input => input.value = '');
-  }
-  
-  // Limpiar errores previos
-  document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
-  document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-  
-  const form = e.target;
-  const data = {
-    barcode: form.barrs_code.value.trim(),
-    name: form.name.value.trim(),
-    description: form.description.value.trim(),
-    quantity: parseInt(form.quantity.value) || 0,
-    min_quantity: parseInt(form.min_quantity.value) || 0,
-    price: parseFloat(form.price.value) || 0,
-    expiration_date: form.expiration_date.value ? 
-    (() => {
-      const [d, m, y] = form.expiration_date.value.split('/');
-      return `${y}-${m}-${d}`;
-    })() : null
-  };
-  
-  try {
-    const response = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      Notify.success('Producto agregado exitosamente');
-      // setTimeout(() => window.location.href = '/products/new', 1500);
-      clearInputs();
-    } else {
-      if (result.field) {
-        const errorSpan = document.querySelector(`.field-error[data-field="${result.field}"]`);
-        const input = errorSpan?.closest('.field')?.querySelector('input');
-        if (errorSpan) errorSpan.textContent = result.error;
-        if (input) input.classList.add('input-error');
-      } else {
-        Notify.error(result.error || 'Error al agregar producto');
-      }
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    Notify.error('Error de conexión al servidor');
-  }
-});
-</script>
+<script src="{{ url_for('static', filename='js/products-crud.js') }}"></script>
 {% endblock %}

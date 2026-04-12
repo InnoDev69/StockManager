@@ -306,3 +306,11 @@ class ItemsMixin:
         product['stock'] = int(product['stock']) if product.get('stock') else 0
         
         return product
+    
+    def get_item_name(self, item_id):
+        """Obtiene el nombre de un producto por su ID."""
+        rows = self.execute_query(
+            "SELECT name FROM items WHERE id = ?",
+            (item_id,)
+        )
+        return rows[0][0] if rows else None

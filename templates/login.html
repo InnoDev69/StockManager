@@ -491,16 +491,6 @@
         </div>
     </div>
 
-    <script>
-        function toggleForms() {
-            document.getElementById('loginForm').classList.toggle('hidden');
-            document.getElementById('registerForm').classList.toggle('hidden');
-        }
-        window.addEventListener('DOMContentLoaded', function() {
-            if (new URLSearchParams(window.location.search).get('register') === 'true') {
-                toggleForms();
-            }
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/auth-forms.js') }}"></script>
 </body>
 </html>
