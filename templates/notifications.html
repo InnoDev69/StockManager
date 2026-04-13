@@ -343,6 +343,11 @@
   100% { background-position: -200% 0; }
 }
 
+@keyframes spin {
+  from  { transform: rotate(0deg); }
+  to    { transform: rotate(360deg); }
+}
+
 /* ── Notifications list ──────────────────────────── */
 .notif-list {
   display: flex;
@@ -540,6 +545,20 @@
   .notif-card__actions { grid-column: 2; }
   .notif-page__header { flex-direction: column; align-items: flex-start; }
 }
+.notif-delete-btn {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--danger, #ef4444);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.notif-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
 </style>
 
 <!-- ══════════════════════════════════════════════════════
@@ -582,6 +601,7 @@
 
   // ── Init ────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
+    console.log('[init] Inicializando página de notificaciones...');
     loadNotifications();
     setupFilters();
     setupMarkAll();
@@ -674,34 +694,48 @@
 
     // Evento notification — nueva notificación en tiempo real
     eventSource.addEventListener('notification', (e) => {
-      const data = JSON.parse(e.data);
-      const newNotif = data.notification;
-      
-      if (newNotif && !lastKnownIds.has(newNotif.id)) {
-        console.log('[SSE] Nueva notificación:', newNotif.title);
+      try {
+        const data = JSON.parse(e.data);
+        const newNotif = data.notification;
         
-        // Agregar a la lista
-        allNotifications.unshift(newNotif);
-        lastKnownIds.add(newNotif.id);
-        
-        // Mostrar toast y animar
-        showNewNotifToast(1);
-        setTimeout(() => {
-          const el = document.querySelector(`.notif-card[data-id="${newNotif.id}"]`);
-          if (el) el.classList.add('is-new');
-        }, 50);
-        
-        // Actualizar header y re-renderizar
-        updateHeader();
-        applyFilters();
+        if (newNotif && !lastKnownIds.has(newNotif.id)) {
+          console.log('[SSE] Nueva notificación:', newNotif.title);
+          
+          // Agregar a la lista
+          allNotifications.unshift(newNotif);
+          lastKnownIds.add(newNotif.id);
+          
+          // Mostrar toast y animar
+          showNewNotifToast(1);
+          setTimeout(() => {
+            const el = document.querySelector(`.notif-card[data-id="${newNotif.id}"]`);
+            if (el) el.classList.add('is-new');
+          }, 50);
+          
+          // Actualizar header y re-renderizar
+          updateHeader();
+          applyFilters();
+        }
+      } catch (err) {
+        console.error('[SSE notification parse error]:', err);
+      }
+    });
+
+    // Evento update — actualización de estado (cuando se marcan como leídas, etc)
+    eventSource.addEventListener('update', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        console.log('[SSE] Actualización recibida:', data);
+        // Recargar notificaciones si hay cambios
+        loadNotifications(true);
+      } catch (err) {
+        console.error('[SSE update parse error]:', err);
       }
     });
 
     // Heartbeat — solo para mantener la conexión
     eventSource.addEventListener('message', (e) => {
-      if (e.data.includes('heartbeat')) {
-        console.log('[SSE] Heartbeat recibido');
-      }
+      console.log('[SSE] Mensaje recibido:', e.data.substring(0, 50));
     });
 
     // Error — reconectar automáticamente
@@ -791,6 +825,7 @@
               ? `<a href="${n.action_url}" class="notif-action-btn" style="text-decoration:none;">Ver →</a>`
               : ''
             }
+            <button class="notif-delete-btn" onclick="deleteNotification(${n.id})">✕</button>
           </div>
 
         </div>
@@ -855,8 +890,18 @@
   }
 
   function setupMarkAll() {
-    document.getElementById('mark-all-read-btn').addEventListener('click', markAllAsRead);
-    document.getElementById('load-more-btn').addEventListener('click', loadMoreNotifications);
+    // Usar delegación de eventos para evitar null reference errors
+    // Los botones pueden no existir inicialmente (load-more-btn está oculto)
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#mark-all-read-btn')) {
+        console.log('[setupMarkAll] Clic detectado en mark-all-read-btn');
+        markAllAsRead();
+      }
+      if (e.target.closest('#load-more-btn')) {
+        console.log('[setupMarkAll] Clic detectado en load-more-btn');
+        loadMoreNotifications();
+      }
+    });
   }
 
   window.clearFilters = function () {
@@ -869,26 +914,97 @@
   // ── Actions ─────────────────────────────────────────
   window.markAsRead = async function (id) {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+      const res = await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const n = allNotifications.find(x => x.id === id);
-      if (n) n.is_read = 1;
-      updateHeader();
-      applyFilters();
+      if (n) {
+        n.is_read = 1;
+        updateHeader();
+        applyFilters();
+        console.log('[markAsRead] Notificación ' + id + ' marcada como leída');
+      }
     } catch (e) {
-      console.error('Error:', e);
+      console.error('[markAsRead] Error:', e);
+      alert('Error al marcar notificación como leída');
     }
   };
 
   async function markAllAsRead() {
+    const btn = document.getElementById('mark-all-read-btn');
+    const originalText = btn.innerHTML;
+    
     try {
-      await fetch('/api/notifications/read-all', { method: 'POST' });
+      // Deshabilitar botón y mostrar estado
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Marcando...
+      `;
+      btn.style.opacity = '0.6';
+      
+      const res = await fetch('/api/notifications/read-all', { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      const data = await res.json();
+      console.log('[markAllAsRead] Respuesta:', data);
+      
+      // Actualizar estado local
       allNotifications.forEach(n => (n.is_read = 1));
       updateHeader();
       applyFilters();
+      
+      // Restaurar botón con confirmación
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        ✓ Listo
+      `;
+      btn.style.opacity = '1';
+      
+      // Volver al estado normal después de 2s
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }, 2000);
+      
     } catch (e) {
-      console.error('Error:', e);
+      console.error('[markAllAsRead] Error:', e);
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        Error
+      `;
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+      }, 3000);
+      NotificationManager.error('Error al marcar todas las notificaciones como leídas. Intenta de nuevo.');
     }
   }
+
+  window.deleteNotification = async function (id) {
+  try {
+    const res = await fetch(`/api/notifications/${id}/delete`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    allNotifications = allNotifications.filter(n => n.id !== id);
+    updateHeader();
+    
+    if (allNotifications.length < PAGE_SIZE && hasMoreNotifications) {
+      await loadMoreNotifications();
+    } else {
+      applyFilters();
+    }
+
+    NotificationManager.success(' Notificación eliminada');
+  } catch (e) {
+    console.error('[deleteNotification] Error:', e);
+    NotificationManager.error('Error al eliminar notificación');
+  }
+};
 
   // ── Helpers ─────────────────────────────────────────
   function escapeHtml(text) {

@@ -99,57 +99,73 @@ def notify_user(user_id: str):
     """Llamar esto cuando se crea una notificación."""
     _user_events[user_id].set()
 
-
 @notifications_api.route('/stream', methods=['GET'])
 @require_auth
 def stream_notifications():
+    from flask import request as flask_request
     user_id = session.get('user_id')
-    last_notif_ids = set()  # Guardar IDs vistos
-
+    
     def generate():
-        nonlocal last_notif_ids
-        
-        unread = db.get_unread_notifications(user_id, limit=5)
-        last_notif_ids = {n['id'] for n in unread}
-        
-        logger.info(f"Usuario {user_id} se ha conectado al stream. Notificaciones: {len(unread)}")
-        yield f"event: init\ndata: {json.dumps({'notifications': unread, 'count': db.get_unread_count(user_id)})}\n\n"
-
-        event = _user_events[user_id]
-
-        while True:
-            try:
-                triggered = event.wait(timeout=20)
-
-                if triggered:
-                    event.clear()
-                    # Obtener últimas notificaciones
-                    unread = db.get_unread_notifications(user_id, limit=10)
+        try:
+            # Primer evento: conectado
+            unread = db.get_unread_notifications(user_id, limit=5)
+            yield f"event: init\ndata: {json.dumps({'notifications': unread, 'count': db.get_unread_count(user_id)})}\n\n"
+            logger.info(f"[SSE] Usuario {user_id} conectado")
+            
+            # Loop de eventos
+            event = _user_events[user_id]
+            failcount = 0
+            
+            while True:
+                try:
+                    # Esperar por evento o timeout
+                    triggered = event.wait(timeout=25)
+                    failcount = 0  # Reset contador de fallos
                     
-                    # Encontrar nuevas (que no hemos visto antes)
-                    new_notifs = [n for n in unread if n['id'] not in last_notif_ids]
+                    if triggered:
+                        event.clear()
+                        unread = db.get_unread_notifications(user_id, limit=10)
+                        yield f"event: update\ndata: {json.dumps({'notifications': unread, 'count': db.get_unread_count(user_id)})}\n\n"
+                    else:
+                        # Timeout: enviar heartbeat
+                        yield f": heartbeat at {time.time()}\n\n"
+                        
+                except GeneratorExit:
+                    logger.info(f"[SSE] Usuario {user_id} desconectado (GeneratorExit)")
+                    break
+                except Exception as err:
+                    failcount += 1
+                    logger.error(f"[SSE] Error en loop usuario {user_id}: {err}", exc_info=True)
+                    if failcount > 3:
+                        break  # Salir después de 3 errores
+                    yield f": error\n\n"
                     
-                    if new_notifs:
-                        # Enviar evento 'notification' para cada una nueva
-                        for notif in new_notifs:
-                            yield f"event: notification\ndata: {json.dumps({'notification': notif})}\n\n"
-                            last_notif_ids.add(notif['id'])
-                    
-                    # Siempre enviar 'update' con el conteo actualizado (para base.html)
-                    yield f"event: update\ndata: {json.dumps({'notifications': unread[:5], 'count': db.get_unread_count(user_id)})}\n\n"
-                else:
-                    yield ": heartbeat\n\n"
-
-            except GeneratorExit:
-                logger.info(f"Cliente {user_id} desconectado del stream")
-                break
-
+        except Exception as e:
+            logger.exception(f"[SSE] Error fatal en usuario {user_id}: {e}")
+            yield f": error\n\n"
+    
     return Response(
         generate(),
         mimetype='text/event-stream',
         headers={
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-transform',
+            'Content-Type': 'text/event-stream; charset=utf-8',
             'X-Accel-Buffering': 'no',
             'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
         }
     )
+    
+@notifications_api.route('/<int:notification_id>/delete', methods=['DELETE'])
+@require_admin
+def delete_notification(notification_id: int):
+    """
+        Elimina una notificación existente (solo admin).
+    """
+    try:
+        db.delete_notification(notification_id)
+        logger.info(f"Notificación eliminada: {notification_id}")
+        return jsonify({"message": "Notificación eliminada exitosamente"}), 200
+    except Exception as e:
+        logger.error(f"Error al eliminar notificación: {e}")
+        return jsonify({"error": str(e)}), 500

@@ -314,3 +314,38 @@ class ItemsMixin:
             (item_id,)
         )
         return rows[0][0] if rows else None
+    
+    def check_and_notify_low_stock(self, user_id):
+        """
+        Verifica el stock de todos los productos y crea una notificación si está bajo.
+        Si el stock se recupera, resetea la notificación para futuras alertas.
+        
+        Args:
+            user_id (int): ID del usuario a notificar
+        """
+    
+        items = self.execute_query(
+            "SELECT id, quantity, min_quantity, notified_low_stock FROM items WHERE status = 1"
+        )
+        
+        for item_id, quantity, min_quantity, notified in items:
+            if quantity is not None and min_quantity is not None:
+                if quantity < min_quantity and not notified:
+                    self.create_notification(
+                        user_id=user_id,
+                        title="Stock bajo",
+                        message=f"El producto {self.get_item_name(item_id)} (ID: {item_id}) tiene stock bajo ({quantity} unidades).",
+                        notification_type='warning'
+                    )
+                    self.execute_query(
+                        "UPDATE items SET notified_low_stock = 1 WHERE id = ?",
+                        (item_id,),
+                        fetch=False
+                    )
+                elif quantity >= min_quantity and notified:
+                    self.execute_query(
+                        "UPDATE items SET notified_low_stock = 0 WHERE id = ?",
+                        (item_id,),
+                        fetch=False
+                    )
+        

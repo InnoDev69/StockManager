@@ -60,3 +60,10 @@ class NotificationsMixin:
             (user_id,)
         )
         return rows[0][0] if rows else 0
+    
+    def delete_notification(self, notification_id):
+        """Elimina una notificación."""
+        self.execute_query(
+            "DELETE FROM notifications WHERE id = ?",
+            (notification_id,)
+        )

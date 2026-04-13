@@ -147,7 +147,8 @@ class BDConector(
             min_quantity INTEGER NOT NULL DEFAULT 5,
             price REAL NOT NULL,
             expiration_date TEXT,
-            status INTEGER NOT NULL DEFAULT 1
+            status INTEGER NOT NULL DEFAULT 1,
+            notified_low_stock INTEGER NOT NULL DEFAULT 0
         )
         """
         sells_table_query = """
@@ -265,6 +266,7 @@ class BDConector(
             ("sells",   "date",           "TEXT NOT NULL"),
             ("items", "expiration_date", "TEXT"),
             ("items", "id", "INTEGER PRIMARY KEY NOT NULL"),
+            ("items", "notified_low_stock", "INTEGER NOT NULL DEFAULT 0"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

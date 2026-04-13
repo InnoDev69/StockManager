@@ -55,9 +55,6 @@ def create_sale():
     payment_method = data.get("payment_method", "Efectivo")
     db.record_product_sale(item_id, qty, vendedor, payment_method)
     
-    db.create_notification(user_id=session.get('user_id'), title="Venta registrada", message=f"Has vendido {qty} unidades de '{name}'.", notification_type='success')
-    notify_user(session.get('user_id'))
-    
     return jsonify({
         "message": f"Venta registrada: {name} x{qty}",
         "product": name,
@@ -162,6 +159,8 @@ def create_sales_bulk():
             sale_id = db.record_bulk_sale(validated_items, vendedor, payment_method)
             logger.info(f"Bulk sale {sale_id} created by {vendedor} with {len(validated_items)} items")
             
+            db.check_and_notify_low_stock(session.get('user_id'))
+            
             db.create_notification(user_id=session.get('user_id'), title="Venta registrada", message=message, notification_type='success')
             notify_user(session.get('user_id'))
             
@@ -174,6 +173,10 @@ def create_sales_bulk():
         
         except ValueError as e:
             logger.warning(f"Bulk sale validation: {e}")
+            
+            db.create_notification(user_id=session.get('user_id'), title="Error en venta", message="Hubo un error al registrar la venta", notification_type='error')
+            notify_user(session.get('user_id'))
+            
             return jsonify({"error": str(e), "ok": False}), 400
         
         except DatabaseError as e:
@@ -184,6 +187,10 @@ def create_sales_bulk():
         
         except Exception as e:
             logger.exception("Unexpected error in bulk_sale")
+            
+            db.create_notification(user_id=session.get('user_id'), title="Error en venta", message="Hubo un error al registrar la venta", notification_type='error')
+            notify_user(session.get('user_id'))
+            
             return jsonify({"error": "Error inesperado", "ok": False}), 500
     
     except Exception as e:
