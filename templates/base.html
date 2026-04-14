@@ -463,6 +463,13 @@
     });
 
     // Conectar al SSE stream al iniciar
+    fetch('/api/notifications/unread')
+      .then(res => res.json())
+      .then(data => {
+        updateBadge(data.unread_count || 0);
+      })
+      .catch(err => console.error('Error cargando notificaciones iniciales:', err));
+
     connectSSE();
 
     // Cerrar conexión si el usuario se va

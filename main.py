@@ -2,7 +2,6 @@ import os
 import sys
 import signal
 import uuid
-import webview
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
 
@@ -13,6 +12,10 @@ from data.limits import Limits
 from tools.logger import logger
 from tools.scheduler import SCHEDULER
 from bd.bdInstance import db
+
+from waitress import serve
+import threading
+import time
 
 load_dotenv()
 
@@ -69,7 +72,16 @@ if __name__ == "__main__":
         logger.info("Iniciando aplicación...")
 
         if sys.platform == "linux":
+            os.environ["PYWEBVIEW_GTK"] = "1"
             os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
+            
+            # Silencia los errores de Qt
+            import io
+            import contextlib
+            with contextlib.redirect_stderr(io.StringIO()):
+                import webview
+        else:
+            import webview
 
         app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
         app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -82,7 +94,15 @@ if __name__ == "__main__":
 
         icon_path = os.path.join(base_path, "static", "app", "icon.png")
 
-        window = webview.create_window("Stockly", app, width=1200, height=800)
+        def run_waitress():
+            serve(app, host='127.0.0.1', port=5000, _quiet=True)
+
+        flask_thread = threading.Thread(target=run_waitress, daemon=True)
+        flask_thread.start()
+        time.sleep(1)
+
+        # --- Crea ventana apuntando a la URL ---
+        window = webview.create_window("Stockly", "http://127.0.0.1:5000", width=1200, height=800)
 
         if sys.platform == "linux" and os.path.exists(icon_path):
             try:

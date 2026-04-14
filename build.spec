@@ -76,6 +76,7 @@ a = Analysis(
         'cairo',
         'gi._gi',
         'gi._gi_cairo',
+        'waitress',
     ],
     hookspath=[],
     hooksconfig={},
