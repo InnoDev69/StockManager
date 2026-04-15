@@ -20,6 +20,7 @@ credentials.json
 *.pem
 *.key
 *.csv
+generate_sales.py
 
 # Byte-compiled / distribution / packaging
 build/
