@@ -59,7 +59,20 @@
             </div>
             <div class="mono" style="font-size: 0.95rem; color: var(--text-muted);">
               {% if product.created_at %}
-                {{ product.created_at.strftime('%d/%m/%Y') }}
+                {{ product.created_at }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </div>
+          <!-- Fecha de actualización -->
+          <div>
+            <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-xs);">
+              Actualizado
+            </div>
+            <div class="mono" style="font-size: 0.95rem; color: var(--text-muted);">
+              {% if product.updated_at %}
+                {{ product.updated_at }}
               {% else %}
                 —
               {% endif %}
@@ -83,9 +96,10 @@
         </div>
 
         <!-- Card: Stock -->
-        <div style="padding: var(--spacing-lg); background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); border: 1px solid var(--border);">
-          <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm);">
+        <div style="padding: var(--spacing-lg); background: {% if product.stock > product.min_stock %}rgba(16, 185, 129, 0.05){% elif product.stock > 0 %}rgba(245, 158, 11, 0.05){% else %}rgba(239, 68, 68, 0.05){% endif %}; border-radius: var(--radius-md); border: 2px solid {% if product.stock > product.min_stock %}rgba(16, 185, 129, 0.3){% elif product.stock > 0 %}rgba(245, 158, 11, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %};" title="{% if product.stock > product.min_stock %}Stock saludable{% elif product.stock > 0 %}Stock bajo - considera reponer{% else %}¡Agotado! - Acción inmediata{% endif %}">
+          <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-xs);">
             Stock disponible
+            <span style="width: 12px; height: 12px; border-radius: 50%; {% if product.stock > product.min_stock %}background: var(--success){% elif product.stock > 0 %}background: var(--warning){% else %}background: var(--danger){% endif %}; display: inline-block; flex-shrink: 0;"></span>
           </div>
           <div style="font-size: 2rem; font-weight: 700; margin-bottom: var(--spacing-sm);">
             <span style="color: {% if product.stock > product.min_stock %}var(--success){% elif product.stock > 0 %}var(--warning){% else %}var(--danger){% endif %};">
@@ -93,9 +107,15 @@
             </span>
             <span class="text-muted" style="font-size: 0.9rem; font-weight: 400;"> unidades</span>
           </div>
-          <div class="text-muted" style="font-size: 0.85rem;">
-            Mínimo recomendado: 
-            <span style="color: var(--text); font-weight: 600;">{{ product.min_stock }}</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); padding-top: var(--spacing-md); border-top: 1px solid {% if product.stock > product.min_stock %}rgba(16, 185, 129, 0.2){% elif product.stock > 0 %}rgba(245, 158, 11, 0.2){% else %}rgba(239, 68, 68, 0.2){% endif %};">
+            <div>
+              <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Mínimo</span>
+              <div style="font-size: 1.25rem; font-weight: 600; color: var(--text);">{{ product.min_stock }}</div>
+            </div>
+            <div>
+              <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Diferencia</span>
+              <div style="font-size: 1.25rem; font-weight: 600; color: {% if product.stock > product.min_stock %}var(--success){% elif product.stock > 0 %}var(--warning){% else %}var(--danger){% endif %};">{{ product.stock - product.min_stock }}</div>
+            </div>
           </div>
         </div>
 

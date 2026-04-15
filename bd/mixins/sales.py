@@ -53,8 +53,8 @@ class SalesMixin:
         with self._cursor() as cur:
             try:
                 cur.execute(
-                    "INSERT INTO sells (item_id, vendedor, payment_method) VALUES (?, ?, ?)",
-                    (item_id, vendedor, payment_method),
+                    "INSERT INTO sells (item_id, date,vendedor, payment_method) VALUES (?, ?,?, ?)",
+                    (item_id, localDate(), vendedor, payment_method),
                 )
                 sell_id = cur.lastrowid
 

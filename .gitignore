@@ -19,6 +19,7 @@ secrets.yml
 credentials.json
 *.pem
 *.key
+*.csv
 
 # Byte-compiled / distribution / packaging
 build/

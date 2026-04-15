@@ -5,47 +5,52 @@
 
 <div class="card" style="max-width:720px; margin:1rem auto;">
   <h2>Agregar Producto</h2>
-  <form id="product-form">
+  <form id="product-form" novalidate>
+    <!-- Alert de validación global -->
+    <div id="form-validation-error" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-radius: 6px; background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem;"></div>
+    
     <div class="field">
-      <label class="label">Código de barras</label>
-      <div style="display:flex; gap:0.5rem;">
-        <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
-               value="{{ form_data.barrs_code or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
-      </div>
+      <label class="label">Código de barras <span style="color: var(--danger);">*</span></label>
+      <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
+             value="{{ form_data.barrs_code or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
+      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Ej: 7791230000000 (EAN-13)</small>
       <span class="field-error" data-field="Código de barras"></span>
     </div>
     <div class="field">
-      <label class="label">Nombre</label>
+      <label class="label">Nombre <span style="color: var(--danger);">*</span></label>
       <input name="name" required maxlength="{{Limits.ITEM_NAME_MAX}}"
-             value="{{ form_data.name or '' }}" />
+             value="{{ form_data.name or '' }}" placeholder="Nombre del producto" />
       <span class="field-error" data-field="Nombre"></span>
     </div>
     <div class="field">
       <label class="label">Descripción</label>
       <input name="description" maxlength="{{Limits.ITEM_DESCRIPTION_MAX}}"
-             value="{{ form_data.description or '' }}" />
+             value="{{ form_data.description or '' }}" placeholder="Descripción detallada (opcional)" />
       <span class="field-error" data-field="Descripción"></span>
     </div>
-    <div class="field">
-      <label class="label">Stock</label>
-      <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
-             value="{{ form_data.quantity or 0 }}" />
-      <span class="field-error" data-field="Cantidad"></span>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="field">
+        <label class="label">Stock inicial <span style="color: var(--danger);">*</span></label>
+        <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
+               value="{{ form_data.quantity or 0 }}" required placeholder="0" />
+        <span class="field-error" data-field="Cantidad"></span>
+      </div>
+      <div class="field">
+        <label class="label">Stock mínimo <span style="color: var(--danger);">*</span></label>
+        <input type="number" name="min_quantity" min="0" max="{{Limits.ITEM_MIN_QUANTITY_MAX}}"
+               value="{{ form_data.min_quantity or 0 }}" required placeholder="0" />
+        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">⚠️ Alerta si baja de este nivel</small>
+        <span class="field-error" data-field="Cantidad mínima"></span>
+      </div>
     </div>
     <div class="field">
-      <label class="label">Stock mínimo</label>
-      <input type="number" name="min_quantity" min="0" max="{{Limits.ITEM_MIN_QUANTITY_MAX}}"
-             value="{{ form_data.min_quantity or 0 }}" />
-      <span class="field-error" data-field="Cantidad mínima"></span>
-    </div>
-    <div class="field">
-      <label class="label">Precio</label>
+      <label class="label">Precio <span style="color: var(--danger);">*</span></label>
       <input type="number" step="0.01" name="price" min="0" max="{{Limits.ITEM_PRICE_MAX}}"
-             value="{{ form_data.price or '0.00' }}" />
+             value="{{ form_data.price or '0.00' }}" required placeholder="0.00" />
       <span class="field-error" data-field="Precio"></span>
     </div>
     <div class="field">
-      <label class="label">Fecha de expiración (opcional)</label>
+      <label class="label">Fecha de expiración <span style="color: var(--text-muted); font-weight: 400;">(opcional)</span></label>
       <input type="text" name="expiration_date" placeholder="14/05/2027" 
        pattern="\d{2}/\d{2}/\d{4}" maxlength="10"
        data-calendar-min-year="{{ Limits.CALENDAR_YEAR_MIN }}"
@@ -54,7 +59,7 @@
     </div>
     <div class="form-actions">
       <a href="/" class="btn btn-ghost">Cancelar</a>
-      <button class="btn" type="submit">Agregar</button>
+      <button class="btn" type="submit" id="submit-btn">Agregar Producto</button>
     </div>
   </form>
 </div>

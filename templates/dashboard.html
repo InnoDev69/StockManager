@@ -811,27 +811,7 @@
     document.getElementById('list-view').style.opacity = view === 'list' ? '1' : '0.5';
   }
 
-  async function checkAPIHealth() {
-    const healthEl    = document.getElementById('health');
-    const indicatorEl = document.getElementById('health-indicator');
-    if (!healthEl || !indicatorEl) return;
-    try {
-      const response = await fetch('/api/health');
-      if (response.ok) {
-        healthEl.textContent           = 'Online';
-        healthEl.style.color           = 'var(--success, #10b981)';
-        indicatorEl.style.background   = 'var(--success, #10b981)';
-        indicatorEl.style.boxShadow    = '0 0 8px var(--success, #10b981)';
-      } else { throw new Error(); }
-    } catch {
-      healthEl.textContent          = 'Offline';
-      healthEl.style.color          = 'var(--danger, #ef4444)';
-      indicatorEl.style.background  = 'var(--danger, #ef4444)';
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', function() {
-    checkAPIHealth();
     if (window.APP.role === 'admin') document.body.classList.add('role-admin');
     switchView('grid');
   });

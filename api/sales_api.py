@@ -34,26 +34,36 @@ def create_sale():
         401: No autorizado
         404: Producto no encontrado
     """
-
-    data = request.get_json()
-    
-    if "barcode" not in data or "quantity" not in data:
-        return jsonify({"error": "Faltan campos requeridos"}), 400
-    
-    item = db.get_item_by_barcode(data["barcode"])
-    
-    if not item:
-        return jsonify({"error": "Producto no encontrado"}), 404
-    
-    item_id, _, name, _, stock, price = item
-    qty = int(data["quantity"])
-    
-    if stock < qty:
-        return jsonify({"error": "Stock insuficiente"}), 400
-    
-    vendedor = session.get("username", "unknown")
-    payment_method = data.get("payment_method", "Efectivo")
-    db.record_product_sale(item_id, qty, vendedor, payment_method)
+    try:
+        data = request.get_json()
+        
+        if "barcode" not in data or "quantity" not in data:
+            return jsonify({"error": "Faltan campos requeridos"}), 400
+        
+        item = db.get_item_by_barcode(data["barcode"])
+        
+        if not item:
+            return jsonify({"error": "Producto no encontrado"}), 404
+        
+        item_id, _, name, _, stock, price = item
+        qty = int(data["quantity"])
+        
+        if stock < qty:
+            return jsonify({"error": "Stock insuficiente"}), 400
+        
+        vendedor = session.get("username", "unknown")
+        payment_method = data.get("payment_method", "Efectivo")
+        db.record_product_sale(item_id, qty, vendedor, payment_method)
+        
+    except ValueError:
+        return jsonify({"error": "Cantidad inválida"}), 400
+    except DatabaseError as e:
+        return handle_db_error(e, "create_sale")
+    except (sqlite3.IntegrityError, sqlite3.OperationalError) as e:
+        return handle_db_error(e, "create_sale")
+    except Exception as e:
+        logger.exception("Unexpected error in create_sale")
+        return jsonify({"error": "Error inesperado"}), 500
     
     return jsonify({
         "message": f"Venta registrada: {name} x{qty}",

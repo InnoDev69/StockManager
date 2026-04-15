@@ -4,6 +4,7 @@ from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin
 from data.validators import ItemValidator, ValidationError
 from tools.logger import logger
+from tools.local_time import localDate
 from bd.bdErrors import DatabaseError
 from api.error_handlers import handle_db_error
 import sqlite3
@@ -84,7 +85,7 @@ def get_all_products():
 
         # ── Pagina actual ─────────────────────────────────────────
         data_query = f"""
-            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date
+            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at
             FROM items
             WHERE {where_clause}
             ORDER BY {sort_column} {order}
@@ -103,6 +104,8 @@ def get_all_products():
                 "price":       row[6],
                 "status":      row[7],
                 "expiration_date": row[8],
+                "created_at": row[9],
+                "updated_at": row[10],
             }
             for row in rows
         ]
@@ -179,7 +182,7 @@ def get_products():
 
     rows = db.execute_query(
         f"""
-        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at
         FROM items
         WHERE {where_clause}
         ORDER BY {sort_column} {order}
@@ -199,6 +202,8 @@ def get_products():
             "price":       row[6],
             "status":      row[7],
             "expiration_date": row[8],
+            "created_at": row[9],
+            "updated_at": row[10],
         }
         for row in rows
     ]
@@ -240,7 +245,7 @@ def get_product(product_id):
     """
     
     rows = db.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date FROM items WHERE id = ?",
+        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date, created_at, updated_at FROM items WHERE id = ?",
         (product_id,)
     )
     
@@ -257,6 +262,8 @@ def get_product(product_id):
         "min_stock": row[5],
         "price": row[6],
         "expiration_date": row[7],
+        "created_at": row[8],
+        "updated_at": row[9],
     }
     
     return jsonify(product), 200
@@ -362,6 +369,21 @@ def update_product(product_id):
     updates = []
     params = []
     
+    current = db.execute_query(
+        "SELECT name, description, quantity, min_quantity, price, expiration_date, status FROM items WHERE id = ?",
+        (product_id,)
+    )[0]
+    
+    current_values = {
+        "name": current[0],
+        "description": current[1],
+        "quantity": current[2],
+        "min_quantity": current[3],
+        "price": current[4],
+        "expiration_date": current[5],
+        "status": current[6]
+    }
+        
     field_mapping = {
         "name": "name",
         "description": "description",
@@ -379,13 +401,16 @@ def update_product(product_id):
         return jsonify({"error": e.field + ": " + e.message}), 400
     
     for key, db_field in field_mapping.items():
-        if key in data:
+        if key in data and data[key] != current_values.get(key):
             updates.append(f"{db_field} = ?")
             params.append(data[key])
     
     if not updates:
         return jsonify({"error": "No hay datos para actualizar"}), 400
     
+    updates.append("updated_at = ?")
+    
+    params.append(localDate())
     params.append(product_id)
     query = f"UPDATE items SET {', '.join(updates)} WHERE id = ?"
     
@@ -402,31 +427,31 @@ def update_product(product_id):
 @require_admin
 def delete_product(product_id):
     """
-    Elimina un producto del inventario.
+    Deshabilita un producto del inventario.
     
     Requiere login: True.
     Requiere rol: admin.
     
     Args:
-        product_id (int): ID del producto a eliminar
+        product_id (int): ID del producto a deshabilitar
     
     Returns:
-        JSON: {"message": "Producto eliminado"}
+        JSON: {"message": "Producto deshabilitado"}
     
     Status Codes:
-        200: Producto eliminado exitosamente
+        200: Producto deshabilitado exitosamente
         401: No autorizado
         403: Permiso denegado (no es admin)
     """
     
     if session.get("role") != "admin":
-        logger.warning(f"Forbidden delete attempt for product ID {product_id} by user ID {session.get('user_id')}")
+        logger.warning(f"Forbidden disable attempt for product ID {product_id} by user ID {session.get('user_id')}")
         return jsonify({"error": "Permiso denegado"}), 403
     
     db.disable_item(product_id)
-    db.create_notification(user_id=session.get('user_id'), title="Producto eliminado", message=f"El producto ha sido eliminado.", notification_type='warning')
+    db.create_notification(user_id=session.get('user_id'), title="Producto deshabilitado", message=f"El producto ha sido deshabilitado.", notification_type='warning')
     notify_user(session.get('user_id'))
-    return jsonify({"message": "Producto eliminado"}), 200
+    return jsonify({"message": "Producto deshabilitado"}), 200
 
 @products_api.route("/items", methods=["GET"])
 @require_auth
@@ -823,3 +848,37 @@ def update_product_attributes(item_id):
             "ok": False, 
             "error": str(e)
         }), 400
+        
+@products_api.route("/products/<int:product_id>/activate", methods=["POST"])
+@require_admin
+def activate_product(product_id):
+    """
+    Activa un producto previamente deshabilitado.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Args:
+        product_id (int): ID del producto a activar
+    
+    Returns:
+        JSON: {"message": "Producto activado"}
+    
+    Status Codes:
+        200: Producto activado exitosamente
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+    """
+    try:
+        if session.get("role") != "admin":
+            return jsonify({"error": "Permiso denegado"}), 403
+        
+        db.activate_item(product_id)
+        db.create_notification(user_id=session.get('user_id'), title="Producto activado", message=f"El producto {db.get_item_name(product_id)} ha sido activado.", notification_type='success')
+        notify_user(session.get('user_id'))
+        
+        return jsonify({"message": "Producto activado"}), 200
+    
+    except Exception as e:
+        logger.exception(f"Error al activar producto {product_id}: {str(e)}")
+        return jsonify({"error": "Error interno"}), 500

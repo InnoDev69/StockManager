@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ product.name }} - Stockly{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/calendar-picker.css">
+<script src="/static/js/calendar-picker.js"></script>
+
+<div class="card" style="max-width:720px; margin:1rem auto;">
+  <!-- Header con breadcrumb -->
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
+    <a href="{{ url_for('products.product_management') }}" style="color: var(--brand); text-decoration: none;">Productos</a>
+    <span style="color: var(--text-muted);">/</span>
+    <a href="{{ url_for('products.product_detail', product_id=product.id) }}" style="color: var(--brand); text-decoration: none;">{{ product.name }}</a>
+    <span style="color: var(--text-muted);">/</span>
+    <span style="color: var(--text-muted);">Editar</span>
+  </div>
+
+  <h2 style="margin: 0 0 0.5rem 0;">Editar Producto</h2>
+  <p class="text-muted" style="margin: 0 0 1.5rem 0; font-size: 0.9rem;">
+    Actualiza los detalles de <strong>{{ product.name }}</strong> (ID: #{{ product.id }})
+  </p>
+
+  <form id="product-form" novalidate>
+    <!-- Input oculto para el ID del producto -->
+    <input type="hidden" id="product-id" value="{{ product.id }}" />
+
+    <!-- Alert de validación global -->
+    <div id="form-validation-error" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-radius: 6px; background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem;"></div>
+
+    <!-- Alert de cambios sin guardar -->
+    <div id="unsaved-changes" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--warning); border-radius: 6px; background: rgba(245, 158, 11, 0.1); color: var(--warning); margin-bottom: 1rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 0h.01M12 21c5.523 0 10-4.477 10-10S17.523 1 12 1 2 5.477 2 11s4.477 10 10 10z"/>
+      </svg>
+      <span>Cambios sin guardar</span>
+    </div>
+    
+    <div class="field">
+      <label class="label">Código de barras <span style="color: var(--danger);">*</span></label>
+      <input id="barrs_code" disabled name="barrs_code" placeholder="EAN / UPC / Code128" 
+             value="{{ product.barcode or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
+      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Ej: 7791230000000 (EAN-13)</small>
+      <span class="field-error" data-field="Código de barras"></span>
+    </div>
+
+    <div class="field">
+      <label class="label">Nombre <span style="color: var(--danger);">*</span></label>
+      <input name="name" required maxlength="{{Limits.ITEM_NAME_MAX}}"
+             value="{{ product.name or '' }}" placeholder="Nombre del producto" />
+      <span class="field-error" data-field="Nombre"></span>
+    </div>
+
+    <div class="field">
+      <label class="label">Descripción</label>
+      <input name="description" maxlength="{{Limits.ITEM_DESCRIPTION_MAX}}"
+             value="{{ product.description or '' }}" placeholder="Descripción detallada (opcional)" />
+      <span class="field-error" data-field="Descripción"></span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="field">
+        <label class="label">Stock actual <span style="color: var(--danger);">*</span></label>
+        <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
+               value="{{ product.stock or 0 }}" required placeholder="0" />
+        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Valor actual: <strong>{{ product.stock }}</strong></small>
+        <span class="field-error" data-field="Cantidad"></span>
+      </div>
+
+      <div class="field">
+        <label class="label">Stock mínimo <span style="color: var(--danger);">*</span></label>
+        <input type="number" name="min_quantity" min="0" max="{{Limits.ITEM_MIN_QUANTITY_MAX}}"
+               value="{{ product.min_stock or 0 }}" required placeholder="0" />
+        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;"> Alerta si baja de este nivel</small>
+        <span class="field-error" data-field="Cantidad mínima"></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Precio <span style="color: var(--danger);">*</span></label>
+      <input type="number" step="0.01" name="price" min="0" max="{{Limits.ITEM_PRICE_MAX}}"
+             value="{{ product.price or '0.00' }}" required placeholder="0.00" />
+      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Valor actual: ${{ "%.2f"|format(product.price) }}</small>
+      <span class="field-error" data-field="Precio"></span>
+    </div>
+
+    <div class="field">
+      <label class="label">Fecha de expiración <span style="color: var(--text-muted); font-weight: 400;">(opcional)</span></label>
+      <input type="text" name="expiration_date" placeholder="14/05/2027" 
+       pattern="\d{2}/\d{2}/\d{4}" maxlength="10"
+       value="{{ product.expiration_date or '' }}"
+       data-calendar-min-year="{{ Limits.CALENDAR_YEAR_MIN }}"
+       data-calendar-max-year="{{ Limits.CALENDAR_YEAR_MAX }}" />
+      <span class="field-error" data-field="Fecha de expiración"></span>
+    </div>
+
+    <div class="field">
+      <label class="label">Estado</label>
+      <select name="status">
+        <option value="1" {% if product.status == 1 %}selected{% endif %}>Activo</option>
+        <option value="0" {% if product.status == 0 %}selected{% endif %}>Deshabilitado</option>
+      </select>
+      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Deshabilitado: no aparecerá en ventas</small>
+    </div>
+
+    <!-- Metadata -->
+    <div style="padding: 1rem; background: var(--panel-2); border-radius: 6px; margin-bottom: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+        <div>
+          <span class="text-muted">Creado:</span><br/>
+          <small>{{ product.created_at or '—' }}</small>
+        </div>
+        <div>
+          <span class="text-muted">Última actualización:</span><br/>
+          <small>{{ product.updated_at or '—' }}</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('products.product_detail', product_id=product.id) }}" class="btn btn-ghost">Cancelar</a>
+      <button class="btn" type="submit" id="submit-btn" style="--btn-bg: var(--brand); --btn-bg-2: #4338ca;">Guardar Cambios</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Detectar cambios sin guardar
+  const form = document.getElementById('product-form');
+  const unsavedAlert = document.getElementById('unsaved-changes');
+  const inputs = form.querySelectorAll('input, select');
+  const initialValues = {};
+
+  // Guardar valores iniciales
+  inputs.forEach(input => {
+    initialValues[input.name] = input.value;
+  });
+
+  // Detectar cambios
+  inputs.forEach(input => {
+    input.addEventListener('change', () => {
+      const hasChanges = Array.from(inputs).some(
+        inp => inp.value !== initialValues[inp.name]
+      );
+      if (hasChanges) {
+        unsavedAlert.style.display = 'flex';
+      } else {
+        unsavedAlert.style.display = 'none';
+      }
+    });
+  });
+
+  // Prevenir salir sin guardar
+  window.addEventListener('beforeunload', (e) => {
+    const hasChanges = Array.from(inputs).some(
+      inp => inp.value !== initialValues[inp.name]
+    );
+    if (hasChanges) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  document.getElementById('product-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const productId = document.getElementById('product-id').value;
+    const form = this;
+
+    document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+    document.getElementById('form-validation-error').style.display = 'none';
+
+    const errors = validateProductForm(form);
+    if (errors.length > 0) {
+      const errorDiv = document.getElementById('form-validation-error');
+      errorDiv.innerHTML = '<strong>Por favor, corrige los siguientes errores:</strong><ul style="margin: 0.5rem 0 0; padding-left: 1.5rem;">' + 
+        errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    const data = {
+      name: form.name.value.trim(),
+      description: form.description.value.trim(),
+      quantity: parseInt(form.quantity.value),
+      min_quantity: parseInt(form.min_quantity.value),
+      price: parseFloat(form.price.value),
+      status: parseInt(form.status.value),
+      expiration_date: form.expiration_date.value.trim() ? convertDateFormat(form.expiration_date.value) : null
+    };
+
+    try {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Guardando...';
+
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        NotificationManager.success('Producto actualizado exitosamente', { duration: 3000 });
+        Array.from(inputs).forEach(input => {
+            initialValues[input.name] = input.value;
+        });
+        unsavedAlert.style.display = 'none';
+
+        setTimeout(() => {
+            window.location.href = '{{ url_for("products.product_detail", product_id=product.id) }}';
+        }, 1500);
+        } else {
+        NotificationManager.error(result.error || 'Error al actualizar producto');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      NotificationManager.error('Error de conexión al servidor');
+    } finally {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Guardar Cambios';
+    }
+  });
+
+  function validateProductForm(form) {
+    const errors = [];
+    const name = form.name.value.trim();
+    const quantity = parseInt(form.quantity.value) || 0;
+    const min_quantity = parseInt(form.min_quantity.value) || 0;
+    const price = parseFloat(form.price.value) || 0;
+
+    if (!name) errors.push('El nombre del producto es obligatorio');
+    if (quantity < 0) errors.push('El stock no puede ser negativo');
+    if (min_quantity < 0) errors.push('El stock mínimo no puede ser negativo');
+    if (quantity < min_quantity) errors.push('El stock actual no puede ser menor que el stock mínimo');
+    if (price < 0) errors.push('El precio no puede ser negativo');
+
+    return errors;
+  }
+
+  function convertDateFormat(dateStr) {
+    // Convierte DD/MM/YYYY a YYYY-MM-DD
+    const [d, m, y] = dateStr.split('/');
+    return `${y}-${m}-${d}`;
+  }
+</script>
+
+<style>
+  select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+</style>
+
+{% endblock %}

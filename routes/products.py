@@ -118,7 +118,7 @@ def import_preview():
         'rows': data_rows[:10]
     }
     
-@products_bp.route("/import/confirm", methods=["POST"])
+@products_bp.route("/import", methods=["GET", "POST"])
 @require_admin
 def confirm_import():
     """
@@ -192,3 +192,29 @@ def product_detail(product_id):
     """
     product = db.get_item_by_id(product_id)
     return render_template("product_detail.html", product=product)
+
+@products_bp.route("/products/<int:product_id>/edit")
+@require_admin
+def product_edit(product_id):
+    """
+    Página de edición de un producto existente.
+    
+    Permite modificar todos los campos de un producto excepto el código de barras.
+    Solo accesible para usuarios con rol 'admin'.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Args:
+        product_id (int): ID del producto a editar
+    
+    Returns:
+        Template: product_edit.html con formulario prelleno
+        Redirect: 404 si el producto no existe
+    """
+    product = db.get_item_by_id(product_id)
+    if not product:
+        flash("Producto no encontrado", "error")
+        return redirect(url_for("products.product_management"))
+    
+    return render_template("product_edit.html", product=product)

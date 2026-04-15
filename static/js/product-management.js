@@ -370,7 +370,7 @@
             '<div style="display:flex;gap:0.25rem;justify-content:center;">' +
               '<button class="action-btn stock" data-action="stock" data-id="' + p.id + '" title="Ajustar stock"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></button>' +
               '<button class="action-btn edit"  data-action="edit"  data-id="' + p.id + '" title="Editar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>' +
-              '<button class="action-btn delete" data-action="delete" data-id="' + p.id + '" title="Eliminar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
+              (p.status === 0 ? '<button class="action-btn reactivate" data-action="reactivate" data-id="' + p.id + '" title="Reactivar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>' : '<button class="action-btn delete" data-action="delete" data-id="' + p.id + '" title="Eliminar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>') +
             '</div>' +
           '</td>' +
         '</tr>';
@@ -507,6 +507,7 @@
       if (typeof Notify !== 'undefined') Notify.success('Producto actualizado correctamente');
       loadProducts();
     } catch (error) {
+      Notify.error(error.message || 'Error al actualizar producto');
       $('edit-error').textContent = error.message;
       show($('edit-error'));
     }
@@ -533,12 +534,12 @@
         method: 'DELETE',
         credentials: 'same-origin'
       });
-      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al eliminar'); }
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al deshabilitar'); }
       closeDeleteModal();
-      if (typeof Notify !== 'undefined') Notify.success('Producto eliminado correctamente');
+      if (typeof Notify !== 'undefined') Notify.success('Producto deshabilitado correctamente');
       loadProducts();
     } catch (error) {
-      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al eliminar producto');
+      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al deshabilitar producto');
     }
   }
 
@@ -577,14 +578,49 @@
     }
   }
 
+  function redirectToEditPage(productId) {
+    window.location.href = '/products/' + productId + '/edit';
+  }
+
+  function openReactivateModal(productId) {
+    const product = pageProducts.find(p => p.id === productId);
+    if (!product) return;
+    $('reactivate-product-id').value = productId;
+    $('reactivate-product-name').textContent = product.name || 'este producto';
+    show($('reactivate-modal'));
+    $('reactivate-modal').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeReactivateModal() {
+    hide($('reactivate-modal'));
+    $('reactivate-modal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function confirmReactivate() {
+    const productId = $('reactivate-product-id').value;
+    try {
+      const response = await fetch('/api/products/' + productId + '/activate', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Error al reactivar'); }
+      closeReactivateModal();
+      if (typeof Notify !== 'undefined') Notify.success('Producto reactivado correctamente');
+      loadProducts();
+    } catch (error) {
+      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al reactivar producto');
+    }
+  }
+
   function handleTableClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.getAttribute('data-action');
     const id     = parseInt(btn.getAttribute('data-id'));
-    if      (action === 'edit')   openEditModal(id);
-    else if (action === 'delete') openDeleteModal(id);
-    else if (action === 'stock')  openStockModal(id);
+    if      (action === 'edit')       redirectToEditPage(id);
+    else if (action === 'delete')     openDeleteModal(id);
+    else if (action === 'stock')      openStockModal(id);
+    else if (action === 'reactivate') openReactivateModal(id);
   }
 
   function init() {
@@ -641,6 +677,7 @@
         closeStockModal();
         closeNewAttributeModal();
         closeDeleteAttributeModal();
+        closeReactivateModal();
       }
     });
 
@@ -658,8 +695,10 @@
   window.closeStockModal         = closeStockModal;
   window.closeNewAttributeModal  = closeNewAttributeModal;
   window.closeDeleteAttributeModal = closeDeleteAttributeModal;
+  window.closeReactivateModal    = closeReactivateModal;
   window.confirmDelete           = confirmDelete;
   window.confirmDeleteAttribute  = confirmDeleteAttribute;
+  window.confirmReactivate       = confirmReactivate;
   window.saveStockAdjustment     = saveStockAdjustment;
   window.goToPage                = goToPage;
 

@@ -28,8 +28,8 @@
   </div>
 </section>
 
-<!-- KPIs Principales -->
-<section class="metrics-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+<!-- KPIs Principales (ahora 5 cards) -->
+<section class="metrics-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
   
   <!-- Ingresos Totales -->
   <div class="card kpi-card" style="padding: 1.25rem;">
@@ -91,7 +91,7 @@
     </div>
   </div>
 
-  <!-- Productos Vendidos -->
+  <!-- Unidades Vendidas -->
   <div class="card kpi-card" style="padding: 1.25rem;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
       <div>
@@ -110,21 +110,48 @@
       </div>
     </div>
   </div>
+
+  <!-- ✨ NUEVO: Proyección del Mes -->
+  <div class="card kpi-card" style="padding: 1.25rem; border: 1px solid rgba(99, 102, 241, 0.3); position: relative; overflow: hidden;">
+    <!-- Fondo sutil para diferenciarlo -->
+    <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(99,102,241,0.04), transparent); pointer-events: none;"></div>
+    <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Proyección del Mes</p>
+        <h2 id="kpi-projection" class="mono" style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #6366f1;">$0.00</h2>
+        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+          Día <span id="kpi-days-elapsed">0</span>/<span id="kpi-days-total">0</span> del mes
+        </div>
+        <div id="kpi-projection-label" style="margin-top: 0.25rem; font-size: 0.75rem; color: #6366f1; font-style: italic;">
+          Si continúas así...
+        </div>
+      </div>
+      <div class="kpi-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+        </svg>
+      </div>
+    </div>
+    <!-- Barra de progreso del mes -->
+    <div style="margin-top: 0.75rem; height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden;">
+      <div id="kpi-month-progress" style="height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 2px; transition: width 0.6s ease; width: 0%;"></div>
+    </div>
+  </div>
+
 </section>
 
-<!-- Gráficos Principales -->
+<!-- Gráfico de Ventas por Tiempo -->
 <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-  
-  <!-- Gráfico de Ventas por Tiempo -->
   <section class="card" style="padding: 1.5rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <div>
         <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Evolución de Ventas</h3>
         <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Ingresos y número de ventas en el tiempo</p>
       </div>
-      <div style="display: flex; gap: 0.5rem;">
+      <!-- ✨ MEJORADO: Toggle ahora funcional -->
+      <div style="display: none; gap: 0.5rem;">
         <button class="chart-toggle active" data-chart="revenue">Ingresos</button>
-        <button class="chart-toggle" data-chart="count">Cantidad</button>
+        <button class="chart-toggle" style="display: none;" data-chart="count">Cantidad</button>
       </div>
     </div>
     <div style="position: relative; height: 320px;">
@@ -136,7 +163,7 @@
 <!-- Gráficos Secundarios en Grid -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
   
-  <!-- Productos más Vendidos -->
+  <!-- Top 10 Productos -->
   <section class="card" style="padding: 1.5rem;">
     <div style="margin-bottom: 1rem;">
       <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Top 10 Productos</h3>
@@ -147,7 +174,7 @@
     </div>
   </section>
 
-  <!-- Distribución de Ventas por Día -->
+  <!-- Ventas por Día de la Semana -->
   <section class="card" style="padding: 1.5rem;">
     <div style="margin-bottom: 1rem;">
       <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Ventas por Día de la Semana</h3>
@@ -158,7 +185,7 @@
     </div>
   </section>
 
-  <!-- Distribución por Hora -->
+  <!-- Ventas por Hora -->
   <section class="card" style="padding: 1.5rem;">
     <div style="margin-bottom: 1rem;">
       <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Ventas por Hora</h3>
@@ -169,33 +196,72 @@
     </div>
   </section>
 
-  <!-- Comparativa de Ingresos -->
+  <!-- ✨ MEJORADO: Comparativa Mensual → Bar Chart Agrupado -->
   <section class="card" style="padding: 1.5rem;">
     <div style="margin-bottom: 1rem;">
       <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Comparativa Mensual</h3>
-      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Este mes vs mes anterior</p>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Este mes vs mes anterior · día a día</p>
     </div>
     <div style="position: relative; height: 300px;">
       <canvas id="comparisonChart"></canvas>
     </div>
   </section>
+
+  <!-- Heatmap: Día × Hora (full width) -->
+  <section class="card" style="padding: 1.5rem; grid-column: 1/-1;">
+    <div style="margin-bottom: 1rem;">
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Mapa de Calor: Ventas por Día y Hora</h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Identifica exactamente cuándo tenés más actividad</p>
+    </div>
+    <div style="overflow-x: auto;">
+      <div id="heatmapContainer" style="min-width: 100%; display: flex; gap: 1rem;"></div>
+    </div>
+  </section>
 </div>
 
-<!-- Tablas de Datos Detallados -->
+<!-- Salud del Inventario -->
+<section class="card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+  <div style="margin-bottom: 1.25rem;">
+    <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Salud del Inventario</h3>
+    <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos en riesgo de agotarse + rotación estimada</p>
+  </div>
+  <div class="table-container" style="overflow-x: auto;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Producto</th>
+          <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Stock Actual</th>
+          <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Venta Diaria</th>
+          <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Días Restantes</th>
+          <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Rotación</th>
+          <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Estado</th>
+        </tr>
+      </thead>
+      <tbody id="inventory-forecast-table">
+        <tr style="height: 60px;">
+          <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando datos...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Tablas detalladas + Alertas -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
   
-  <!-- Tabla Top Productos -->
+  <!-- Tabla Top Productos con CSV Export -->
   <section class="card" style="padding: 1.5rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <div>
         <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Productos Más Rentables</h3>
         <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Por ingresos generados</p>
       </div>
+      <!-- ✨ MEJORADO: Export ahora funciona -->
       <button class="btn btn-ghost" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;" id="export-products">
         <svg style="width: 14px; height: 14px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
         </svg>
-        Exportar
+        Exportar CSV
       </button>
     </div>
     <div class="table-container" style="overflow-x: auto;">
@@ -209,9 +275,7 @@
             <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">%</th>
           </tr>
         </thead>
-        <tbody id="top-products-table">
-          <!-- Datos dinámicos -->
-        </tbody>
+        <tbody id="top-products-table"></tbody>
       </table>
     </div>
   </section>
@@ -222,9 +286,7 @@
       <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Alertas de Inventario</h3>
       <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos que requieren atención</p>
     </div>
-    
     <div class="alerts-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <!-- Stock Crítico -->
       <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;">
         <div style="width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
           <svg style="width: 20px; height: 20px; color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,10 +297,8 @@
           <p style="margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--danger);">Stock Agotado</p>
           <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="out-of-stock-count">0</span> productos sin existencias</p>
         </div>
-        <a href="/product_management?filter=out_of_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+        <a href="/product_management?filter=out_of_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;  display: none;">Ver</a>
       </div>
-
-      <!-- Stock Bajo -->
       <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px;">
         <div style="width: 40px; height: 40px; background: rgba(245, 158, 11, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
           <svg style="width: 20px; height: 20px; color: var(--warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,10 +309,8 @@
           <p style="margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--warning);">Stock Bajo</p>
           <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="low-stock-count">0</span> productos bajo mínimo</p>
         </div>
-        <a href="/product_management?filter=low_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+        <a href="/product_management?filter=low_stock" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;  display: none;">Ver</a>
       </div>
-
-      <!-- Productos Sin Movimiento -->
       <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 8px;">
         <div style="width: 40px; height: 40px; background: rgba(107, 114, 128, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
           <svg style="width: 20px; height: 20px; color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,21 +321,75 @@
           <p style="margin: 0; font-weight: 600; font-size: 0.9rem;">Sin Movimiento</p>
           <p class="text-muted" style="margin: 0; font-size: 0.8rem;"><span id="no-movement-count">0</span> productos sin ventas (30 días)</p>
         </div>
-        <a href="/product_management?filter=no_sales" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Ver</a>
+        <a href="/product_management?filter=no_sales" class="btn btn-ghost" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;  display: none;">Ver</a>
       </div>
     </div>
   </section>
 </div>
 
-<!-- Resumen de Rendimiento -->
+<!-- ✨ NUEVO: Productos Nunca Vendidos -->
+<section class="card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+    <div>
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">
+         Productos Nunca Vendidos
+      </h3>
+      <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos en inventario sin ninguna venta registrada</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <span id="never-sold-badge" style="
+        display: inline-block; padding: 0.25rem 0.75rem;
+        background: rgba(239, 68, 68, 0.1); color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+      ">0 productos</span>
+      <button class="btn btn-ghost" id="export-never-sold" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;">
+        <svg style="width: 14px; height: 14px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+  <div class="table-container" style="overflow-x: auto;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Producto</th>
+          <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">SKU</th>
+          <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Stock</th>
+          <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Precio</th>
+          <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Capital Inmovilizado</th>
+          <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Acción</th>
+        </tr>
+      </thead>
+      <tbody id="never-sold-table">
+        <tr style="height: 60px;">
+          <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- Total capital inmovilizado -->
+  <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 2rem;">
+    <div style="text-align: right;">
+      <p class="text-muted" style="margin: 0; font-size: 0.8rem; text-transform: uppercase;">Capital Total Inmovilizado</p>
+      <p id="never-sold-total-capital" class="mono" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--danger);">$0.00</p>
+    </div>
+  </div>
+</section>
+
+<!-- ✨ MEJORADO: Insights Inteligentes -->
 <section class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
   <div style="margin-bottom: 1.25rem;">
     <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Insights Automáticos</h3>
     <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Análisis inteligente de tu negocio</p>
   </div>
   
+  <!-- Alertas dinámicas (aparecen solo cuando hay algo para decir) -->
+  <div id="smart-alerts-container" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;"></div>
+
   <div class="insights-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
-    
     <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
         <span style="font-size: 1.25rem;"></span>
@@ -285,7 +397,6 @@
       </div>
       <p id="insight-best-day" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
     </div>
-
     <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
         <span style="font-size: 1.25rem;"></span>
@@ -293,7 +404,6 @@
       </div>
       <p id="insight-peak-hour" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
     </div>
-
     <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
         <span style="font-size: 1.25rem;"></span>
@@ -301,7 +411,6 @@
       </div>
       <p id="insight-top-product" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
     </div>
-
     <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
         <span style="font-size: 1.25rem;"></span>
@@ -315,7 +424,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Chart.js CDN -->
 <script src="/static/js/chart.min.js"></script>
 
 <script>
@@ -332,6 +440,8 @@ const chartColors = {
   danger: '#ef4444',
   purple: '#8b5cf6',
   purpleLight: 'rgba(139, 92, 246, 0.2)',
+  indigo: '#6366f1',
+  indigoLight: 'rgba(99, 102, 241, 0.2)',
   gray: '#64748b',
   text: getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#e7eaf0',
   textMuted: getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#a8b0bf',
@@ -348,13 +458,22 @@ Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, sans-seri
 let currentPeriod = 7;
 let salesChart, topProductsChart, weekdayChart, hourlyChart, comparisonChart;
 
+// Guardamos los datos crudos para el toggle y el CSV
+let _salesOverTimeData = null;
+let _topProductsData = [];
+let _neverSoldData = [];
+let _currentChartMode = 'revenue'; // 'revenue' | 'count'
+
 // ============================================
 // INICIALIZACIÓN
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
   initPeriodButtons();
   initCharts();
+  initChartToggle();       // ✨ Toggle funcional
+  initExportButtons();     // ✨ CSV Export
   await loadMetricsData();
+  await loadNeverSoldData(); // ✨ Productos nunca vendidos
 });
 
 // ============================================
@@ -380,30 +499,80 @@ function initPeriodButtons() {
 }
 
 // ============================================
+// ✨ TOGGLE INGRESOS / CANTIDAD — FUNCIONAL
+// ============================================
+function initChartToggle() {
+  document.querySelectorAll('.chart-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _currentChartMode = btn.dataset.chart; // 'revenue' | 'count'
+      applySalesChartMode();
+    });
+  });
+}
+
+function applySalesChartMode() {
+  if (!salesChart || !_salesOverTimeData) return;
+
+  if (_currentChartMode === 'revenue') {
+    salesChart.data.datasets[0].data   = _salesOverTimeData.revenue;
+    salesChart.data.datasets[0].label  = 'Ingresos';
+    salesChart.data.datasets[0].borderColor     = chartColors.success;
+    salesChart.data.datasets[0].backgroundColor = chartColors.successLight;
+    salesChart.options.scales.y.ticks.callback  = (v) => formatCurrency(v, true);
+  } else {
+    salesChart.data.datasets[0].data   = _salesOverTimeData.count;
+    salesChart.data.datasets[0].label  = 'Cantidad de ventas';
+    salesChart.data.datasets[0].borderColor     = chartColors.indigo;
+    salesChart.data.datasets[0].backgroundColor = chartColors.indigoLight;
+    salesChart.options.scales.y.ticks.callback  = (v) => v;
+  }
+
+  // Recalcular línea de tendencia para el nuevo dataset
+  const values = salesChart.data.datasets[0].data;
+  salesChart.data.datasets[1].data = computeTrendLine(values);
+
+  salesChart.update();
+}
+
+// ============================================
 // CARGA DE DATOS
 // ============================================
 async function loadMetricsData(dateFrom = null, dateTo = null) {
   try {
-    // Construir URL con parámetros
     let url = `/api/metrics?period=${currentPeriod}`;
-    if (dateFrom && dateTo) {
-      url = `/api/metrics?from=${dateFrom}&to=${dateTo}`;
-    }
+    if (dateFrom && dateTo) url = `/api/metrics?from=${dateFrom}&to=${dateTo}`;
 
     const response = await fetch(url);
     if (!response.ok) throw new Error('Error al cargar métricas');
-    
     const data = await response.json();
-    
+
     updateKPIs(data.kpis);
+    updateProjection(data.projection);       // ✨ Proyección
     updateCharts(data);
     updateTables(data.topProducts);
     updateAlerts(data.alerts);
-    updateInsights(data.insights);
-    
+    updateInsights(data.insights, data);     // ✨ Insights inteligentes
+    updateHeatmap(data.heatmap);
+    updateInventoryForecast(data.inventoryForecast);
+
   } catch (error) {
     console.error('Error cargando métricas:', error);
     Notify.error('Error al cargar las métricas');
+  }
+}
+
+// ✨ Productos nunca vendidos — llamada separada (no depende del período)
+async function loadNeverSoldData() {
+  try {
+    const response = await fetch('/api/never-sold');
+    if (!response.ok) return;
+    const data = await response.json();
+    _neverSoldData = data.products || [];
+    updateNeverSoldTable(_neverSoldData);
+  } catch (error) {
+    console.error('Error cargando productos nunca vendidos:', error);
   }
 }
 
@@ -412,35 +581,75 @@ async function loadMetricsData(dateFrom = null, dateTo = null) {
 // ============================================
 function updateKPIs(kpis) {
   if (!kpis) return;
-  
-  document.getElementById('kpi-revenue').textContent = formatCurrency(kpis.revenue || 0);
-  document.getElementById('kpi-sales').textContent = formatNumber(kpis.totalSales || 0);
+  document.getElementById('kpi-revenue').textContent    = formatCurrency(kpis.revenue || 0);
+  document.getElementById('kpi-sales').textContent      = formatNumber(kpis.totalSales || 0);
   document.getElementById('kpi-avg-ticket').textContent = formatCurrency(kpis.avgTicket || 0);
-  document.getElementById('kpi-units').textContent = formatNumber(kpis.unitsSold || 0);
-
-  // Actualizar cambios porcentuales
+  document.getElementById('kpi-units').textContent      = formatNumber(kpis.unitsSold || 0);
   updateChangeIndicator('kpi-revenue-change', kpis.revenueChange);
-  updateChangeIndicator('kpi-sales-change', kpis.salesChange);
-  updateChangeIndicator('kpi-ticket-change', kpis.ticketChange);
-  updateChangeIndicator('kpi-units-change', kpis.unitsChange);
+  updateChangeIndicator('kpi-sales-change',   kpis.salesChange);
+  updateChangeIndicator('kpi-ticket-change',  kpis.ticketChange);
+  updateChangeIndicator('kpi-units-change',   kpis.unitsChange);
 }
 
 function updateChangeIndicator(elementId, change) {
   const el = document.getElementById(elementId);
   if (!el || change === undefined) return;
-
   const isPositive = change > 0;
-  const isNeutral = change === 0;
-  
+  const isNeutral  = change === 0;
   el.className = `kpi-change ${isPositive ? 'positive' : isNeutral ? 'neutral' : 'negative'}`;
-  el.querySelector('.change-icon').textContent = isPositive ? '↑' : isNeutral ? '→' : '↓';
+  el.querySelector('.change-icon').textContent  = isPositive ? '↑' : isNeutral ? '→' : '↓';
   el.querySelector('.change-value').textContent = `${Math.abs(change).toFixed(1)}%`;
+}
+
+// ============================================
+// ✨ PROYECCIÓN DEL MES
+// API debe devolver: { revenueThisMonth, daysElapsed, daysInMonth }
+// Fallback: se calcula con kpis.revenue y currentPeriod si no hay endpoint dedicado
+// ============================================
+function updateProjection(projection) {
+  // Si el backend manda `projection` lo usamos; si no, calculamos con los datos del período
+  const now          = new Date();
+  const daysInMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysElapsed  = now.getDate(); // día actual del mes
+
+  let revenueThisMonth, projected;
+
+  if (projection) {
+    revenueThisMonth = projection.revenueThisMonth;
+    projected        = projection.projectedRevenue || (revenueThisMonth / daysElapsed) * daysInMonth;
+  } else {
+    // Fallback: si el período seleccionado es menor al mes, no podemos proyectar con exactitud
+    // Solo proyectamos cuando el período cubre el mes actual
+    const kpiRevenue = parseFloat(
+      document.getElementById('kpi-revenue').textContent.replace(/[^0-9.]/g, '')
+    ) || 0;
+    revenueThisMonth = kpiRevenue;
+    projected        = daysElapsed > 0 ? (revenueThisMonth / daysElapsed) * daysInMonth : 0;
+  }
+
+  const progressPct = Math.min(100, (daysElapsed / daysInMonth) * 100).toFixed(1);
+
+  document.getElementById('kpi-projection').textContent   = formatCurrency(projected);
+  document.getElementById('kpi-days-elapsed').textContent = daysElapsed;
+  document.getElementById('kpi-days-total').textContent   = daysInMonth;
+  document.getElementById('kpi-month-progress').style.width = progressPct + '%';
+
+  // Etiqueta descriptiva
+  const label = document.getElementById('kpi-projection-label');
+  if (projected > revenueThisMonth) {
+    label.textContent = `+${formatCurrency(projected - revenueThisMonth)} sobre lo actual`;
+    label.style.color = '#6366f1';
+  } else {
+    label.textContent = 'Si continúas a este ritmo...';
+    label.style.color = '#6366f1';
+  }
 }
 
 // ============================================
 // INICIALIZACIÓN DE GRÁFICOS
 // ============================================
 function initCharts() {
+
   // Gráfico de Ventas (Línea/Área)
   const salesCtx = document.getElementById('salesChart')?.getContext('2d');
   if (salesCtx) {
@@ -448,30 +657,46 @@ function initCharts() {
       type: 'line',
       data: {
         labels: [],
-        datasets: [{
-          label: 'Ingresos',
-          data: [],
-          borderColor: chartColors.success,
-          backgroundColor: chartColors.successLight,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
+        datasets: [
+          {
+            label: 'Ingresos',
+            data: [],
+            borderColor: chartColors.success,
+            backgroundColor: chartColors.successLight,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Tendencia',
+            data: [],
+            borderColor: '#ff6b6b',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            fill: false,
+            tension: 0,
+            pointRadius: 0,
+            type: 'line'
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: { display: false },
+          legend: { display: true, position: 'top' },
           tooltip: {
             backgroundColor: 'rgba(17, 24, 39, 0.95)',
             padding: 12,
             cornerRadius: 8,
             titleFont: { weight: '600' },
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
+              label: (ctx) => {
+                const val = ctx.parsed.y;
+                return `${ctx.dataset.label}: ${_currentChartMode === 'revenue' ? formatCurrency(val) : val + ' ventas'}`;
+              }
             }
           }
         },
@@ -486,7 +711,7 @@ function initCharts() {
     });
   }
 
-  // Gráfico Top Productos (Barras Horizontales)
+  // Top Productos (Barras Horizontales)
   const topCtx = document.getElementById('topProductsChart')?.getContext('2d');
   if (topCtx) {
     topProductsChart = new Chart(topCtx, {
@@ -497,16 +722,9 @@ function initCharts() {
           label: 'Unidades vendidas',
           data: [],
           backgroundColor: [
-            chartColors.primary,
-            chartColors.success,
-            chartColors.purple,
-            chartColors.warning,
-            '#06b6d4',
-            '#ec4899',
-            '#14b8a6',
-            '#f97316',
-            '#6366f1',
-            '#84cc16'
+            chartColors.primary, chartColors.success, chartColors.purple,
+            chartColors.warning, '#06b6d4', '#ec4899', '#14b8a6',
+            '#f97316', '#6366f1', '#84cc16'
           ],
           borderRadius: 6,
           borderSkipped: false
@@ -518,11 +736,7 @@ function initCharts() {
         indexAxis: 'y',
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            padding: 12,
-            cornerRadius: 8
-          }
+          tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.95)', padding: 12, cornerRadius: 8 }
         },
         scales: {
           x: { beginAtZero: true, grid: { display: false } },
@@ -532,7 +746,7 @@ function initCharts() {
     });
   }
 
-  // Gráfico por Día de la Semana (Barras)
+  // Ventas por Día de la Semana
   const weekdayCtx = document.getElementById('weekdayChart')?.getContext('2d');
   if (weekdayCtx) {
     weekdayChart = new Chart(weekdayCtx, {
@@ -541,7 +755,7 @@ function initCharts() {
         labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
         datasets: [{
           label: 'Ventas',
-          data: [0, 0, 0, 0, 0, 0, 0],
+          data: [0,0,0,0,0,0,0],
           backgroundColor: chartColors.primaryLight,
           borderColor: chartColors.primary,
           borderWidth: 2,
@@ -564,7 +778,7 @@ function initCharts() {
     });
   }
 
-  // Gráfico por Hora (Área)
+  // Ventas por Hora
   const hourlyCtx = document.getElementById('hourlyChart')?.getContext('2d');
   if (hourlyCtx) {
     hourlyChart = new Chart(hourlyCtx, {
@@ -596,33 +810,56 @@ function initCharts() {
     });
   }
 
-  // Gráfico Comparativa (Doughnut)
+  // ✨ MEJORADO: Comparativa → Bar Chart Agrupado (este mes vs anterior, día a día)
   const compCtx = document.getElementById('comparisonChart')?.getContext('2d');
   if (compCtx) {
     comparisonChart = new Chart(compCtx, {
-      type: 'doughnut',
+      type: 'bar',
       data: {
-        labels: ['Este período', 'Período anterior'],
-        datasets: [{
-          data: [0, 0],
-          backgroundColor: [chartColors.success, chartColors.gray],
-          borderColor: ['transparent', 'transparent'],
-          borderWidth: 0,
-          cutout: '70%'
-        }]
+        labels: [],
+        datasets: [
+          {
+            label: 'Este mes',
+            data: [],
+            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+            borderColor: chartColors.success,
+            borderWidth: 1,
+            borderRadius: 4,
+            borderSkipped: false
+          },
+          {
+            label: 'Mes anterior',
+            data: [],
+            backgroundColor: 'rgba(100, 116, 139, 0.35)',
+            borderColor: chartColors.gray,
+            borderWidth: 1,
+            borderRadius: 4,
+            borderSkipped: false
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+          legend: { display: true, position: 'top', labels: { usePointStyle: true, padding: 16 } },
           tooltip: {
             backgroundColor: 'rgba(17, 24, 39, 0.95)',
             padding: 12,
             cornerRadius: 8,
             callbacks: {
-              label: (ctx) => `${ctx.label}: ${formatCurrency(ctx.parsed)}`
+              label: (ctx) => `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`
             }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { maxRotation: 0, font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => formatCurrency(v, true) }
           }
         }
       }
@@ -636,36 +873,48 @@ function initCharts() {
 function updateCharts(data) {
   if (!data) return;
 
-  // Actualizar gráfico de ventas
+  // Gráfico de ventas — guardar datos crudos para el toggle
   if (salesChart && data.salesOverTime) {
+    _salesOverTimeData = data.salesOverTime; // { labels, revenue, count }
     salesChart.data.labels = data.salesOverTime.labels;
-    salesChart.data.datasets[0].data = data.salesOverTime.revenue;
-    salesChart.update();
+    applySalesChartMode(); // aplica el modo actual (revenue o count)
   }
 
-  // Actualizar top productos
+  // Top productos
   if (topProductsChart && data.topProducts) {
     const top10 = data.topProducts.slice(0, 10);
-    topProductsChart.data.labels = top10.map(p => truncateText(p.name, 20));
-    topProductsChart.data.datasets[0].data = top10.map(p => p.units);
+    topProductsChart.data.labels                 = top10.map(p => truncateText(p.name, 20));
+    topProductsChart.data.datasets[0].data       = top10.map(p => p.units);
     topProductsChart.update();
   }
 
-  // Actualizar ventas por día
+  // Ventas por día de la semana
   if (weekdayChart && data.salesByWeekday) {
     weekdayChart.data.datasets[0].data = data.salesByWeekday;
     weekdayChart.update();
   }
 
-  // Actualizar ventas por hora
+  // Ventas por hora
   if (hourlyChart && data.salesByHour) {
     hourlyChart.data.datasets[0].data = data.salesByHour;
     hourlyChart.update();
   }
 
-  // Actualizar comparativa
+  // ✨ Comparativa mensual — ahora espera dailyLabels, currentMonth, previousMonth
+  // API debe devolver: comparison: { dailyLabels: ['1','2',...], currentMonth: [...], previousMonth: [...] }
+  // Fallback compatible si aún devuelve { current, previous } (doughnut viejo)
   if (comparisonChart && data.comparison) {
-    comparisonChart.data.datasets[0].data = [data.comparison.current, data.comparison.previous];
+    const comp = data.comparison;
+    if (comp.dailyLabels) {
+      comparisonChart.data.labels                 = comp.dailyLabels;
+      comparisonChart.data.datasets[0].data       = comp.currentMonth;
+      comparisonChart.data.datasets[1].data       = comp.previousMonth;
+    } else {
+      // Compatibilidad hacia atrás: si solo llegan totales, mostramos 2 barras
+      comparisonChart.data.labels                 = ['Este período', 'Período anterior'];
+      comparisonChart.data.datasets[0].data       = [comp.current, 0];
+      comparisonChart.data.datasets[1].data       = [0, comp.previous];
+    }
     comparisonChart.update();
   }
 }
@@ -674,13 +923,13 @@ function updateCharts(data) {
 // ACTUALIZACIÓN DE TABLAS
 // ============================================
 function updateTables(products) {
+  _topProductsData = products || []; // guardar para export CSV
   const tbody = document.getElementById('top-products-table');
   if (!tbody || !products) return;
 
   const totalRevenue = products.reduce((sum, p) => sum + (p.revenue || 0), 0);
-
   tbody.innerHTML = products.slice(0, 10).map((product, index) => {
-    const percentage = totalRevenue > 0 ? ((product.revenue / totalRevenue) * 100).toFixed(1) : 0;
+    const pct = totalRevenue > 0 ? ((product.revenue / totalRevenue) * 100).toFixed(1) : 0;
     return `
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 0.75rem; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
@@ -693,9 +942,9 @@ function updateTables(products) {
         <td style="padding: 0.75rem; text-align: right;">
           <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
             <div style="width: 60px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden;">
-              <div style="width: ${percentage}%; height: 100%; background: var(--brand); border-radius: 3px;"></div>
+              <div style="width: ${pct}%; height: 100%; background: var(--brand); border-radius: 3px;"></div>
             </div>
-            <span style="font-size: 0.8rem; color: var(--text-muted); min-width: 40px;">${percentage}%</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); min-width: 40px;">${pct}%</span>
           </div>
         </td>
       </tr>
@@ -704,42 +953,361 @@ function updateTables(products) {
 }
 
 // ============================================
-// ACTUALIZACIÓN DE ALERTAS
+// ✨ NUEVO: TABLA PRODUCTOS NUNCA VENDIDOS
+// Espera: [{ id, name, sku, stock, price, category }]
+// Capital inmovilizado = stock * price
 // ============================================
-function updateAlerts(alerts) {
-  if (!alerts) return;
-  
-  document.getElementById('out-of-stock-count').textContent = alerts.outOfStock || 0;
-  document.getElementById('low-stock-count').textContent = alerts.lowStock || 0;
-  document.getElementById('no-movement-count').textContent = alerts.noMovement || 0;
+function updateNeverSoldTable(products) {
+  const tbody = document.getElementById('never-sold-table');
+  const badge = document.getElementById('never-sold-badge');
+  if (!tbody) return;
+
+  if (!products || products.length === 0) {
+    tbody.innerHTML = `
+      <tr style="height: 60px;">
+        <td colspan="6" style="text-align: center; color: var(--success);">
+           ¡Todos los productos tienen al menos una venta!
+        </td>
+      </tr>`;
+    badge.textContent = '0 productos';
+    document.getElementById('never-sold-total-capital').textContent = '$0.00';
+    return;
+  }
+
+  badge.textContent = `${products.length} producto${products.length !== 1 ? 's' : ''}`;
+
+  const totalCapital = products.reduce((sum, p) => sum + (p.stock * p.price), 0);
+  document.getElementById('never-sold-total-capital').textContent = formatCurrency(totalCapital);
+
+  tbody.innerHTML = products.map(p => {
+    const capital = p.stock * p.price;
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem;">
+          <div style="font-weight: 500;">${escapeHtml(p.name)}</div>
+          ${p.category ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(p.category)}</div>` : ''}
+        </td>
+        <td style="padding: 0.75rem; font-family: monospace; color: var(--text-muted);">${escapeHtml(p.sku || '—')}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">${formatNumber(p.stock)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(p.price)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--danger);">${formatCurrency(capital)}</td>
+        <td style="padding: 0.75rem; text-align: center;">
+          <a href="/product_management?id=${p.id}" class="btn btn-ghost" style="font-size: 0.75rem;  display: none; padding: 0.3rem 0.6rem;">Ver</a>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ============================================
-// ACTUALIZACIÓN DE INSIGHTS
+// ALERTAS DE INVENTARIO
 // ============================================
-function updateInsights(insights) {
+function updateAlerts(alerts) {
+  if (!alerts) return;
+  document.getElementById('out-of-stock-count').textContent = alerts.outOfStock  || 0;
+  document.getElementById('low-stock-count').textContent    = alerts.lowStock    || 0;
+  document.getElementById('no-movement-count').textContent  = alerts.noMovement  || 0;
+}
+
+// ============================================
+// ✨ INSIGHTS INTELIGENTES
+// data completo pasado para acceder a salesOverTime
+// ============================================
+function updateInsights(insights, fullData) {
   if (!insights) return;
 
-  document.getElementById('insight-best-day').textContent = 
-    insights.bestDay ? `${insights.bestDay.name} con ${formatCurrency(insights.bestDay.revenue)} en ventas` : 'Sin datos suficientes';
-  
-  document.getElementById('insight-peak-hour').textContent = 
-    insights.peakHour ? `${insights.peakHour}:00 - ${insights.peakHour + 1}:00 es tu hora más activa` : 'Sin datos suficientes';
-  
-  document.getElementById('insight-top-product').textContent = 
-    insights.topProduct ? `"${insights.topProduct.name}" con ${insights.topProduct.units} unidades vendidas` : 'Sin datos suficientes';
-  
-  document.getElementById('insight-trend').textContent = 
-    insights.trend ? insights.trend : 'Necesitas más datos para ver tendencias';
+  // Insights básicos
+  document.getElementById('insight-best-day').textContent =
+    insights.bestDay
+      ? `${insights.bestDay.name} con ${formatCurrency(insights.bestDay.revenue)} en ventas`
+      : 'Sin datos suficientes';
+
+  document.getElementById('insight-peak-hour').textContent =
+    insights.peakHour !== undefined
+      ? `${insights.peakHour}:00 - ${insights.peakHour + 1}:00 es tu hora más activa`
+      : 'Sin datos suficientes';
+
+  document.getElementById('insight-top-product').textContent =
+    insights.topProduct
+      ? `"${insights.topProduct.name}" con ${insights.topProduct.units} unidades vendidas`
+      : 'Sin datos suficientes';
+
+  document.getElementById('insight-trend').textContent =
+    insights.trend || 'Necesitás más datos para ver tendencias';
+
+  // ✨ Alertas dinámicas inteligentes
+  renderSmartAlerts(fullData);
+}
+
+/**
+ * Detecta anomalías en los datos y renderiza alertas contextuales.
+ * Lógica completamente en el frontend, sin nuevos endpoints.
+ */
+function renderSmartAlerts(data) {
+  const container = document.getElementById('smart-alerts-container');
+  if (!container) return;
+
+  const alerts = [];
+
+  // --- Alerta 1: Caída > 10% en los últimos 3 días vs promedio de 7 días ---
+  if (data?.salesOverTime?.revenue && data.salesOverTime.revenue.length >= 7) {
+    const rev      = data.salesOverTime.revenue;
+    const last7    = rev.slice(-7);
+    const avg7     = last7.reduce((a, b) => a + b, 0) / last7.length;
+    const last3    = rev.slice(-3);
+    const avg3     = last3.reduce((a, b) => a + b, 0) / last3.length;
+
+    if (avg7 > 0) {
+      const drop = ((avg7 - avg3) / avg7) * 100;
+      if (drop >= 10) {
+        alerts.push({
+          type: 'warning',
+          icon: '📉',
+          title: `Caída del ${drop.toFixed(1)}% en los últimos 3 días`,
+          text: `El promedio diario de los últimos 3 días (${formatCurrency(avg3)}) está ${drop.toFixed(1)}% por debajo del promedio semanal (${formatCurrency(avg7)}).`
+        });
+      }
+    }
+  }
+
+  // --- Alerta 2: Hoy por debajo del promedio histórico del período ---
+  if (data?.salesOverTime?.revenue && data.salesOverTime.revenue.length >= 2) {
+    const rev     = data.salesOverTime.revenue;
+    const todayVal = rev[rev.length - 1];
+    const prevAvg  = rev.slice(0, -1).reduce((a, b) => a + b, 0) / (rev.length - 1);
+
+    if (prevAvg > 0 && todayVal < prevAvg * 0.85) {
+      const pctBelow = (((prevAvg - todayVal) / prevAvg) * 100).toFixed(1);
+      alerts.push({
+        type: 'info',
+        icon: '⚠️',
+        title: `Hoy va ${pctBelow}% por debajo del promedio`,
+        text: `Hoy llevas ${formatCurrency(todayVal)}, el promedio diario del período es ${formatCurrency(prevAvg)}.`
+      });
+    }
+  }
+
+  // --- Alerta 3: Buen ritmo — proyección supera el mes anterior ---
+  if (data?.projection && data.projection.projectedRevenue && data.projection.previousMonthRevenue) {
+    const { projectedRevenue, previousMonthRevenue } = data.projection;
+    if (projectedRevenue > previousMonthRevenue * 1.1) {
+      const growth = (((projectedRevenue - previousMonthRevenue) / previousMonthRevenue) * 100).toFixed(1);
+      alerts.push({
+        type: 'success',
+        icon: '🚀',
+        title: `¡Vas camino a un mes récord! +${growth}%`,
+        text: `Tu proyección (${formatCurrency(projectedRevenue)}) supera el mes anterior (${formatCurrency(previousMonthRevenue)}) en un ${growth}%.`
+      });
+    }
+  }
+
+  if (alerts.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const colorMap = {
+    warning: { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: 'var(--warning)' },
+    info:    { bg: 'rgba(99,102,241,0.08)',  border: 'rgba(99,102,241,0.25)',  color: '#6366f1' },
+    success: { bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.25)', color: 'var(--success)' },
+  };
+
+  container.innerHTML = alerts.map(a => {
+    const c = colorMap[a.type] || colorMap.info;
+    return `
+      <div style="
+        display: flex; gap: 0.75rem; align-items: flex-start;
+        padding: 0.75rem 1rem;
+        background: ${c.bg};
+        border: 1px solid ${c.border};
+        border-radius: 8px;
+        animation: fadeIn 0.3s ease;
+      ">
+        <span style="font-size: 1.1rem; flex-shrink: 0;">${a.icon}</span>
+        <div>
+          <p style="margin: 0 0 0.2rem 0; font-weight: 600; font-size: 0.9rem; color: ${c.color};">${a.title}</p>
+          <p style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">${a.text}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================
+// HEATMAP
+// ============================================
+function updateHeatmap(heatmapData) {
+  if (!heatmapData || !heatmapData.data) return;
+  const container = document.getElementById('heatmapContainer');
+  const data      = heatmapData.data;
+  const days      = heatmapData.days;
+  const maxValue  = Math.max(...data.flat(), 1);
+
+  let html = '<div style="display: flex; overflow-x: auto; gap: 0.5rem;">';
+  html += `
+    <div style="display: flex; flex-direction: column; justify-content: flex-end; min-width: 60px;">
+      <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem;">Ventas</div>
+      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem;">
+          <div style="width: 12px; height: 12px; background: rgba(79,70,229,0.1); border: 1px solid var(--border);"></div>
+          <span>Baja</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem;">
+          <div style="width: 12px; height: 12px; background: #4f46e5;"></div>
+          <span>Alta</span>
+        </div>
+      </div>
+    </div>`;
+  html += '<div style="display: flex; flex-direction: column; gap: 0.25rem;">';
+  html += '<div style="display: flex; gap: 1px; margin-bottom: 0.5rem;"><div style="width: 30px;"></div>';
+  for (let h = 0; h < 24; h++) {
+    const label = h % 3 === 0 ? `${h}h` : '';
+    html += `<div style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-muted);">${label}</div>`;
+  }
+  html += '</div>';
+  for (let day = 0; day < 7; day++) {
+    html += '<div style="display: flex; gap: 1px; align-items: center;">';
+    html += `<div style="width: 30px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">${days[day]}</div>`;
+    for (let hour = 0; hour < 24; hour++) {
+      const value     = data[day][hour];
+      const intensity = value / maxValue;
+      const color     = `rgba(79, 70, 229, ${Math.max(0.08, intensity)})`;
+      html += `<div style="width: 20px; height: 20px; background: ${color}; border-radius: 3px; border: 1px solid var(--border);"
+                   title="${days[day]} ${hour}:00 — ${value} ventas"></div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+// ============================================
+// SALUD DEL INVENTARIO
+// ============================================
+function updateInventoryForecast(forecast) {
+  const tbody = document.getElementById('inventory-forecast-table');
+  if (!tbody || !forecast) return;
+  if (forecast.length === 0) {
+    tbody.innerHTML = `<tr style="height:60px;"><td colspan="6" style="text-align:center;color:var(--text-muted);">No hay productos con ventas en este período</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = forecast.slice(0, 15).map(item => {
+    const sc = item.status === 'danger' ? 'var(--danger)' : item.status === 'warning' ? 'var(--warning)' : 'var(--success)';
+    const st = item.status === 'danger' ? '🔴 Crítico' : item.status === 'warning' ? '🟡 Bajo' : '🟢 Normal';
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem;">
+          <div style="font-weight: 500;">${escapeHtml(item.name)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${item.sku}</div>
+        </td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">
+          ${formatNumber(item.currentStock)}<div style="font-size:0.7rem;color:var(--text-muted);">/${formatNumber(item.minStock)}</div>
+        </td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(item.dailyAverage)} ud/día</td>
+        <td style="padding: 0.75rem; text-align: center; font-family: monospace; font-weight: 600; color: ${sc};">
+          ${item.daysRemaining !== null ? `${item.daysRemaining} días` : '∞'}
+        </td>
+        <td style="padding: 0.75rem; text-align: center; font-family: monospace;">${item.rotation}x</td>
+        <td style="padding: 0.75rem; text-align: center;">
+          <span style="display:inline-block;padding:0.3rem 0.6rem;border-radius:4px;background:${sc}22;color:${sc};font-size:0.75rem;font-weight:600;">${st}</span>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ============================================
+// ✨ EXPORTAR CSV — FUNCIONAL
+// ============================================
+function initExportButtons() {
+
+  // Export: Productos más rentables
+  document.getElementById('export-products')?.addEventListener('click', () => {
+    if (!_topProductsData || _topProductsData.length === 0) {
+      Notify.warning('No hay datos para exportar');
+      return;
+    }
+    const totalRevenue = _topProductsData.reduce((s, p) => s + (p.revenue || 0), 0);
+    const rows = [
+      ['#', 'Producto', 'SKU', 'Unidades Vendidas', 'Ingresos (MXN)', '% del Total'],
+      ..._topProductsData.slice(0, 10).map((p, i) => [
+        i + 1,
+        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${(p.sku  || '').replace(/"/g, '""')}"`,
+        p.units   || 0,
+        (p.revenue || 0).toFixed(2),
+        totalRevenue > 0 ? (((p.revenue / totalRevenue) * 100).toFixed(2) + '%') : '0%'
+      ])
+    ];
+    downloadCSV(rows, `productos_rentables_${dateStamp()}.csv`);
+    Notify.success('CSV exportado correctamente');
+  });
+
+  // Export: Productos nunca vendidos
+  document.getElementById('export-never-sold')?.addEventListener('click', () => {
+    if (!_neverSoldData || _neverSoldData.length === 0) {
+      Notify.info('No hay productos sin ventas para exportar');
+      return;
+    }
+    const rows = [
+      ['Producto', 'SKU', 'Categoría', 'Stock', 'Precio Unitario (MXN)', 'Capital Inmovilizado (MXN)'],
+      ..._neverSoldData.map(p => [
+        `"${(p.name     || '').replace(/"/g, '""')}"`,
+        `"${(p.sku      || '').replace(/"/g, '""')}"`,
+        `"${(p.category || '').replace(/"/g, '""')}"`,
+        p.stock || 0,
+        (p.price || 0).toFixed(2),
+        ((p.stock || 0) * (p.price || 0)).toFixed(2)
+      ])
+    ];
+    downloadCSV(rows, `productos_sin_ventas_${dateStamp()}.csv`);
+    Notify.success('CSV exportado correctamente');
+  });
+}
+
+/**
+ * Genera y descarga un archivo CSV a partir de un array de filas (array de arrays).
+ */
+function downloadCSV(rows, filename) {
+  const csvContent = rows.map(row => row.join(',')).join('\n');
+  // BOM UTF-8 para que Excel lo abra bien con tildes
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function dateStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ============================================
+// LÍNEA DE TENDENCIA — Regresión Lineal Simple
+// ============================================
+function computeTrendLine(values) {
+  if (!values || values.length < 2) return [];
+  const n      = values.length;
+  const xMean  = (n - 1) / 2;
+  const yMean  = values.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - xMean) * (values[i] - yMean);
+    den += (i - xMean) ** 2;
+  }
+  const slope     = den !== 0 ? num / den : 0;
+  const intercept = yMean - slope * xMean;
+  return values.map((_, i) => parseFloat((slope * i + intercept).toFixed(2)));
 }
 
 // ============================================
 // UTILIDADES
 // ============================================
 function formatCurrency(value, short = false) {
-  if (short && value >= 1000) {
-    return '$' + (value / 1000).toFixed(1) + 'k';
-  }
+  if (short && value >= 1000) return '$' + (value / 1000).toFixed(1) + 'k';
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
 }
 
@@ -758,29 +1326,9 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function showToast(message, type = 'success') {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  
-  toast.textContent = message;
-  toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
-  toast.classList.remove('hidden');
-  
-  setTimeout(() => toast.classList.add('hidden'), 3000);
-}
-
-// Toggle entre gráficos de ingresos y cantidad
-document.querySelectorAll('.chart-toggle').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.chart-toggle').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    // Aquí podrías cambiar los datos del gráfico según el toggle
-  });
-});
-
-// Exportar datos
-document.getElementById('export-products')?.addEventListener('click', () => {
-  Notify.info('Función de exportación en desarrollo');
-});
+// Animación para alertas dinámicas
+const style = document.createElement('style');
+style.textContent = `@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

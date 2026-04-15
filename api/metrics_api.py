@@ -5,6 +5,111 @@ from api.auth_utils import require_auth
 
 metrics_api = Blueprint("metrics_api", __name__)
 
+# ============================================
+# FUNCIONES HELPER PARA ANÁLISIS AVANZADO
+# ============================================
+
+def calculate_trend_line(values, window=7):
+    """
+    Calcula una línea de tendencia usando moving average (promedio móvil).
+    Útil para ver la dirección general ignorando picos diarios.
+    """
+    if len(values) < window:
+        return [None] * len(values)
+    
+    trend = []
+    for i in range(len(values)):
+        if i < window - 1:
+            trend.append(None)
+        else:
+            avg = sum(values[i-window+1:i+1]) / window
+            trend.append(round(avg, 2))
+    return trend
+
+
+def generate_sales_heatmap(weekday_sales, hourly_sales):
+    """
+    Genera una matriz heatmap de 7 días × 24 horas con distribución de ventas.
+    Cada celda = cantidad de ventas estimadas para ese día/hora.
+    """
+    heatmap = [[0 for _ in range(24)] for _ in range(7)]
+    
+    total_hourly = sum(hourly_sales)
+    total_weekday = sum(weekday_sales)
+    
+    if total_hourly > 0 and total_weekday > 0:
+        for day in range(7):
+            day_sales = weekday_sales[day]
+            for hour in range(24):
+                hour_ratio = hourly_sales[hour] / total_hourly if total_hourly > 0 else 1/24
+                heatmap[day][hour] = int(day_sales * hour_ratio)
+    
+    return heatmap
+
+
+def get_inventory_forecast(start_date, end_date):
+    """
+    Calcula la salud del inventario: rotación, días restantes, stock crítico.
+    Retorna top productos en riesgo de agotarse + sus métricas.
+    """
+    with db.transaction() as cur:
+        cur.execute("""
+            SELECT 
+                id, name, barrs_code, quantity, min_quantity,
+                COALESCE((
+                    SELECT SUM(d.quantity)
+                    FROM details d
+                    JOIN sells s ON d.sell_id = s.id
+                    WHERE d.item_id = items.id
+                    AND DATE(s.date) BETWEEN ? AND ?
+                ), 0) as units_sold
+            FROM items
+            WHERE status = 1
+            ORDER BY quantity ASC
+        """, (start_date, end_date))
+        
+        items = cur.fetchall()
+        period_days = (datetime.strptime(end_date, '%Y-%m-%d') - 
+                      datetime.strptime(start_date, '%Y-%m-%d')).days + 1
+        
+        forecast = []
+        for item in items:
+            item_id, name, sku, stock, min_qty, units_sold = item
+            
+            if units_sold == 0:
+                days_left = None
+                daily_avg = 0
+                rotation = 0
+                status = "normal"
+            else:
+                daily_avg = units_sold / period_days
+                days_left = int(stock / daily_avg) if daily_avg > 0 else None
+                rotation = round((units_sold / stock), 2) if stock > 0 else 0
+                
+                if days_left and days_left <= 3:
+                    status = "danger"
+                elif days_left and days_left <= 7:
+                    status = "warning"
+                else:
+                    status = "normal"
+            
+            forecast.append({
+                "id": item_id,
+                "name": name,
+                "sku": sku or "Sin SKU",
+                "currentStock": stock,
+                "minStock": min_qty,
+                "unitsSold": units_sold,
+                "dailyAverage": round(daily_avg, 2),
+                "daysRemaining": days_left,
+                "rotation": rotation,
+                "status": status
+            })
+        
+        # Retornar solo productos con ventas, ordenados por riesgo
+        return sorted([f for f in forecast if f["daysRemaining"] is not None], 
+                     key=lambda x: x["daysRemaining"] or float('inf'))[:20]
+
 @metrics_api.route("/stats", methods=["GET"])
 @require_auth
 def get_stats():
@@ -47,6 +152,11 @@ def get_stats():
         expire_soon_items = cur.execute(
             "SELECT expiration_date FROM items WHERE expiration_date IS NOT NULL AND DATE(expiration_date) <= DATE('now', '+7 days') ORDER BY expiration_date ASC LIMIT 10"
         ).fetchall()
+        
+        # Valor total de inventario
+        total_inventory_value = cur.execute(
+            "SELECT COALESCE(SUM(quantity * price), 0) FROM items WHERE status = 1"
+        ).fetchone()[0]
     
     low_stock_list = [
         {
@@ -63,7 +173,8 @@ def get_stats():
         "low_stock": low_stock,
         "sales_today": sales_today,
         "low_stock_list": low_stock_list,
-        "expire_soon": len(expire_soon_items)
+        "expire_soon": len(expire_soon_items),
+        "total_inventory_value": round(total_inventory_value, 2)
     }), 200
     
 @metrics_api.route('/metrics', methods=['GET'])
@@ -187,6 +298,27 @@ def get_metrics():
     else:
         trend = "No hay datos del período anterior para comparar."
     
+    # ============================================
+    # CALCULAR DATOS AVANZADOS
+    # ============================================
+    
+    # Valor total de inventario (cantidad * precio de venta)
+    with db.transaction() as cur:
+        cur.execute("SELECT COALESCE(SUM(quantity * price), 0) FROM items WHERE status = 1")
+        total_inventory_value = float(cur.fetchone()[0])
+    
+    # Línea de tendencia (moving average)
+    trend_line = calculate_trend_line(revenues, window=min(7, max(1, len(revenues)//2)))
+    
+    # Heatmap de ventas
+    heatmap = generate_sales_heatmap(sales_by_weekday, sales_by_hour)
+    
+    # Forecast de inventario
+    inventory_forecast = get_inventory_forecast(start_date, end_date)
+    
+    # Stock crítico en los próximos N días
+    critical_stocks = [item for item in inventory_forecast if item["status"] == "danger"]
+    
     return jsonify({
         "kpis": {
             "revenue": round(revenue, 2),
@@ -225,5 +357,42 @@ def get_metrics():
             "start": start_date,
             "end": end_date,
             "days": period_days
-        }
+        },
+        "inventory": {
+            "totalValue": round(total_inventory_value, 2),
+            "totalUnits": int(sum([item["currentStock"] for item in inventory_forecast]))
+        },
+        "trendLine": {
+            "labels": labels,
+            "values": trend_line
+        },
+        "heatmap": {
+            "data": heatmap,
+            "days": ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+            "hours": list(range(24))
+        },
+        "inventoryForecast": inventory_forecast,
+        "criticalStocks": critical_stocks
     }), 200
+
+@metrics_api.route('/never-sold', methods=['GET'])
+@require_auth
+def never_sold_products():
+    """
+    Retorna productos que nunca han sido vendidos.
+    Útil para identificar productos que podrían ser obsoletos o no atractivos.
+    """
+    with db._cursor() as cur:  # ← _cursor para SELECTs simples
+        cur.execute("""
+            SELECT id, name, barrs_code, quantity, price FROM items
+            WHERE status = 1 AND id NOT IN (
+                SELECT DISTINCT item_id FROM details
+            )
+            ORDER BY quantity DESC
+        """)
+        products = [
+            {"id": r[0], "name": r[1], "sku": r[2], "stock": r[3], "price": r[4]}
+            for r in cur.fetchall()
+        ]
+    
+    return jsonify({"products": products}), 200

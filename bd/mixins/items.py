@@ -1,4 +1,5 @@
 from datetime import datetime
+from tools.local_time import localDate
 
 from bd.bdErrors import DatabaseError
 
@@ -27,8 +28,8 @@ class ItemsMixin:
         """
         barrs_code = str(barrs_code).strip() if barrs_code else None
         self.execute_query(
-            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, expiration_date, price) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (barrs_code, description, name, quantity, min_quantity, expiration_date, price),
+            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, expiration_date, price, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (barrs_code, description, name, quantity, min_quantity, expiration_date, price, localDate(), localDate()),
         )
 
     def get_item_by_barcode(self, barcode):
@@ -276,7 +277,7 @@ class ItemsMixin:
         """
         query = """
             SELECT id, barrs_code, name, description, quantity as stock, 
-                min_quantity, price, status, expiration_date
+                min_quantity, price, status, expiration_date, created_at, updated_at
             FROM items WHERE id = ?
         """
         result = self.execute_query(query, (item_id,))
@@ -296,6 +297,8 @@ class ItemsMixin:
             "price": row[6],
             "status": row[7],
             "expiration_date": row[8],
+            "created_at": row[9],
+            "updated_at": row[10],
         }
         
         try:
@@ -348,4 +351,12 @@ class ItemsMixin:
                         (item_id,),
                         fetch=False
                     )
+                    
+    def activate_item(self, item_id):
+        """Activa un producto deshabilitado."""
+        self.execute_query(
+            "UPDATE items SET status = 1 WHERE id = ?",
+            (item_id,),
+            fetch=False,
+        )
         
