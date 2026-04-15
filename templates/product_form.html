@@ -10,11 +10,22 @@
     <div id="form-validation-error" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-radius: 6px; background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem;"></div>
     
     <div class="field">
-      <label class="label">Código de barras <span style="color: var(--danger);">*</span></label>
-      <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
-             value="{{ form_data.barrs_code or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
-      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Ej: 7791230000000 (EAN-13)</small>
-      <span class="field-error" data-field="Código de barras"></span>
+      <label class="label">Código de barras <span style="color: var(--text-muted); font-weight: 400;">(opcional)</span></label>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div style="flex: 1;">
+          <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128..." 
+                value="{{ form_data.barrs_code or '' }}" maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
+          <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Si está vacío se generará: PRD######</small>
+          <span class="field-error" data-field="Código de barras"></span>
+        </div>
+        <button type="button" class="btn btn-ghost" onclick="generateProposedBarcode()" style="margin-top: 0; white-space: nowrap; padding: 0.65rem 0.85rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            <line x1="7" y1="3" x2="7" y2="21"/><line x1="13" y1="3" x2="13" y2="21"/><line x1="19" y1="3" x2="19" y2="21"/>
+          </svg>
+          Generar
+        </button>
+      </div>
     </div>
     <div class="field">
       <label class="label">Nombre <span style="color: var(--danger);">*</span></label>
@@ -64,4 +75,11 @@
   </form>
 </div>
 <script src="{{ url_for('static', filename='js/products-crud.js') }}"></script>
+<script>
+function generateProposedBarcode() {
+  const timestamp = Date.now().toString().slice(-6);
+  const proposed = `PRD${timestamp.padStart(6, '0')}`;
+  document.getElementById('barrs_code').value = proposed;
+}
+</script>
 {% endblock %}

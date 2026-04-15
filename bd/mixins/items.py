@@ -359,4 +359,90 @@ class ItemsMixin:
             (item_id,),
             fetch=False,
         )
+    
+    def add_item_with_auto_barcode(self, barrs_code, description, name, quantity, min_quantity, expiration_date, price):
+        """
+        Agrega producto. Si no hay código de barras, genera uno automáticamente.
         
+        Args:
+            barrs_code: Código manual (puede estar vacío)
+            description, name, quantity, min_quantity, expiration_date, price: datos del producto
+            
+        Returns:
+            str: El código de barras asignado (manual o generado)
+        """
+        # Si no proporciona código, generar uno basado en ID
+        if not barrs_code or barrs_code.strip() == "":
+            # Obtener próximo ID
+            result = self.execute_query("SELECT MAX(id) FROM items")
+            next_id = (result[0][0] or 0) + 1
+            barrs_code = f"PRD{next_id:06d}"
+        
+        # Agregar el producto
+        self.add_item(barrs_code, description, name, quantity, min_quantity, expiration_date, price)
+        
+        return barrs_code
+
+    def update_item_barcode(self, item_id, new_barrs_code):
+        """
+        Actualiza el código de barras de un producto.
+        
+        Args:
+            item_id: ID del producto
+            new_barrs_code: Nuevo código de barras
+            
+        Raises:
+            DatabaseError: Si hay duplicado o no existe
+        """
+        try:
+            self.execute_query(
+                "UPDATE items SET barrs_code = ?, updated_at = ? WHERE id = ?",
+                (new_barrs_code, localDate(), item_id)
+            )
+        except Exception as e:
+            raise DatabaseError(f"Error al actualizar código de barras: {e}")
+
+    def generate_barcode_image(self, barrs_code):
+        """
+        Genera imagen PNG del código de barras CODE128.
+        
+        Args:
+            barrs_code: El código a codificar
+            
+        Returns:
+            BytesIO: Imagen PNG del código de barras
+        """
+        from io import BytesIO
+        try:
+            import barcode
+        except ImportError:
+            raise DatabaseError("Librería 'python-barcode' no instalada. Ejecuta: pip install python-barcode pillow")
+        
+        CODE128 = barcode.get_barcode_class('code128')
+        bc = CODE128(barrs_code, writer=barcode.writer.ImageWriter())
+        
+        img_io = BytesIO()
+        bc.write(img_io)
+        img_io.seek(0)
+        
+        return img_io
+    
+    def get_all_items(self):
+        """Obtiene una lista de todos los productos activos."""
+        rows = self.execute_query(
+        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date FROM items WHERE status = 1 ORDER BY name ASC"
+        )
+        
+        return [
+            {
+                "id": row[0],
+                "barrs_code": row[1],
+                "name": row[2],
+                "description": row[3],
+                "quantity": row[4],
+                "min_quantity": row[5],
+                "price": row[6],
+                "expiration_date": row[7]
+            }
+            for row in rows
+        ]

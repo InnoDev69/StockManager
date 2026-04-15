@@ -3,11 +3,22 @@ import io
 import time
 import uuid
 from api.auth_utils import require_auth, require_admin
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify, send_file
 from api.notifications_api import notify_user
 from bd.bdInstance import db
 from bd.bdConector import ValidationError
-from tools import logger
+from tools.logger import logger
+
+try:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.colors import black, gray
+    from reportlab.lib.utils import ImageReader
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
+
 
 products_bp = Blueprint('products', __name__)
 
@@ -218,3 +229,197 @@ def product_edit(product_id):
         return redirect(url_for("products.product_management"))
     
     return render_template("product_edit.html", product=product)
+
+@products_bp.route("/products/barcodes", methods=["GET"])
+@require_admin
+def barcode_management():
+    """
+    Panel de gestión de códigos de barras.
+    Solo visible para administradores.
+    """
+    products = db.get_all_items()
+    
+    # Contar productos sin código
+    without_barcode = [p for p in products if not p.get('barrs_code')]
+    
+    return render_template("barcode_management.html", 
+                         products=products,
+                         without_barcode=without_barcode)
+
+@products_bp.route("/products/<int:product_id>/barcode/image", methods=["GET"])
+@require_auth
+def get_barcode_image(product_id):
+    """
+    Retorna la imagen PNG del código de barras de un producto.
+    """
+    try:
+        product = db.get_item_details(product_id)
+        
+        if not product or not product.get('barrs_code'):
+            return jsonify({"error": "Producto sin código de barras"}), 404
+        
+        img_io = db.generate_barcode_image(product['barrs_code'])
+        return send_file(img_io, mimetype='image/png')
+        
+    except Exception as e:
+        logger.error(f"Error generando código de barras: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@products_bp.route("/products/<int:product_id>/barcode/regenerate", methods=["POST"])
+@require_admin
+def regenerate_barcode(product_id):
+    """
+    Regenera/asigna un nuevo código de barras automático a un producto.
+    """
+    try:
+        new_code = f"PRD{product_id:06d}"
+        db.update_item_barcode(product_id, new_code)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Código de barras actualizado a: {new_code}",
+            "barrs_code": new_code
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error regenerando código: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@products_bp.route("/products/<int:product_id>/barcode/update", methods=["PUT"])
+@require_admin
+def update_barcode_manual(product_id):
+    """
+    Actualiza manualmente el código de barras de un producto.
+    """
+    try:
+        data = request.get_json()
+        new_code = data.get('barrs_code', '').strip()
+        
+        if not new_code:
+            return jsonify({"error": "Código de barras no puede estar vacío"}), 400
+        
+        db.update_item_barcode(product_id, new_code)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Código actualizado a: {new_code}",
+            "barrs_code": new_code
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error actualizando código: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@products_bp.route("/products/barcodes/pdf", methods=["GET"])
+@require_admin
+def download_barcodes_pdf():
+    """
+    Descarga un PDF con los códigos de barras seleccionados.
+    Optimizado para impresión sin desperdiciar papel.
+    
+    Parámetros: ids (lista de IDs separados por comas)
+    """
+    if not HAS_REPORTLAB:
+        return jsonify({"error": "Librería reportlab no instalada. Instala con: pip install reportlab pillow"}), 500
+    
+    try:
+        ids_str = request.args.get('ids', '')
+        if not ids_str:
+            return jsonify({"error": "No hay productos seleccionados"}), 400
+        
+        product_ids = [int(id) for id in ids_str.split(',') if id.strip().isdigit()]
+        if not product_ids:
+            return jsonify({"error": "IDs inválidos"}), 400
+        
+        # Obtener productos
+        all_products = db.get_all_items()
+        products = [p for p in all_products if p.get('id') in product_ids and p.get('barrs_code')]
+        
+        if not products:
+            return jsonify({"error": "No hay productos con código de barras"}), 400
+        
+        # Generar PDF
+        pdf_io = io.BytesIO()
+        
+        # Tamaño de página apaisada para optimizar espacio
+        page_width, page_height = landscape(A4)
+        
+        # Configuración grid
+        cols = 3  # 3 columnas
+        rows = 5  # 5 filas
+        margin = 0.5 * cm
+        cell_width = (page_width - 2 * margin) / cols
+        cell_height = (page_height - 2 * margin) / rows
+        
+        # Crear PDF
+        c = canvas.Canvas(pdf_io, pagesize=landscape(A4))
+        c.setTitle("Códigos de Barras")
+        
+        # Procesar productos
+        idx = 0
+        page_idx = 0
+        
+        for idx, product in enumerate(products):
+            # Página nueva si es necesario
+            if idx > 0 and idx % (cols * rows) == 0:
+                c.showPage()
+                page_idx += 1
+            
+            # Posición en la grid
+            pos_in_page = idx % (cols * rows)
+            row = pos_in_page // cols
+            col = pos_in_page % cols
+            
+            x = margin + col * cell_width
+            y = page_height - margin - (row + 1) * cell_height
+            
+            # Dibujar célula
+            c.setLineWidth(0.5)
+            c.setStrokeColor(gray)
+            c.rect(x, y, cell_width, cell_height)
+            
+            # Obtener imagen del código
+            try:
+                img_io = db.generate_barcode_image(product['barrs_code'])
+                img_io.seek(0)
+                
+                # Calcular dimensiones para la imagen
+                img_width = cell_width * 0.8
+                img_height = cell_height * 0.55
+                img_x = x + (cell_width - img_width) / 2
+                img_y = y + cell_height * 0.35
+                
+                # Usar ImageReader de reportlab para acceder al BytesIO
+                c.drawImage(ImageReader(img_io), img_x, img_y, width=img_width, height=img_height, preserveAspectRatio=True)
+            except Exception as e:
+                logger.error(f"Error dibujando barcode para {product.get('id')}: {e}")
+            
+            # Dibujar código de texto debajo
+            code_text = product['barrs_code']
+            code_y = y + cell_height * 0.15
+            c.setFont("Helvetica", 8)
+            c.drawCentredString(x + cell_width / 2, code_y, code_text)
+            
+            # Nombre del producto (pequeño)
+            name_text = product.get('name', '')[:20]
+            name_y = y + 5
+            c.setFont("Helvetica", 7)
+            c.drawCentredString(x + cell_width / 2, name_y, name_text)
+        
+        c.showPage()
+        c.save()
+        
+        pdf_io.seek(0)
+        return send_file(
+            pdf_io,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'codigos_barras_{int(time.time())}.pdf'
+        )
+        
+    except ValueError as e:
+        logger.error(f"Error en parámetros PDF: {e}")
+        return jsonify({"error": "IDs inválidos"}), 400
+    except Exception as e:
+        logger.error(f"Error generando PDF: {e}")
+        return jsonify({"error": str(e)}), 500

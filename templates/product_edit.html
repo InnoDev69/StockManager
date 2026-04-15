@@ -36,10 +36,25 @@
     
     <div class="field">
       <label class="label">Código de barras <span style="color: var(--danger);">*</span></label>
-      <input id="barrs_code" disabled name="barrs_code" placeholder="EAN / UPC / Code128" 
-             value="{{ product.barcode or '' }}" required maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
-      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Ej: 7791230000000 (EAN-13)</small>
+      <input id="barrs_code" name="barrs_code" placeholder="EAN / UPC / Code128" 
+             value="{{ product.barrs_code or '' }}" maxlength="{{Limits.ITEM_BARCODE_MAX}}" />
+      <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Ej: 7791230000000 (EAN-13) o PRD000001</small>
       <span class="field-error" data-field="Código de barras"></span>
+      <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
+        <button type="button" class="btn-barcode-action" onclick="regeneratorBarcode({{ product.id }})" title="Generar código automático">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 18.36 18.36"/>
+          </svg>
+          Generar automático
+        </button>
+        <button type="button" class="btn-barcode-action" onclick="editarBarcode({{ product.id }})" title="Editar código manualmente">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Editar manual
+        </button>
+      </div>
     </div>
 
     <div class="field">
@@ -245,6 +260,176 @@
     const [d, m, y] = dateStr.split('/');
     return `${y}-${m}-${d}`;
   }
+
+  // Modal genérico de confirmación
+  function showConfirmModal(title, message, onConfirm, onCancel = null) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>${title}</h2>
+          <button class="modal-close" id="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>${message}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="modal-confirm">Confirmar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('#modal-cancel').addEventListener('click', () => {
+      modal.remove();
+      if (onCancel) onCancel();
+    });
+    modal.querySelector('#modal-confirm').addEventListener('click', () => {
+      modal.remove();
+      onConfirm();
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  // Modal genérico de input
+  function showInputModal(title, label, placeholder, defaultValue = '', onSubmit, onCancel = null) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>${title}</h2>
+          <button class="modal-close" id="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label for="modal-input" style="display: block; margin-bottom: 12px; font-weight: 600; color: var(--text); font-size: 0.9rem;">
+            ${label}
+          </label>
+          <input type="text" id="modal-input" placeholder="${placeholder}" value="${defaultValue}" 
+                 style="width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; 
+                        background: var(--panel); color: var(--text); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s ease;">
+          <small style="display: block; margin-top: 10px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4;">
+            Deja vacío para generar automáticamente un código PRD######
+          </small>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="modal-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="modal-submit">Guardar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const input = modal.querySelector('#modal-input');
+    const submitBtn = modal.querySelector('#modal-submit');
+    const closeBtn = modal.querySelector('#modal-close');
+    const cancelBtn = modal.querySelector('#modal-cancel');
+    
+    input.focus();
+    input.select();
+    
+    const handleSubmit = () => {
+      const value = input.value.trim();
+      modal.remove();
+      onSubmit(value);
+    };
+    
+    submitBtn.addEventListener('click', handleSubmit);
+    closeBtn.addEventListener('click', () => modal.remove());
+    cancelBtn.addEventListener('click', () => {
+      modal.remove();
+      if (onCancel) onCancel();
+    });
+    
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+  function regeneratorBarcode(productId) {
+    showConfirmModal(
+      'Generar Código de Barras',
+      '¿Deseas generar un código automático PRD###### para este producto?',
+      async function() {
+        try {
+          const res = await fetch(`/products/${productId}/barcode/regenerate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            document.getElementById('barrs_code').value = data.barrs_code;
+            if (window.Notify) {
+              Notify.success(`Código generado: ${data.barrs_code}`);
+            }
+          } else {
+            if (window.Notify) {
+              Notify.error(data.error || 'Error al generar');
+            }
+          }
+        } catch (error) {
+          console.error(error);
+          if (window.Notify) Notify.error('Error inesperado');
+        }
+      }
+    );
+  }
+
+  function editarBarcode(productId) {
+    const currentValue = document.getElementById('barrs_code').value;
+    showInputModal(
+      'Editar Código de Barras',
+      'Código de Barras',
+      'EAN / UPC / Code128',
+      currentValue,
+      async function(newCode) {
+        if (newCode === '') {
+          regeneratorBarcode(productId);
+          return;
+        }
+        
+        try {
+          const res = await fetch(`/products/${productId}/barcode/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barrs_code: newCode })
+          });
+          
+          const data = await res.json();
+          
+          if (res.ok) {
+            document.getElementById('barrs_code').value = data.barrs_code;
+            if (window.Notify) Notify.success(`Código actualizado: ${data.barrs_code}`);
+          } else {
+            if (window.Notify) Notify.error(data.error || 'Error al actualizar');
+          }
+        } catch (error) {
+          console.error(error);
+          if (window.Notify) Notify.error('Error inesperado');
+        }
+      }
+    );
+  }
 </script>
 
 <style>
@@ -267,6 +452,202 @@
 
   .text-muted {
     color: var(--text-muted);
+  }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s ease;
+    font-size: 0.9rem;
+  }
+
+  .btn-icon:hover {
+    background: var(--panel-3, var(--panel-2));
+    border-color: var(--brand);
+    color: var(--brand);
+    transform: translateY(-1px);
+  }
+
+  .btn-barcode-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-barcode-action:hover {
+    background: var(--panel-3, rgba(255, 255, 255, 0.08));
+    border-color: var(--brand);
+    color: var(--brand);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-barcode-action:active {
+    transform: translateY(0);
+  }
+
+  .btn-barcode-action svg {
+    flex-shrink: 0;
+  }
+
+  .btn-primary {
+    background: var(--brand);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--brand) 90%, black);
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover {
+    background: var(--panel-2);
+    border-color: var(--text);
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+    backdrop-filter: blur(2px);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .modal-dialog {
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+    max-width: 450px;
+    width: 90%;
+    animation: slideUp 0.3s ease;
+    border: 1px solid var(--border);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .modal-header {
+    padding: 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .modal-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .modal-close:hover {
+    background: var(--panel-2);
+    border-color: var(--brand);
+    color: var(--brand);
+    transform: rotate(90deg);
+  }
+
+  .modal-body {
+    padding: 28px;
+    color: var(--text);
+  }
+
+  .modal-body p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .modal-body input {
+    outline: none;
+  }
+
+  .modal-body input:focus {
+    border-color: var(--brand) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent);
+  }
+
+  .modal-footer {
+    padding: 24px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .modal-footer .btn {
+    min-width: 110px;
   }
 </style>
 

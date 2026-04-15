@@ -105,3 +105,17 @@ def sales():
     
     sales = list(sales_dict.values())
     return render_template("sales.html", sales=sales)
+
+@sales_bp.route("/sales/<int:sale_id>/edit", methods=["GET"])
+@require_admin
+def edit_sale_form(sale_id):
+    """
+    Muestra formulario para editar una venta.
+    Solo admins pueden acceder.
+    """
+    sale = db.get_sale_by_id(sale_id)
+    if not sale:
+        flash("Venta no encontrada", "error")
+        return redirect(url_for("sales.sales"))
+    
+    return render_template("sale_edit.html", sale=sale)

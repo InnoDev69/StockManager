@@ -129,3 +129,84 @@ class SalesMixin:
                 )
 
             return sell_id
+        
+    def get_sale_by_id(self, sale_id):
+        """Obtiene detalles completos de una venta por ID"""
+        with self._cursor() as cur:
+            cur.execute("""
+                SELECT s.id, s.date, s.vendedor, s.payment_method,
+                    d.item_id, d.quantity, d.price, i.name
+                FROM sells s
+                JOIN details d ON s.id = d.sell_id
+                JOIN items i ON d.item_id = i.id
+                WHERE s.id = ?
+            """, (sale_id,))
+            rows = cur.fetchall()
+            
+            if not rows:
+                return None
+            
+            first = rows[0]
+            return {
+                "id": first[0],
+                "date": first[1],
+                "vendedor": first[2],
+                "payment_method": first[3],
+                "items": [
+                    {"item_id": r[4], "quantity": r[5], "price": r[6], "name": r[7]}
+                    for r in rows
+                ]
+            }
+
+    def update_sale(self, sale_id, items, vendedor, payment_method):
+        """
+        Actualiza una venta existente:
+        1. Restaura stock de productos antiguos
+        2. Deduce stock de nuevos productos
+        3. Actualiza details y sells
+        """
+        with self.transaction() as cur:
+            # Obtener venta anterior
+            cur.execute("""
+                SELECT item_id, quantity FROM details WHERE sell_id = ?
+            """, (sale_id,))
+            old_items = cur.fetchall()
+            
+            # Restaurar stock anterior
+            for old_item_id, old_qty in old_items:
+                cur.execute(
+                    "UPDATE items SET quantity = quantity + ? WHERE id = ?",
+                    (old_qty, old_item_id)
+                )
+            
+            # Deletar detalles antiguos
+            cur.execute("DELETE FROM details WHERE sell_id = ?", (sale_id,))
+            
+            # Insertar nuevos detalles y deducir stock
+            for item in items:
+                item_id = item["item_id"]
+                quantity = item["quantity"]
+                
+                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise DatabaseError(f"Producto {item_id} no encontrado")
+                
+                price, current_qty = row
+                if current_qty < quantity:
+                    raise ValueError(f"Stock insuficiente para ID {item_id}")
+                
+                cur.execute(
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sale_id, item_id, quantity, price, vendedor, payment_method)
+                )
+                cur.execute(
+                    "UPDATE items SET quantity = quantity - ? WHERE id = ?",
+                    (quantity, item_id)
+                )
+            
+            # Actualizar encabezado de venta
+            cur.execute(
+                "UPDATE sells SET vendedor = ?, payment_method = ? WHERE id = ?",
+                (vendedor, payment_method, sale_id)
+            )

@@ -127,6 +127,19 @@
           </span>
           Importar CSV
         </a>
+
+        {% if session.get('role') == 'admin' %}
+        <a href="/products/barcodes" class="sb__action">
+          <span class="sb__action-icon sb__action-icon--purple">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" y1="8" x2="4" y2="16"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/>
+              <line x1="13" y1="8" x2="13" y2="16"/><line x1="16" y1="8" x2="16" y2="16"/><line x1="19" y1="8" x2="19" y2="16"/>
+              <rect x="3" y="7" width="18" height="10" rx="1"/>
+            </svg>
+          </span>
+          Codigos de barras
+        </a>
+        {% endif %}
         {% endif %}
         {% endblock %}
       </div>

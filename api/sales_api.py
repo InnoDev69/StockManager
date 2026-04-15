@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
-from api.auth_utils import require_auth
+from api.auth_utils import require_admin, require_auth 
 from tools.logger import logger
 from api.error_handlers import handle_db_error
 from bd.bdErrors import DatabaseError
@@ -397,3 +397,43 @@ def get_sale_detail(sale_id):
         sale["total"] += product["quantity"] * product["price"]
     
     return jsonify(sale), 200, {'Content-Type': 'application/json'}
+
+@sales_api.route("/sales/<int:sale_id>/edit", methods=["GET"])
+@require_admin
+def get_sale_for_edit(sale_id):
+    """Obtiene detalles de una venta para editar (solo admins)"""
+    try:
+        sale = db.get_sale_by_id(sale_id)
+        if not sale:
+            return jsonify({"error": "Venta no encontrada"}), 404
+        return jsonify(sale), 200
+    except Exception as e:
+        logger.exception("Error en get_sale_for_edit")
+        return jsonify({"error": "Error interno"}), 500
+
+@sales_api.route("/sales/<int:sale_id>", methods=["PUT"])
+@require_admin
+def update_sale(sale_id):
+    """Actualiza una venta existente"""
+    try:
+        data = request.get_json()
+        
+        if "items" not in data or not isinstance(data["items"], list):
+            return jsonify({"error": "Items inválidos"}), 400
+        
+        if not data.get("vendedor") or not data.get("payment_method"):
+            return jsonify({"error": "Faltan campos requeridos"}), 400
+        
+        db.update_sale(sale_id, data["items"], data["vendedor"], data["payment_method"])
+        
+        db.check_and_notify_low_stock(session.get('user_id'))
+        
+        db.create_notification(user_id=session.get('user_id'), title="Venta actualizada", message=f"Venta #{sale_id} ha sido actualizada exitosamente", notification_type='success')
+        notify_user(session.get('user_id')) 
+        
+        return jsonify({"message": "Venta actualizada exitosamente"}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.exception("Error en update_sale")
+        return jsonify({"error": "Error interno"}), 500
