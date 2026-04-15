@@ -1,0 +1,1240 @@
+{% extends "base.html" %}
+
+{% block title %}Centro de Ayuda | StockManager{% endblock %}
+
+{% block content %}
+<style>
+  details[open] summary svg {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+  }
+
+  details summary svg {
+    transition: transform 0.3s ease;
+  }
+</style>
+<div style="max-width: 1100px; margin: 2rem auto; padding: 0 1rem;">
+  <h1 style="margin-bottom: 0.5rem; color: var(--text); font-size: 2rem;">Centro de Ayuda - StockManager</h1>
+  <p style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 1rem;">
+    <strong>Bienvenido al Centro de Ayuda de StockManager</strong>
+  </p>
+  <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">
+    Este manual completo te guiará paso a paso a través de todas las funcionalidades de nuestro sistema de gestión de inventario y ventas para almacenes. 
+    Ya sea que seas un usuario principiante o un administrador experimentado, encontrarás información detallada sobre cómo utilizar cada módulo efectivamente. 
+    Haz clic en cualquier sección para expandirla y obtener instrucciones específicas. Si tienes dudas adicionales, consulta la sección de "Preguntas Frecuentes" al final.
+  </p>
+
+  <div class="help-sections">
+    
+    <!-- DASHBOARD -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Dashboard - Panel Principal</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Tu Panel de Control - El Corazón del Almacén</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          El Dashboard es tu primera línea de información. Es la pantalla que ves al iniciar sesión en StockManager y funciona como un panel de control centralizado. 
+          Aquí obtienes un resumen ejecutivo del estado actual de tu almacén en tiempo real, permitiéndote tomar decisiones rápidas e informadas basadas en datos precisos y actualizados constantemente.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">¿Qué Información Verás en el Dashboard?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;"><strong>4 Tarjetas de Métricas Clave:</strong> En la parte superior, encontrarás cuatro tarjetas que muestran información crítica en tiempo real:
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li style="margin-bottom: 0.25rem;"><strong>Productos Totales:</strong> Cantidad total de artículos diferentes registrados en tu almacén</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Stock Bajo:</strong> Número de productos que han alcanzado sus niveles de alerta (stock mínimo)</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Productos que Expiran Pronto:</strong> Artículos con fecha de vencimiento dentro de los próximos 30 días</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Ventas del Día:</strong> Ingresos totales generados en las últimas 24 horas</li>
+              </ul>
+            </li>
+            <li style="margin-bottom: 0.75rem;"><strong>3 Botones de Acceso Rápido:</strong> Accesos directos a las funciones más utilizadas para acelerar tu flujo de trabajo</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Barra de Búsqueda Avanzada:</strong> Encuentra cualquier producto rápidamente escribiendo su nombre, código de barras o SKU</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Sistema de Filtros:</strong> Visualiza productos por estado (Disponibles, Bajo Stock, Agotados) con un solo clic</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Tabla de Productos en Alerta:</strong> Una lista detallada de todos los artículos con stock crítico que requieren atención inmediata</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">¿Por Qué es Importante Revisar el Dashboard Regularmente?</h4>
+        <p style="color: var(--text); margin-bottom: 1rem;">
+          El Dashboard te mantiene informado sobre el estado operativo de tu almacén. Permite identificar problemas potenciales antes de que se conviertan en crisis: 
+          saber qué productos están a punto de agotarse, cuáles están próximos a vencer, y cuál es tu rendimiento de ventas diario. 
+          Esta información es crucial para la toma de decisiones relacionadas con reorders (pedidos de reabastecimiento), gestión de inventario y planificación de operaciones.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Guía Paso a Paso para Usar el Dashboard</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Al Iniciar Sesión:</strong> Tómate 30 segundos para revisar las 4 tarjetas en la parte superior. Esto te da un panorama general inmediato del estado del almacén. 
+            Si notas números en rojo o alertas, significa que hay situaciones que necesitan tu atención.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Identificar Problemas Prioritarios:</strong> Si la tarjeta de "Productos que Expiran Pronto" muestra números elevados, considera promocionar esos productos. 
+            Si el stock bajo es alto, es momento de hacer pedidos a tus proveedores.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Usar los Botones de Acceso Rápido:</strong> Estos botones te llevan directamente a donde necesitas estar. 
+            Haz clic en "Nueva Venta" para registrar una transacción, "Historial" para revisar ventas Anteriores, o "Administrar Productos" para editar tu inventario.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Buscar Productos Específicos:</strong> Si necesitas información sobre un producto en particular, escribe su nombre en la barra de búsqueda. 
+            El sistema filtrará automáticamente los resultados mientras escribes (búsqueda en tiempo real).
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Aplicar Filtros por Estado:</strong> Usa el selector de "Estado" para ver solo los productos que te interesan. 
+            Por ejemplo, si solo quieres ver productos con bajo stock para hacer un reorder rápido, selecciona "Bajo Stock" y verás solo esos artículos.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Revisar la Tabla de Alerta Detallada:</strong> Desplázate hacia abajo para ver la tabla completa de productos con stock bajo. 
+            Esta tabla muestra cantidad actual, stock mínimo recomendado, y otros detalles útiles para tmar decisiones de reabastecimiento.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Analizar Tendencias:</strong> Si revisas el dashboard diariamente, notarás patrones. 
+            Algunos productos se venden más en ciertos días de la semana, lo que te ayuda a planificar mejor tus órdenes de compra.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Consejos Profesionales para Maximizar tu Eficiencia</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Revisa el dashboard cada mañana antes de iniciar operaciones para planificar tu día</li>
+            <li style="margin-bottom: 0.5rem;">Si varias productos muestran stock bajo, no esperes a que se agoten: contacta a proveedores inmediatamente</li>
+            <li style="margin-bottom: 0.5rem;">Los productos que expiran pronto deben tener prioridad: ofrece descuentos o promociones para venderlos rápidamente</li>
+            <li style="margin-bottom: 0.5rem;">Usa la métrica de "Ventas del Día" para evaluar el desempeño diario y motivar a tu equipo de ventas</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+    <!-- HISTORIAL DE VENTAS -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Historial de Ventas - Registro Transaccional</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Sistema Integral de Transacciones Comerciales</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          El módulo de Historial de Ventas es el corazón operativo de StockManager. Aquí registras cada venta realizada y mantienes un registro completo y auditable de todas las transacciones comerciales. 
+          Este sistema es como tu "libro de caja digital", garantizando que cada movimiento de inventario y dinero quede documentado para auditoría, reportes fiscales, y análisis de negocio.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Componentes Principales de la Sección</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>3 Tarjetas de Estadísticas Sumarias:</strong> Resumen numérico que te permite ver el rendimiento de tu negocio a primera vista:
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li style="margin-bottom: 0.25rem;"><strong>Ingresos Totales:</strong> Suma total del dinero generado por todas las ventas en el período visualizado</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Número de Transacciones:</strong> Cantidad de operaciones de venta realizadas (útil para calcular ticket promedio)</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Unidades Vendidas:</strong> Total de items (productos) que salieron del almacén</li>
+              </ul>
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Sistema Avanzado de Filtros:</strong> Herramientas para buscar transacciones específicas por múltiples criterios:
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li style="margin-bottom: 0.25rem;">Rango de Fechas (desde-hasta) para análisis de períodos específicos</li>
+                <li style="margin-bottom: 0.25rem;">Nombre de Producto para ver todas las ventas de un artículo particular</li>
+                <li style="margin-bottom: 0.25rem;">Vendedor/Responsable para revisar el desempeño de cada miembro del equipo</li>
+                <li style="margin-bottom: 0.25rem;">Tipo de Pago para conciliar dinero en efectivo, tarjeta, o crédito</li>
+              </ul>
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Tabla Detallada de Transacciones:</strong> Registro completo con todos los detalles de cada venta (fecha, hora, productos, cantidades, totales)</li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Función de Exportación CSV:</strong> Descarga todos los datos en formato Excel para análisis profundo, presentaciones, o respaldo en otros sistemas</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Procedimiento Detallado: Cómo Registrar una Nueva Venta</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 1 - Iniciar la Venta:</strong> Busca el botón principal "Registrar Venta" o "Nueva Venta" en la interfaz. 
+            Este botón abrirá un formulario modal (ventana pequeña) donde completarás los detalles de la transacción.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 2 - Información del Cliente (Opcional):</strong> Si lo deseas, selecciona o busca al cliente que realiza la compra. 
+            Este campo es completamente opcional: puedes dejar en blanco si es una venta a consumidor final o si no necesitas registrar el cliente específico. 
+            Si tienes una base de clientes, seleccionar el cliente facilita seguimiento para ventas futuras.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 3 - Agregar Productos:</strong> Busca cada producto que se venderá escribiendo su nombre, código de barras o SKU. 
+            El sistema te mostrará coincidencias en tiempo real. Selecciona el producto correcto de la lista:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">El sistema verificará automáticamente que hay stock disponible</li>
+              <li style="margin-bottom: 0.25rem;">Si no hay stock suficiente, te mostrará una advertencia</li>
+              <li style="margin-bottom: 0.25rem;">El precio se cargará automáticamente desde el registro del producto</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 4 - Indicar Cantidades:</strong> Para cada producto, especifica cuántas unidades se están vendiendo. 
+            El sistema calculará automáticamente el subtotal (precio unitario × cantidad). Puedes modificar cantidades en tiempo real y ver cómo cambia el total.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 5 - Seleccionar Método de Pago:</strong> Elige cómo el cliente está pagando la compra:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;"><strong>Efectivo:</strong> Pago en dinero físico, generalmente de inmediato</li>
+              <li style="margin-bottom: 0.25rem;"><strong>Tarjeta:</strong> Pagos con débito o crédito (verifica si necesitas registrar número de referencia)</li>
+              <li style="margin-bottom: 0.25rem;"><strong>Nota de Crédito:</strong> El cliente paga posteriormente (genera una deuda)</li>
+              <li style="margin-bottom: 0.25rem;"><strong>Otros:</strong> Transferencia, cheque, u otros métodos disponibles en tu configuración</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 6 - Revisar Resumen:</strong> Antes de confirmar, revisa que todo sea correcto:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Productos seleccionados y cantidades correctas</li>
+              <li style="margin-bottom: 0.25rem;">Total calculado correctamente</li>
+              <li style="margin-bottom: 0.25rem;">Método de pago registrado</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Paso 7 - Confirmar y Guardar:</strong> Haz clic en "Registrar Venta" o "Confirmar". 
+            El sistema procesará la transacción, actualizará el inventario automáticamente, generará un recibo (si está configurado), y la venta aparecerá inmediatamente en el historial.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo Buscar y Filtrar Ventas Anteriores</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Por Período de Tiempo:</strong> Usa los campos de "Fecha Desde" y "Fecha Hasta" para limitar resultados a un rango específico. 
+            Por ejemplo, para análisis de ingresos mensuales, selecciona el primer y último día del mes.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Por Producto Específico:</strong> Si necesitas saber cuány de un artículo en particular se vendió, escribe el nombre del producto. 
+            Verás todas las transacciones que incluyen ese producto, el total unitios vendidos y el dinero generado por ese artículo.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Por Vendedor/Responsable:</strong> Esto es útil para evaluar desempeño individual. 
+            Puedes ver todas las ventas realizadas por una persona específica, su total de transacciones y revenue generado.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Aplicar Filtros:</strong> Una vez ingresados los criterios, haz clic en "Filtrar" o "Buscar". 
+            Los resultados se actualizarán automáticamente mostrando solo las transacciones que coincidan con tus criterios.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Limpiar Búsqueda:</strong> Si necesitas volver a ver todas las ventas sin filtros, haz clic en "Limpiar" o "Ver Todo". 
+            Esto restaurará la vista completa del historial.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Exportar Datos para Análisis Externos</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">
+          El botón "Exportar CSV" descarga tu historial de ventas en formato de archivo Excel (.csv). Esto es invaluable para:
+        </p>
+        <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.5rem;">Análisis profundo en Excel con gráficos y tablas dinámicas</li>
+          <li style="margin-bottom: 0.5rem;">Reportes mensuales para contador o asesor fiscal</li>
+          <li style="margin-bottom: 0.5rem;">Presentaciones a accionistas o durante decisiones estratégicas</li>
+          <li style="margin-bottom: 0.5rem;">Respaldo en sistemas externos o integración con otras herramientas</li>
+          <li style="margin-bottom: 0.5rem;">Archivo de auditoría para comprobantes fiscales (importante para impuestos)</li>
+        </ul>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Recomendaciones Operativas</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--warning);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Registra CADA venta al momento de ocurrir, no acumules para el final del día</li>
+            <li style="margin-bottom: 0.5rem;">Si cometes un error, NO intentes editar: registra una nota o contacta admin para corrección</li>
+            <li style="margin-bottom: 0.5rem;">Revisa el historial semanalmente para identificar productos que venden rápidamente (reabastecer) y lentamente (promover/descontar)</li>
+            <li style="margin-bottom: 0.5rem;">Para clientes frecuentes, siempre registra el cliente (ayuda a generar histórico y lealtad)</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+    <!-- INVENTARIO (Admin) -->
+    {% if role == 'admin' %}
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Gestión de Inventario - Administración de Productos (Admin)</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Panel de Control de Productos y Stock</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          <strong>Nota: Esta sección es solo visible para administradores.</strong> 
+          El panel de Gestión de Inventario es el control maestro de todos tus productos. Aquí creas nuevos artículos, actualizas información existente, defines niveles de stock mínimo, estableces precios, y monitoreas la salud general de tu inventario. 
+          Este es el módulo más crítico para asegurar que las operaciones de venta funcionen sin problemas.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Componentes del Panel de Inventario</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;"><strong>Formulario Rápido de Creación:</strong> Ubicado en la parte superior, permite agregar nuevos productos sin salir de la página</li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>4 Tarjetas de Estadísticas del Inventario:</strong>
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li style="margin-bottom: 0.25rem;"><strong>Total de Productos:</strong> Cantidad total de SKUs (artículos diferentes) en tu sistema</li>
+                <li style="margin-bottom: 0.25rem;"><strong>En Stock:</strong> Productos con cantidad superior al nivel de stock mínimo (situación saludable)</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Stock Bajo:</strong> Productos que alcanzaron el nivel mínimo y requieren reabastecimiento inmediato</li>
+                <li style="margin-bottom: 0.25rem;"><strong>Sin Stock:</strong> Productos con cero unidades disponibles (no pueden venderse hasta recibir reorden)</li>
+              </ul>
+            </li>
+            <li style="margin-bottom: 0.75rem;"><strong>Tabla Completa de Productos:</strong> Lista exhaustiva con todos los campos de cada artículo</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Herramientas de Búsqueda y Filtrado:</strong> Encuentra productos rápidamente por nombre, código, o estado</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Función de Importación Masiva:</strong> Carga múltiples productos desde un archivo CSV en una sola operación</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Procedimiento Detallado: Crear un Nuevo Producto</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">Cada producto en tu almacén necesita información precisa. Aquí está exactamente qué completar en cada campo:</p>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 1rem;">
+            <strong>Código de Barras (o SKU):</strong> Este es el identificador único del producto. Tienes dos opciones:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;"><strong>Generar Automáticamente:</strong> Haz clic en "Generar" y el sistema asignará un código único numérico (ej: PRD000001)</li>
+              <li style="margin-bottom: 0.25rem;"><strong>Ingresar Manualmente:</strong> Si tienes códigos EAN propios de proveedores o códigos estándar, ingrésalos aquí</li>
+              <li style="margin-bottom: 0.25rem;"><strong>Importante:</strong> Cada código debe ser ÚNICO. El sistema no permite duplicados.</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Nombre del Producto:</strong> Descripción clara y sin ambigüedades. 
+            Ejemplos buenos: "Caja Cartón 20x15x10cm" o "Tornillo M8x25 Acero Inoxidable". 
+            Evita solo "Caja" o "Tornillo" porque es confuso cuando hay muchos tipos.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Descripción (Opcional):</strong> Espacio para detalles adicionales como especificaciones técnicas, marca, origen, o notas especiales. 
+            Puede no requerirse pero es útil para tu equipo de almacén.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Stock Inicial / Cantidad Actual:</strong> Cuántas unidades de este producto tienes disponibles AHORA. 
+            Si es un producto nuevo que no tienes en existencia todavía, deja en cero.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Stock Mínimo (Cantidad de Alerta):</strong> ESTE ES EL CAMPO MÁS IMPORTANTE. 
+            Aquí defines en qué cantidad el sistema genera alertas automáticas de "bajo stock". 
+            Por ejemplo:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Si vendes 20 unidades por semana y te toma 2 semanas recibir reorden: stock mínimo = 40</li>
+              <li style="margin-bottom: 0.25rem;">Si es un producto que vende rápido: podrías poner mínimo más alto</li>
+              <li style="margin-bottom: 0.25rem;">Si es producto lento que raramente vende: mínimo puede ser 5 unidades</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Precio de Venta Unitario:</strong> El precio en que vendes UNA unidad del producto. 
+            El sistema calculará automáticamente subtotales cuando se venda múltiples unidades. 
+            Este precio debe incluir márgenes de ganancia.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Fecha de Vencimiento (Opcional):</strong> Si el producto tiene fecha de expiración (alimentos, medicinas, químicos), ingresa aquí. 
+            El sistema generará alertas automáticas cuando falte un mes para vencer. 
+            Si el producto no vence, deja este campo vacío.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Procedimiento: Editar un Producto Existente</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">Ubica el producto en la tabla (usa búsqueda si hay muchos)</li>
+          <li style="margin-bottom: 0.75rem;">Haz clic en el botón "Editar" (icono de lápiz) en su fila</li>
+          <li style="margin-bottom: 0.75rem;">Se abrirá un formulario con los datos actuales del producto</li>
+          <li style="margin-bottom: 0.75rem;">Modifica solo los campos que necesitan cambios (pueden ser muchos campos o solo uno)</li>
+          <li style="margin-bottom: 0.75rem;">Haz clic en "Guardar Cambios" para confirmar</li>
+          <li style="margin-bottom: 0.75rem;">El sistema actualizará inmediatamente la información en el inventario</li>
+          <li style="margin-bottom: 0.75rem;">Todos los usuarios verán los cambios en tiempo real (incluyendo vendedores que buscan precio)</li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Búsqueda y Filtrado Avanzado de Productos</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <p style="color: var(--text); margin-bottom: 0.75rem;"><strong>Escenarios prácticos y cómo abordarlos:</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>"Necesito ver todos los productos con bajo stock para hacer un pedido urgente"</strong><br>
+              → Usa filtro Estado = "Stock Bajo", verás solo los 5-10 productos que requieren reorden inmediato
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>"Venimos a rebajar precios de productos que no venden"</strong><br>
+              → Busca por nombre, edita precio, guarda. El nuevo precio se refleja automáticamente
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>"Un cliente pide un producto específico, pero no recuerdo el código"</strong><br>
+              → Escriba el nombre del producto en búsqueda, encontrarás todas las variaciones con ese nombre
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>"Necesito un reporte de todos los productos sin stock"</strong><br>
+              → Filtro Estado = "Sin Stock", luego exporta esos resultados si quieres en Excel
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Importar Múltiples Productos desde CSV (Carga Masiva)</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">
+          Si tienes 100+ productos y no quieres crearlos manualmente uno por uno, puedes importarlos del proveedor. Aquí el proceso:
+        </p>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 1rem;">
+            <strong>Preparar el Archivo CSV:</strong> Tu archivo Excel debe tener EXACTAMENTE estas columnas en este orden:
+            <div style="background: #f0f0f0; padding: 0.75rem; border-radius: 4px; font-family: monospace; margin: 0.5rem 0; color: #333;">
+              barcode | name | description | quantity | min_quantity | price | expiration_date
+            </div>
+            <strong>Ejemplos de línea válida:</strong><br>
+            <code style="margin-left: 1rem; display: block; background: #f5f5f5; padding: 0.5rem; margin-top: 0.5rem;">
+              PRD123456 | Caja Cartón 20x15 | Caja reforzada | 100 | 20 | 2.50 | 2026-12-31
+            </code>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Encontrar Sección de Importación:</strong> En el panel de Inventario, busca el botón "Importar desde CSV" o "Cargar Masivamente"
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Cargar tu Archivo:</strong> Haz clic en "Seleccionar Archivo", elige tu CSV preparado desde tu computadora
+          </li>
+          <li style="margin-basic: 1rem;">
+            <strong>Validación Automática:</strong> El sistema verificará que el formato sea correcto antes de importar. Si hay errores, te mostrará exactamente qué líneas fallan y por qué
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Confirmar Importación:</strong> Si todo está correcto, haz clic en "Importar". 
+            Los productos se crearán automáticamente en tu sistema en cuestión de segundos, incluso si son miles
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Verificación Post-Importación:</strong> Revisa que aparezcan todos los productos esperados en tu tabla. 
+            Si algunos faltan o tienen datos incorrectos, edita manualmente o intenta importar de nuevo
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Estados de Stock: Qué Significan los Colores</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--success);">🟢 En Stock (Verde):</strong> Cantidad es MAYOR que el stock mínimo. 
+              Situación normal, puedes vender sin problemas. Estos productos no requieren reorden urgente.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--warning);">🟡 Stock Bajo (Amarillo):</strong> Cantidad es IGUAL O CERCANA al stock mínimo. 
+              Alerta: necesitas hacer reorden pronto para evitar quedarte sin existencias. Prioriza estos productos.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--danger);">🔴 Sin Stock (Rojo):</strong> Cantidad es CERO o negativa. 
+              Problema: NO puedes vender este producto. Los vendedores verán que no está disponible. 
+              Reorden URGENTE necesario o descontinúa el producto si no lo vas a reabastecer.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Mejores Prácticas para Gestión de Inventario</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Actualiza cantidades después de cada venta (el sistema lo hace automáticamente)</li>
+            <li style="margin-bottom: 0.5rem;">Revisa diariamente el Dashboard para avisos de bajo stock</li>
+            <li style="margin-bottom: 0.5rem;">Ajusta stock mínimo basado en velocidad real de venta (observa datos historicos)</li>
+            <li style="margin-bottom: 0.5rem;">Elimina productos discontinuados para mantener el catálogo limpio</li>
+            <li style="margin-bottom: 0.5rem;">Revisa precios mensualmente para ser competitivo</li>
+            <li style="margin-bottom: 0.5rem;">Usa códigos de barras consistentemente para evitar duplicados accidentales</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+    {% endif %}
+
+    <!-- NOTIFICACIONES -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Notificaciones - Sistema de Alertas</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Centro de Alertas y Comunicaciones del Sistema</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          StockManager incluye un sistema inteligente de notificaciones que monitorea constantemente tu almacén y te alerta automáticamente cuando ocurren eventos importantes. 
+          En lugar de que tengas que estar verificando manualmente cada métrica, el sistema te notifica proactivamente sobre problemas, oportunidades, y eventos completados.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Tipos de Notificaciones y Su Significado</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 1rem;">
+              <strong style="color: var(--primary);">ℹ️ Información (Azul):</strong> Notificaciones de estado general y cambios del sistema sin urgencia. 
+              Ejemplos: "Venta registrada", "Usuario creado", "Producto agregado". Estas no requieren acción inmediata, solo informan sobre operaciones completadas.
+            </li>
+            <li style="margin-bottom: 1rem;">
+              <strong style="color: var(--success);">✅ Éxito (Verde):</strong> Operaciones completadas exitosamente. 
+              Ejemplos: "Importación CSV completada con 152 productos", "Inventario actualizado correctamente", "Reporte exportado". Estas confirman que todo funcionó como esperado.
+            </li>
+            <li style="margin-bottom: 1rem;">
+              <strong style="color: var(--warning);">⚠️ Aviso (Amarillo/Naranja):</strong> Situaciones que requieren tu atención pero no son críticas inmediatamente. 
+              Ejemplos: "Stock bajo: Solo 5 cajas de Cartón disponibles", "Producto vence en 25 días", "Alta concentración en un solo producto (80% de ventas)". 
+              Debes actuar pronto pero tienes tiempo para planificar.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--danger);">❌ Error (Rojo):</strong> Problemas críticos que requieren acción inmediata. 
+              Ejemplos: "Stock insuficiente", "CSV con formato incorrecto", "Error en importación de datos". Estos bloquean operaciones o indican problemas serios.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo Acceder y Gestionar Notificaciones</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Ubicar el Centro de Notificaciones:</strong> Busca el icono de campana (🔔) en la barra superior derecha. 
+            Un número en rojo indica cuántas notificaciones NO LEÍDAS tienes.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Abrir tu Centro:</strong> Haz clic en la campana. Se desplegará una lista con tus últimas notificaciones (las más recientes primero).
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Marcar como Leída:</strong> Cuando lees una notificación, puedes marcarla como "leída" (desaparece el indicador rojo). 
+            Esto es útil para saber cuáles ya procesaste.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Filtrar por Tipo:</strong> En la sección de Notificaciones, usa el selector para ver solo:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Todas las notificaciones</li>
+              <li style="margin-bottom: 0.25rem;">Solo Información</li>
+              <li style="margin-bottom: 0.25rem;">Solo Éxito</li>
+              <li style="margin-bottom: 0.25rem;">Solo Avisos</li>
+              <li style="margin-bottom: 0.25rem;">Solo Errores</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Filtrar por Estado de Lectura:</strong> Ver notificaciones por:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Sin Leer (información nueva que aún no procesas)</li>
+              <li style="margin-bottom: 0.25rem;">Leídas (ya las viste, pueden archivarse)</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Marcar Todo como Leído:</strong> Si tienes 50+ notificaciones, usa "Marcar Todas como Leídas" para limpiar el contador y empezar limpio
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Acción Rápida:</strong> Algunas notificaciones tienen un botón que te lleva directamente al lugar donde actuar. 
+            Por ejemplo, una notificación de "Stock bajo" puede tener un botón "Ir a Inventario" que te lleva directo al producto.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Ejemplos Reales de Notificaciones que Recibirás</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--warning);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--warning);">⚠️ Stock Bajo:</strong> "Stock bajo en Tubo PVC 1/2" - Quedan 3 unidades, stock mínimo es 10. 
+              Acción recomendada: Contacta proveedor para reorder.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--success);">✅ Venta Completada:</strong> "Venta registrada correctamente - Caja Cartón + Cemento - Total $135.00". 
+              Confirmación de que la transacción se procesó exitosamente.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--warning);">⚠️ Inventario Crítico:</strong> "Inventario bajo en 8 productos - Se recomienda hacer pedidos ahora". 
+              Alerta agregada cuando múltiples productos necesitan reorden.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--danger);">❌ Vencimiento Próximo:</strong> "Producto 'Pintura Acrylic' vence en 12 días. Solo quedan 15 unidades". 
+              Urgencia máxima para vender estos productos antes de que pierdan valor.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--primary);">ℹ️ Cambio de Usuario:</strong> "Admin cambió nombre de producto: 'Caja Pequeña' → 'Caja Pequeña 5x5x3'". 
+              Información de auditoría que registra cambios importantes.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--danger);">❌ Error de Sistema:</strong> "Error al importar CSV: Línea 45 - Código de barras duplicado (PRD000152)". 
+              Problema técnico que requiere corrección.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Por Qué Las Notificaciones Son Críticas</h4>
+        <p style="color: var(--text); margin-bottom: 1rem;">
+          Las notificaciones te previenen de problemas antes de que se conviertan en crisis. Sin un sistema de alertas, 
+          podrías descubrir que se agotó un producto importante solo cuando un cliente llega a comprarlo. Con notificaciones, 
+          tienes días o semanas de avance para reaccionar. Es como tener un asistente que monitorea tu almacén 24/7.
+        </p>
+
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <strong style="color: var(--text);">Consejo:</strong> Revisa tu centro de notificaciones cada mañana antes de iniciar operaciones. 
+          Esto toma 2-3 minutos y te permite identificar dos qué problemas o alertas necesitan atención ese día.
+        </div>
+      </div>
+    </details>
+
+    <!-- MÉTRICAS (Admin) -->
+    {% if role == 'admin' %}
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Métricas y Reportes - Análisis Empresarial (Admin)</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Análisis Avanzado del Desempeño de tu Negocio</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          <strong>Nota: Esta sección es solo para administradores.</strong> 
+          El módulo de Métricas transforma los datos brutos de transacciones en insights accionables. 
+          Aquí obtienes un análisis detallado sobre cuánto dinero ganas, cuántas operaciones realizas, cuál es tu ticket promedio, y cuáles son tus productos estrella. 
+          Estos datos son cruciales para decisiones estratégicas: expandir, reducir, o cambiar tu enfoque de ventas.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Las 4 Métricas Principales Explicadas en Detalle</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 1rem;">
+              <strong>💰 Ingresos Totales:</strong> La suma total de dinero que has recaudado en el período. 
+              Este número te muestra "qué tan bien te fue". Un aumento semanal indica que el negocio crece. 
+              Una disminución es señal de que necesitas investigar: productos no venden, equipo menos motivado, mercado cambió. 
+              Compara con el mes anterior para ver progresión.
+            </li>
+            <li style="margin-bottom: 1rem;">
+              <strong>📊 Total de Ventas (Número de Transacciones):</strong> Cuántas operaciones de venta completaste. 
+              Si tienes $1,000 en ingresos pero solo 2 ventas, significa que tuviste operaciones grandes pero pocas. 
+              Si tienes $1,000 pero 100 ventas, significa muchas operaciones pequeñas. 
+              Esto afecta tu estrategia: más ventas requiere más equipo; ventas grandes requieren mejor servicio al cliente.
+            </li>
+            <li style="margin-bottom: 1rem;">
+              <strong>🎯 Ticket Promedio:</strong> Dinero promedio por cada venta (Ingresos ÷ Número de Ventas). 
+              Si es bajo ($5-$10 por venta), enfócate en vender múltiples items por cliente. 
+              Si es alto ($100+), mantén esa estrategia pero asegura consistencia. 
+              Un ticket promedio creciente es excelente indicador de salud empresarial.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>📦 Unidades Vendidas (Volumen):</strong> Cantidad total de items que salieron del almacén. 
+              Un volumen muy alto con ingresos moderados sugiere que vendes muchos productos baratos. 
+              Volumen bajo con ingresos altos sugiere productos de alto margen. Ambos son válidos; depende de tu modelo.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo Cambiar el Período de Análisis</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Botones de Período Rápido:</strong> En la parte superior, encontrarás botones para:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">"7 Días" → Análisis de la última semana (perfecto para decisiones diarias)</li>
+              <li style="margin-bottom: 0.25rem;">"30 Días" → Análisis del mes (estándar para reportes mensuales)</li>
+              <li style="margin-bottom: 0.25rem;">"3 Meses" → Trimestre (para decisiones estratégicas)</li>
+              <li style="margin-bottom: 0.25rem;">"1 Año" → Año completo (visión de largo plazo)</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Período Personalizado:</strong> Si quieres un rango específico (ej: "20 de marzo a 15 de abril"), usa los campos "Desde" y "Hasta".
+            Esto es útil para campaigns específicas o análisis especiales.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Aplicar Cambios:</strong> Después de seleccionar período, haz clic en "Actualizar" o "Aplicar". 
+            Todos los números recalcularán automáticamente para ese rango.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Comparación Automática:</strong> El sistema muestra no solo los números actuales, sino también cómo cambiaron comparado al período anterior. 
+            Una flecha arriba (↑) significa que mejoraste; flecha abajo (↓) significa que empeoró.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Interpretando Flechas y Porcentajes de Cambio</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--success);">↑ 25% (Arriba - Verde):</strong> Excelente. Tus métricas mejoraron 25% comparado al período anterior. 
+              Continúa haciendo lo que estás haciendo; funciona.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--danger);">↓ 15% (Abajo - Rojo):</strong> Preocupante. Caíste 15%. Investiga por qué: ¿Menos ventas? ¿Productos con menos margen? 
+              ¿Equipo menos motivado? Necesita acción correctiva.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong style="color: var(--muted);">→ 0% (Igual - Gris):</strong> Neutro. Mantuviste el mismo nivel que el período anterior. 
+              Ni crecimiento ni caída; es una meseta. Buena para estabilidad pero sin progreso.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Top 5 Productos Más Vendidos - Tu Tabla de Éxitos</h4>
+        <p style="color: var(--text); margin-bottom: 1rem;">
+          Una tabla muestra los 5 productos que generaron MÁS DINERO (no necesariamente los que más se vendieron en cantidad). 
+          Por ejemplo:
+        </p>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Producto A: 50 unidades × $2 = $100 (bajo margen, alto volumen)</li>
+            <li style="margin-bottom: 0.5rem;">Producto B: 5 unidades × $200 = $1,000 (alto margen, bajo volumen) ← TOP</li>
+            <li style="margin-bottom: 0.5rem;">Producto C: 30 unidades × $20 = $600 (margen medio, volumen medio)</li>
+          </ul>
+          <p style="color: var(--text); margin-top: 1rem;">
+            <strong>Por qué importa:</strong> Conocer tus top 5 te dice dónde concentrar esfuerzos. 
+            Asegúrate siempre tener suficiente stock de estos productos. Promociona estos para crecer más. 
+            Si no están en tu top 5, considera por qué: ¿No está en exhibición? ¿Precio demasiado alto? ¿No es lo que clientes piden?
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Exportar Reportes para Presentaciones y Análisis Profundo</h4>
+        <p style="color: var(--text); margin-bottom: 1rem;">
+          El botón "Descargar CSV" o "Exportar Excel" descarga todas tus métricas en formato que puedes abrir en Excel. 
+          Esto te permite:
+        </p>
+        <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.5rem;">Crear gráficos personalizados que StockManager no ofrece nativamente</li>
+          <li style="margin-bottom: 0.5rem;">Comparar múltiples períodos lado a lado (enero vs febrero vs marzo)</li>
+          <li style="margin-bottom: 0.5rem;">Compartir con contador/asesor fiscal para declaraciones</li>
+          <li style="margin-bottom: 0.5rem;">Presentar a inversionistas o junta directiva</li>
+          <li style="margin-bottom: 0.5rem;">Respaldar datos para auditoría</li>
+          <li style="margin-bottom: 0.5rem;">Consolidar datos de múltiples sucursales (si tienes varias)</li>
+        </ul>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo Usar Métricas para Tomar Mejores Decisiones</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Decisiones de Reorden:</strong> Si unproducto está en tu top 5 pero stock bajo, reorden AHORA. 
+              No esperes, ese es dinero creciendo en el árbol.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Decisiones de Precio:</strong> Si un producto tiene bajo ticket promedio pero alto volumen, consider subir precio 10%. 
+              Probablemente lo seguirás vendiendo pero con mejor margen.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Decisiones de Producto:</strong> Productos fuera del top 5 con baja rotación deberían discontinuarse o reformularse, 
+              liberando espacio preciosos almacén para productos ganadores.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Decisiones de Equipo:</strong> Si tasa de transacciones cae pero ingresos suben, significa mejor servicio al cliente (ventas más grandes). Refuerza ese comportamiento.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </details>
+    {% endif %}
+
+    <!-- CONFIGURACIÓN -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Configuración y Perfil - Tu Cuenta Personal</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Gestión de Cuenta, Seguridad y Preferencias</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          La sección de Configuración es tu espacio personal en StockManager. Aquí administras información de tu cuenta, 
+          implementas medidas de seguridad (cambio de contraseña), y ajustas preferencias. 
+          A diferencia de la administración general (que es para admin), Configuración es eminentemente personal y solo tú puedes modificarla.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Sección 1: Información de Perfil</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">Esta sección muestra y permite editar tus datos básicos de usuario:</p>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Nombre de Usuario:</strong> Tu identificador único en el sistema (ej: "juan_ferreteria", "admin_almacen"). 
+            Este campo es DE SOLO LECTURA y no puede cambiarse por razones de auditoría de seguridad. 
+            Todos tus cambios, creaciones, y ediciones están registradas bajo este usuario.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Correo Electrónico:</strong> Tu email. Este SÍ puede modificarse. Úsalo para:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Recibir notificaciones del sistema (si están habilitadas)</li>
+              <li style="margin-bottom: 0.25rem;">Recuperar contraseña en caso de olvido</li>
+              <li style="margin-bottom: 0.25rem;">Comunicaciones del administrador</li>
+              <li style="margin-bottom: 0.25rem;">Confirmaciones de cambios importantes</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Actualizar Información:</strong> Si tu email cambió (ej: dejaste la empresa, consiguiste un email corporativo), 
+            actualízalo aquí. Haz clic en "Editar Perfil", modifica el email, y guarda cambios. 
+            Algunos sistemas pueden pedirte confirmar el nuevo email antes de aplicar el cambio.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Sección 2: Seguridad - Cambio de Contraseña</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">
+          <strong>CRÍTICO:</strong> Solo tú deberías saber tu contraseña. Cambiarla regularmente es fundamentales para la seguridad. 
+          Aquí está el procedimiento detallado:
+        </p>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 1 - Ingresa tu Contraseña Actual:</strong> El sistema te pedirá tu contraseña ACTUAL para confirmar que eres realmente tú. 
+            Esto previene que alguien que accedió tu cuenta ilegalmente pueda cambiar tu contraseña sin saberlo.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 2 - Crea Nueva Contraseña (Primera Vez):</strong> Ingresa tu nueva contraseña. 
+            Debe cumplir con requisitos de SEGURIDAD (el sistema te dirá si es débil):
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Mínimo 8 caracteres (entre más larga, más segura)</li>
+              <li style="margin-bottom: 0.25rem;">Al menos 1 MAYÚSCULA (ej: "A")</li>
+              <li style="margin-bottom: 0.25rem;">Al menos 1 minúscula (ej: "a")</li>
+              <li style="margin-bottom: 0.25rem;">Al menos 1 número (ej: "5")</li>
+              <li style="margin-bottom: 0.25rem;">Al menos 1 símbolo especial (ej: "!", "@", "#", "$", "%")</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 3 - Confirmar Nueva Contraseña (Segunda Vez):</strong> Repite exactamente la misma contraseña. 
+            Esto evita typos. Si no coinciden, el sistema te lo indicará.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 4 - Guardar Cambios:</strong> Haz clic en "Actualizar Contraseña" o "Cambiar Contraseña". 
+            El sistema procesará tu cambio inmediatamente.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Paso 5 - Próximo Acceso:</strong> Tu contraseña anterior ya NO funciona. 
+            En el próximo login, DEBES usar la NUEVA contraseña. Si la olvidas, usa "Olvidé mi Contraseña" en la pantalla de login.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Guía de Contraseña Segura - Ejemplos</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <p style="color: var(--danger); margin-bottom: 0.75rem;"><strong>❌ INSEGURAS (No uses):</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1rem;">
+            <li style="margin-bottom: 0.25rem;">"12345678" ← Solo números</li>
+            <li style="margin-bottom: 0.25rem;">"password" ← Palabra muy común</li>
+            <li style="margin-bottom: 0.25rem;">"Juan2025" ← Tu nombre + año</li>
+            <li style="margin-bottom: 0.25rem;">"ABC123" ← Muy corta (6 caracteres)</li>
+          </ul>
+          
+          <p style="color: var(--success); margin-bottom: 0.75rem;"><strong>✅ SEGURAS (Usa parecidas):</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.25rem;">"MiAlmac3n!2025" ← Mezcla de todo, fácil de recordar</li>
+            <li style="margin-bottom: 0.25rem;">"GestioInventario#789" ← Descripción + números + símbolo</li>
+            <li style="margin-bottom: 0.25rem;">"Carb0n.Excel-2024!" ← Compleja y única</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Mejores Prácticas de Seguridad</h4>
+        <div style="background: var(--warning); opacity: 0.1; padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--danger); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Cambia contraseña cada 3 meses:</strong> Aunque sea molesto, alguien podría haber visto tu contraseña en algún tiempo. 
+              Cambiar regularmente invalida accesos no autorizados.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Nunca compartas contraseña:</strong> Ni con admin, ni con colegas, ni con IT. 
+              Tu contraseña debe ser solo información tuya. Si un admin lo necesita, deben resetearla, no pedírtela.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Cierra sesión al terminar:</strong> Especialmente en computadoras compartidas (recepción, mostrador). 
+              Un clic en "Cerrar Sesión" te desconecta completamente. La siguiente persona deberá hacer login.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>No uses contraseña en dispositivos públicos:</strong> Café, biblioteca, hotel. 
+              Hackers pueden instalar keyloggers (dispositivos que graban lo que tipeas).
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Si sospechas acceso no autorizado:</strong> Contacta al administrador immediamente. 
+              Cambia contraseña, revisa actividad reciente, valida que tus datos están OK.
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cerrar Sesión de Forma Segura</h4>
+        <p style="color: var(--text); margin-bottom: 1rem;">
+          En la esquina superior derecha o en el menú de Configuración, encontrarás un botón rojo que dice "Cerrar Sesión" o "Logout". 
+          Haz clic para salir. Esto es IMPORTANTE especialmente si:
+        </p>
+        <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.5rem;">Terminaste tu turno</li>
+          <li style="margin-bottom: 0.5rem;">Compartiste computadora</li>
+          <li style="margin-bottom: 0.5rem;">Te vas a tomar descanso</li>
+          <li style="margin-bottom: 0.5rem;">Fin de la jornada</li>
+        </ul>
+
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--danger);">
+          <strong style="color: var(--danger);">⚠️ Advertencia:</strong> Si cierras el navegador sin hacer "Cerrar Sesión", tu sesión puede permanecer activa. 
+          Alguien podría seguir usando tu cuenta si regresa a esa computadora. Siempre cierra sesión explícitamente.
+        </div>
+      </div>
+    </details>
+
+    <!-- ADMINISTRACIÓN (Admin) -->
+    {% if role == 'admin' %}
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Administración de Usuarios - Control de Acceso (Admin)</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Gestión Centralizada de Acceso y Permisos</h3>
+        
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          <strong>Nota: Esta sección es solo para administradores del sistema.</strong> 
+          El panel de Administración de Usuarios es donde controlas quién tiene acceso a StockManager, qué pueden hacer, y cómo monitoreas la actividad. 
+          Como administrador, eres responsable de la seguridad del sistema y la gestión de credenciales de todos los empleados.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Vistas y Funcionalidades del Panel de Usuarios</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Lista Completa de Usuarios:</strong> Tabla con todos los usuarios del sistema (empleados, vendedores, otros admins)
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Información por Usuario:</strong> Username, Email, Rol, Estado (Activo/Inactivo), Fecha de Creación
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Contador Total:</strong> "Tienes 15 usuarios activos" - visualización rápida del tamaño del equipo
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Barra de Búsqueda:</strong> Encuentra un usuario por nombre o email rápidamente
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Acciones por Usuario:</strong> Botones para Editar, Desactivar, o Eliminar cada usuario
+            </li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Procedimiento Detallado: Crear un Nuevo Usuario</h4>
+        <p style="color: var(--text); margin-bottom: 0.75rem;">Cada nuevo empleado necesita una cuenta para acceder al sistema. Aquí está cómo crearla:</p>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 1 - Ubicar Botón de Creación:</strong> Busca el botón "Nuevo Usuario", "Agregar Usuario", o similar. 
+            Generalmente está en la esquina superior derecha del panel de usuarios.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 2 - Nombre de Usuario:</strong> Elige un identificador único sin espacios. Ejemplos válidos:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">juan_ferreteria</li>
+              <li style="margin-bottom: 0.25rem;">vendedor_02</li>
+              <li style="margin-bottom: 0.25rem;">maria.garcia</li>
+              <li style="margin-bottom: 0.25rem;">AdminSucursalNorte</li>
+            </ul>
+            <strong>Importante:</strong> Este nombre de usuario es PERMANENTE y aparecerá en auditorías de todo lo que el usuario haga.
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 3 - Contraseña Inicial:</strong> Establece una contraseña temporal SEGURA que le darás al nuevo usuario. 
+            Ejemplos: "Almacen#2025Inicial" (luego, el usuario DEBE cambiarla en su primera sesión en Configuración).
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 4 - Asignar Rol:</strong> Es el campo CRÍTICO que define qué puede hacer el usuario:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.5rem;">
+                <strong>"Vendedor":</strong> Acceso limitado. Pueden:
+                <ul style="margin-top: 0.25rem; padding-left: 1.5rem;">
+                  <li style="margin-bottom: 0.25rem;">Registrar ventas</li>
+                  <li style="margin-bottom: 0.25rem;">Ver Dashboard (su resumen)</li>
+                  <li style="margin-bottom: 0.25rem;">Revisar su propio historial de ventas</li>
+                  <li style="margin-bottom: 0.25rem;">Actualizar su contraseña</li>
+                </ul>
+                <strong>NO pueden:</strong> Crear productos, editar precios, ver ventas de otros, eliminar datos, crear usuarios
+              </li>
+              <li style="margin-bottom: 0.5rem;">
+                <strong>"Admin":</strong> Acceso completo a TODO. Pueden hacer cualquier cosa. 
+                Úsalo solo para gerentes o personas en las que confías completamente.
+              </li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 1rem;">
+            <strong>Paso 5 - Confirmar Creación:</strong> Haz clic en "Crear Usuario" o similar. 
+            El sistema generará la cuenta y aparecerá en la tabla de usuarios.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Paso 6 - Entregar Credenciales:</strong> Dale al nuevo usuario:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">Nombre de usuario</li>
+              <li style="margin-bottom: 0.25rem;">Contraseña temporal</li>
+              <li style="margin-bottom: 0.25rem;">URL para acceder al sistema</li>
+              <li style="margin-bottom: 0.25rem;">Indicaciones de que DEBE cambiar la contraseña en su primer acceso</li>
+            </ul>
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Procedimiento: Editar Información de un Usuario</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">Encuentra el usuario en la tabla (usa búsqueda si es necesario)</li>
+          <li style="margin-bottom: 0.75rem;">Haz clic en el botón "Editar" (icono de lápiz) en su fila</li>
+          <li style="margin-bottom: 0.75rem;">Se abrirá un formulario con los datos actuales del usuario. Puedes modificar:</li>
+          <ul style="padding-left: 1.5rem; margin-bottom: 0.75rem;">
+            <li style="margin-bottom: 0.25rem;"><strong>Email:</strong> Si el usuario cambió de dirección o email</li>
+            <li style="margin-bottom: 0.25rem;"><strong>Rol:</strong> De "Vendedor" a "Admin" o viceversa (cambios de responsabilidad)</li>
+            <li style="margin-bottom: 0.25rem;"><strong>Estado:</strong> Activo o Inactivo (ver sección siguiente)</li>
+          </ul>
+          <li style="margin-bottom: 0.75rem;">Guarda los cambios. Se aplicarán inmediatamente.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Nota:</strong> NO puedes cambiar el nombre de usuario una vez creado. Es por auditoría.</li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo Buscar y Filtrar Usuarios</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Búsqueda Rápida:</strong> Escribe parte del nombre o email del usuario. 
+            El sistema filtra en tiempo real.
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Filtro de Estado:</strong> Ver solo:
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+              <li style="margin-bottom: 0.25rem;">"Todos" - Lista completa</li>
+              <li style="margin-bottom: 0.25rem;">"Activos" - Solo empleados que pueden acceder</li>
+              <li style="margin-bottom: 0.25rem;">"Inactivos" - Empleados desactivados</li>
+            </ul>
+          </li>
+          <li style="margin-bottom: 0.75rem;">
+            <strong>Ejemplo Práctico:</strong> Ha llegado un nuevo empleado llamado "Sofia" y quieres ver si ya existe. 
+            Escribe "sofia" en búsqueda. Si no aparece, crea una nueva cuenta.
+          </li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Desactivar vs Eliminar: ¿Cuál Usar?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--warning);">
+          <p style="color: var(--text); margin-bottom: 1rem;"><strong>RECOMENDACIÓN: SIEMPRE desactiva, no elimines.</strong></p>
+          
+          <p style="color: var(--text); margin-bottom: 1rem;"><strong>¿Qué es Desactivar?</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1rem;">
+            <li style="margin-bottom: 0.5rem;">El usuario pasa a Estado "Inactivo"</li>
+            <li style="margin-bottom: 0.5rem;">NO puede entrar al sistema (login fallará)</li>
+            <li style="margin-bottom: 0.5rem;">Pero su información y ventas permanecen intactas en auditoría</li>
+            <li style="margin-bottom: 0.5rem;">Si el empleado regresa (rehiring), solo lo reactivas (clic en botón)</li>
+          </ul>
+
+          <p style="color: var(--text); margin-bottom: 1rem;"><strong>¿Qué es Eliminar?</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1rem;">
+            <li style="margin-bottom: 0.5rem;">ELIMINA permanentemente la cuenta</li>
+            <li style="margin-bottom: 0.5rem;">Sus ventas quedan registradas (no se borran) pero la cuenta desaparece</li>
+            <li style="margin-bottom: 0.5rem;">MUY RARAMENTE se debe hacer</li>
+            <li style="margin-bottom: 0.5rem;">Si te equivocas, no hay forma de recuperar la cuenta</li>
+          </ul>
+
+          <p style="color: var(--text);">
+            <strong>Ejemplo:</strong> Juan, un vendedor, deja la empresa. 
+            Opción 1 (Recomendado): Edita, cambia Estado a "Inactivo". Punto. 
+            Su historial permanece, si vuelve en 1 año lo reactivamos. 
+            Opción 2 (Peligroso): Lo eliminas. Su cuenta desaparece. Si lo queremos re-contratar, debe recrearse todo.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Diferencia Entre Roles - Cuándo Usar Cada Uno</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <p style="color: var(--text); margin-bottom: 1rem;"><strong>VENDEDOR:</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1rem;">
+            <li style="margin-bottom: 0.5rem;">✅ Registra ventas</li>
+            <li style="margin-bottom: 0.5rem;">✅ Ve Dashboard (su resumen)</li>
+            <li style="margin-bottom: 0.5rem;">✅ Consulta su historial de ventas</li>
+            <li style="margin-bottom: 0.5rem;">✅ Cambia contraseña personal</li>
+            <li style="margin-bottom: 0.5rem;">❌ NO crea productos</li>
+            <li style="margin-bottom: 0.5rem;">❌ NO ve ventas de otros vendedores</li>
+            <li style="margin-bottom: 0.5rem;">❌ NO toca usuario management</li>
+          </ul>
+
+          <p style="color: var(--text); margin-bottom: 1rem;"><strong>ADMIN:</strong></p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">✅ TODOOO (sin limitaciones)</li>
+            <li style="margin-bottom: 0.5rem;">✅ Crea/Edita/Elimina productos</li>
+            <li style="margin-bottom: 0.5rem;">✅ Ve todas las ventas y métricas globales</li>
+            <li style="margin-bottom: 0.5rem;">✅ Gestiona usuarios</li>
+            <li style="margin-bottom: 0.5rem;">✅ Exporta reportes</li>
+            <li style="margin-bottom: 0.5rem;">⚠️ Uso responsable - Tiene poder máximo</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Mejores Prácticas de Managers de Usuarios</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Minimiza Admins:</strong> Solo das acceso "Admin" a 1-2 personas de confianza. 
+              La mayoría deben ser "Vendedor".
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Documentar Acceso:</strong> Mantén registro de cuándo cada usuario accedió. 
+              Auditoría importante si hay problema después.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Cambio Contraseña Inicial:</strong> Fuerza que nuevos usuarios cambien contraseña en primer acceso. 
+              La temporal es solo para loguearse una vez.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Desactiva Inactivos:</strong> Si alguien se va o no justifica hace meses, desactívalo. 
+              Reduce riesgo de seguridad.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Revisa Usuarios Mensualmente:</strong> ¿Hay cuentas obsoletas? ¿Roles apropiados? 
+              Mantenimiento preventivo.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </details>
+    {% endif %}
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Preguntas Frecuentes - Respuestas Completas</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <p style="color: var(--text); margin-bottom: 2rem;">Aquí encontrarás respuestas detalladas a las preguntas más comunes que los usuarios plantean al trabajar con StockManager.</p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">🔐 ¿Cómo recupero mi contraseña si la olvidé?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Procedimiento:</strong>
+          </p>
+          <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 0.75rem;">
+            <li style="margin-bottom: 0.5rem;">En la pantalla de login, busca el enlace "¿Olvidaste tu contraseña?" o "Recuperar Contraseña"</li>
+            <li style="margin-bottom: 0.5rem;">Verás un campo donde ingresas tu usuario o email</li>
+            <li style="margin-bottom: 0.5rem;">El sistema enviará un enlace de recuperación a tu email registrado</li>
+            <li style="margin-bottom: 0.5rem;">Revisa tu bandeja de entrada (y carpeta de SPAM, a veces termina ahí)</li>
+            <li style="margin-bottom: 0.5rem;">Haz clic en el enlace del email. Te llevará a una página donde creas una NUEVA contraseña</li>
+            <li style="margin-bottom: 0.5rem;">Recuerda: El enlace suele expirar en 24 horas por seguridad. Si pasó ese tiempo, solicita uno nuevo</li>
+          </ol>
+          <p style="color: var(--text);">
+            <strong>Si no recibes email:</strong> Contacta al administrador. Puede haber un problema con tu email registrado o configuración del sistema.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">📦 ¿Cuándo exactamente debo hacer un pedido de reabastecimiento?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Respuesta corta:</strong> Cuando el proyecto muestre "STOCK BAJO" - aparecerá en amarillo/naranja en el Dashboard y Inventario.
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Respuesta larga:</strong>
+          </p>
+          <ol style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              Cada producto tiene un campo "Stock Mínimo" que tú estableces. Por ejemplo, si Tubo PVC tiene stock mínimo de 20 unidades, 
+              cuando llegues a 20 el sistema lo marca como "bajo stock"
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              El Dashboard mostrará un contador de "Productos en Bajo Stock"
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              La regla es: Cuando veas "bajo stock", INMEDIATAMENTE contacta a tu proveedor para un nuevo pedido. 
+              No esperes a llegar a cero, eso es tarde.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Fórmula profesional:</strong> Stock mínimo = (Ventas promedio por día) × (Días de espera para recibir orden)
+              <br>Ejemplo: Si vendes 5 tubos/día y tu proveedor tarda 4 días en entregar, stock mínimo debería ser 20.
+            </li>
+          </ol>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">❌ ¿Qué pasa si intento vender un producto que está sin stock?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Respuesta:</strong> El sistema te lo impedirá. Aquí está qué pasará:
+          </p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">Cuando intentes agregar un producto sin stock al carrito de venta, el sistema mostrará un aviso ROJO</li>
+            <li style="margin-bottom: 0.75rem;">No podrás confirmar la venta si las cantidades solicitadas superan el stock disponible</li>
+            <li style="margin-bottom: 0.75rem;">Esto previene que vendas lo que no tienes (lo que causaría problemas legales y operacionales)</li>
+            <li style="margin-bottom: 0.75rem;">Opciones: (a) Ofrecer al cliente otra fecha cuando llegue el producto, (b) Recomendar un producto alternativo, (c) Tomar su información para hacer un pre-pedido</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">📊 ¿Cómo veo el desempeño de cada vendedor?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong style="color: var(--warning);">Nota: Solo administradores ven todos los vendedores. Los vendedores solo ven sus propias ventas.</strong>
+          </p>
+          <ol style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">Ve a "Historial de Ventas"</li>
+            <li style="margin-bottom: 0.75rem;">En los filtros, selecciona "Vendedor" y elige la persona que quieres analizar</li>
+            <li style="margin-bottom: 0.75rem;">Opcionalmente, también filtra por rango de fechas (ej: solo ventas de este mes)</li>
+            <li style="margin-bottom: 0.75rem;">Verás todas sus transacciones, total dinero generado, número de operaciones</li>
+            <li style="margin-bottom: 0.75rem;">Puedes exportar este reporte en CSV para hacer análisis comparativo entre vendedores</li>
+          </ol>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">⏰ ¿Qué significa "Productos que Expiran Pronto"?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--warning);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Significado:</strong> Son productos perecederos (alimentos, medicinas, químicos) cuya fecha de vencimiento está dentro de los próximos 30 días.
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Por qué te alertamos:</strong> Productos próximos a vencer tienen valor comercial reducido. 
+            Un yogurt que vence en 5 días es menos atractivo para el cliente que uno que vence en 3 meses.
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Qué hacer:</strong>
+          </p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Promoción/Descuento: Ofrece 10-20% menos para vender rápidamente</li>
+            <li style="margin-bottom: 0.5rem;">Visibilidad: Ponlos en exhibición prioritaria en la tienda</li>
+            <li style="margin-bottom: 0.5rem;">Si no se venden antes de vencer: Debe exponerlos del inventario (waste) y registrar como pérdida (importante para impuestos y reportes)</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">💾 ¿Puedo exportar mis datos y qué formatos soportan?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--success);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>SÍ, puedes exportar.</strong> Prácticamente toda información exportable se descarga en formato CSV (Comma-Separated Values).
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>¿Qué es CSV?</strong> Es un formato de texto plano que cualquier programa (Excel, Google Sheets, softwares accesamiento) puede abrir. 
+            Es el estándar universal para intercambiar datos.
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Dónde puedo exportar:</strong>
+          </p>
+          <ul style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Historial de Ventas → Descarga "Reporte de Ventas.csv"</li>
+            <li style="margin-bottom: 0.5rem;">Inventario → Descarga "Catálogo de Productos.csv"</li>
+            <li style="margin-bottom: 0.5rem;">Métricas → Descarga "Análisis de Desempeño.csv"</li>
+          </ul>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Una vez descargado, qué puedo hacer:</strong> Abierto en Excel, puedes crear gráficos, tablas dinámicas, análisis personalizados. 
+            También puedes compartir con contador, inversionistas, o guardar como respaldo.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">🔄 ¿Los datos se actualizam en tiempo real? ¿O hay demoras?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--success);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Tiempo real VERDADERO.</strong> Cuando registras una venta, INMEDIATAMENTE:
+          </p>
+          <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 0.75rem;">
+            <li style="margin-bottom: 0.5rem;">El inventario se actualiza (stock disminuye)</li>
+            <li style="margin-bottom: 0.5rem;">Los totales de Historial cambian</li>
+            <li style="margin-bottom: 0.5rem;">Las Métricas (ingresos, tickets) se recalculan</li>
+            <li style="margin-bottom: 0.5rem;">El Dashboard refleja el nuevo estado</li>
+            <li style="margin-bottom: 0.5rem;">Todos los usuarios ven los cambios (sin necesidad de actualizar página)</li>
+          </ul>
+          <p style="color: var(--text);">
+            <strong>Excepción:</strong> Las Métricas que muestran "comparación vs período anterior" pueden tomar 1-2 minutos para recalcular si hay un largo 
+            historial. Es normal y por razones de performance.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">🗑️ ¿Puedo eliminar o borrar el histórico de ventas?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>NO, no puedes. El histórico es PERMANENTE E INMODIFICABLE.</strong>
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>¿Por qué?</strong> Razones legales y fiscales. Las autoridades tributarias requieren que mantengas comprobantes de TODAS 
+            tus transacciones durante mínimo 3-5 años. Si desaparecen, es evidencia de fraude.
+          </p>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Si cometiste un error en una venta:</strong> NO intentes borrarla. Contacta al administrador. 
+            Una nota o ajuste puede registrarse pero la venta original permanece como referencia auditada.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">📱 ¿Cómo funciona el sistema de códigos de barras?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Opciones para códigos:</strong>
+          </p>
+          <ol style="color: var(--text); padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Generar Automático:</strong> Si dejas el campo vacío al crear producto, el sistema genera automáticamente uno. 
+              Formato: PRD123456 (único y único).
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Código EAN del Proveedor:</strong> Si tu proveedor te da códigos oficiales (código de barras standard), ingrésalos. 
+              Funciona si tienes lector barcode.
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+              <strong>Código Personalizado:</strong> Puedes inventar tu propio sistema si tienes buen motivo (ej: formato específico).
+            </li>
+          </ol>
+          <p style="color: var(--text); margin-bottom: 0.75rem;">
+            <strong>Regla de Oro:</strong> Cada código debe ser ÚNICO. No puedes tener dos productos con el mismo código (el sistema lo rechazará).
+          </p>
+          <p style="color: var(--text);">
+            <strong>Casos de uso:</strong> Códigos de barras acelera mu ventas si tienes lector barcode (escáner). 
+            Busca código = más rápido que escribir nombre del producto.
+          </p>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">🎯 ¿Cuáles son los mejores consejos para usar StockManager efectivamente?</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Revisa Dashboard cada mañana:</strong> 2 minutos invirtiendo te evita 2 horas de crisis</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Registra cada venta INMEDIATAMENTE:</strong> No acumules para el final del día</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Mantén stock mínimo realista:</strong> Basado en velocidad de venta actual, no en intuición</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Revisa Métricas semanalmente:</strong> Identifica tendencias temprano</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Exporta datos mensuales:</strong> Respaldo y para decisiones estratégicas</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Cambia contraseña cada 3 meses:</strong> Seguridad personal</li>
+            <li style="margin-bottom: 0.75rem;">✅ <strong>Comunicate problemas al admin:</strong> Somos hogar para mejorar</li>
+            <li style="margin-bottom: 0.75rem;">❌ <strong>Nunca:</strong> Intentes "arreglar" errores borrando datos o sin report</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+  </div>
+{% endblock %}

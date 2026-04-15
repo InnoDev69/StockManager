@@ -6,6 +6,7 @@ from routes.settings import settings_bp
 from routes.users import users_bp
 from routes.metrics import metrics_bp
 from routes.notifications import notifications_bp
+from routes.help import help_bp
 
 all_blueprints = [
     auth_bp,
@@ -16,4 +17,5 @@ all_blueprints = [
     users_bp,
     metrics_bp,
     notifications_bp,
+    help_bp,
 ]
