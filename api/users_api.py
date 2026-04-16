@@ -412,14 +412,18 @@ def api_login():
         return jsonify({"error": "Usuario y contraseña requeridos"}), 400
     
     rows = db.execute_query(
-        "SELECT id, password, role FROM users WHERE username = ? OR email = ?", 
+        "SELECT id, password, role, status FROM users WHERE username = ? OR email = ?", 
         (username, username)
     )
     
     if not rows:
         return jsonify({"error": "Credenciales inválidas"}), 401
     
-    user_id, pw_hash, role = rows[0]
+    user_id, pw_hash, role, status = rows[0]
+    
+    if status == 0:
+        return jsonify({"error": "Usuario desactivado. Contacta al administrador"}), 403
+    
     if not check_password_hash(pw_hash, password):
         return jsonify({"error": "Credenciales inválidas"}), 401
     

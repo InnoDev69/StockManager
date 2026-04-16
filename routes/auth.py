@@ -41,12 +41,16 @@ def login_post():
     password = request.form.get("password", "")
     if not user or not password:
         return render_template("login.html", error="Completa todos los campos")
-    
-    rows = db.execute_query("SELECT id, password, role FROM users WHERE username = ? OR email = ?", (user, user))
+
+    rows = db.execute_query("SELECT id, password, role, status FROM users WHERE username = ? OR email = ?", (user, user))
     if not rows:
         return render_template("login.html", error="Usuario o contraseña inválidos")
 
-    user_id, pw_hash, role_db = rows[0]
+    user_id, pw_hash, role_db, status = rows[0]
+    
+    if status == 0:
+        return render_template("login.html", error="Usuario desactivado. Contacta al administrador")
+    
     if check_password_hash(pw_hash, password):
         session["user_id"] = user_id
         session["username"] = user
