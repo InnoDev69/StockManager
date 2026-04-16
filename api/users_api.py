@@ -121,7 +121,7 @@ def create_user():
         return jsonify({"error": f"{e.field}: {e.message}"}), 400
     
     try:
-        db.execute_query("INSERT INTO users ...", fetch=False)
+        db.execute_query("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)", (data["username"].strip(), data["email"].strip(), hashed, data["role"]), fetch=False)
         logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
     

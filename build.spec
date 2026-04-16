@@ -77,6 +77,8 @@ a = Analysis(
         'gi._gi',
         'gi._gi_cairo',
         'waitress',
+        "python-barcode", 
+        "Pillow",
     ],
     hookspath=[],
     hooksconfig={},

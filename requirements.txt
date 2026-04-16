@@ -5,3 +5,5 @@ waitress==2.1.2
 requests
 pywebview
 pytz
+python-barcode
+Pillow

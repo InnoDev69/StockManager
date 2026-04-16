@@ -55,7 +55,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install pyinstaller pyinstaller-hooks-contrib pywebview waitress
+          pip install pyinstaller pyinstaller-hooks-contrib pywebview waitress python-barcode Pillow
           pip install -r requirements.txt
       
       - name: Install PyGObject (Linux)
@@ -113,7 +113,7 @@ jobs:
           args: /bin/bash -c "
             pacman -Syu --noconfirm &&
             pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
-            pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv pytz waitress &&
+            pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv pytz waitress python-barcode Pillow &&
             cd /github/workspace &&
             echo 'SMTP_SERVER='$SMTP_SERVER >> .env &&
             echo 'SMTP_PORT='$SMTP_PORT >> .env &&
