@@ -89,6 +89,12 @@ function hideSuggestions() {
   document.getElementById('suggestions').classList.add('hidden');
 }
 
+function cleanSearchInput() {
+  const s = document.getElementById('search');
+  s.value = '';
+  hideSuggestions();
+}
+
 // ===== CARRITO =====
 function addToCart(item, qty) {
   qty = qty || 1;
@@ -109,6 +115,7 @@ function addToCart(item, qty) {
     max_stock: maxStock
   });
 
+  cleanSearchInput();
   showLastAdded(item.name, newQty, item.price);
   renderCart();
 }
