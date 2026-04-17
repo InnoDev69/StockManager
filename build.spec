@@ -79,6 +79,7 @@ a = Analysis(
         'waitress',
         "python-barcode", 
         "Pillow",
+        "reportlab",
     ],
     hookspath=[],
     hooksconfig={},

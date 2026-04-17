@@ -7,3 +7,4 @@ pywebview
 pytz
 python-barcode
 Pillow
+reportlab
