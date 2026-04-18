@@ -367,11 +367,11 @@
         <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
           <li style="margin-bottom: 1rem;">
             <strong>Preparar el Archivo CSV:</strong> Tu archivo Excel debe tener EXACTAMENTE estas columnas en este orden:
-            <div style="background: #f0f0f0; padding: 0.75rem; border-radius: 4px; font-family: monospace; margin: 0.5rem 0; color: #333;">
+            <div style="background: var(--bg); border: 1px solid var(--border); padding: 0.75rem; border-radius: 4px; font-family: monospace; margin: 0.5rem 0; color: var(--text);">
               barcode | name | description | quantity | min_quantity | price | expiration_date
             </div>
-            <strong>Ejemplos de línea válida:</strong><br>
-            <code style="margin-left: 1rem; display: block; background: #f5f5f5; padding: 0.5rem; margin-top: 0.5rem;">
+            <strong>Ejemplos de línea válida:</strong>
+            <code style="margin-left: 0; display: block; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px; font-family: monospace;">
               PRD123456 | Caja Cartón 20x15 | Caja reforzada | 100 | 20 | 2.50 | 2026-12-31
             </code>
           </li>
@@ -381,7 +381,7 @@
           <li style="margin-bottom: 1rem;">
             <strong>Cargar tu Archivo:</strong> Haz clic en "Seleccionar Archivo", elige tu CSV preparado desde tu computadora
           </li>
-          <li style="margin-basic: 1rem;">
+          <li style="margin-bottom: 1rem;">
             <strong>Validación Automática:</strong> El sistema verificará que el formato sea correcto antes de importar. Si hay errores, te mostrará exactamente qué líneas fallan y por qué
           </li>
           <li style="margin-bottom: 1rem;">
@@ -785,8 +785,9 @@
           </ul>
         </div>
 
+        <!-- FIX 1: Eliminado opacity: 0.1 que hacía invisible el contenido. Reemplazado por bg-secondary con borde danger -->
         <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Mejores Prácticas de Seguridad</h4>
-        <div style="background: var(--warning); opacity: 0.1; padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--danger); margin-bottom: 1.5rem;">
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--danger); margin-bottom: 1.5rem;">
           <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
             <li style="margin-bottom: 0.75rem;">
               <strong>Cambia contraseña cada 3 meses:</strong> Aunque sea molesto, alguien podría haber visto tu contraseña en algún tiempo. 
@@ -1193,7 +1194,7 @@
           </p>
         </div>
 
-        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">📱 ¿Cómo funciona el sistema de códigos de barras?</h4>
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);"> ¿Cómo funciona el sistema de códigos de barras?</h4>
         <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
           <p style="color: var(--text); margin-bottom: 0.75rem;">
             <strong>Opciones para códigos:</strong>
