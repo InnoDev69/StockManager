@@ -8,6 +8,17 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
+<script src="{{ url_for('static', filename='js/debug-panel.js') }}"></script>
+<script>
+    // Habilitar solo si hay sesión de admin
+    {% if session.get('role') == 'admin' %}
+    // Debug panel ya está activo
+    // Presiona Ctrl+Shift+D para abrir
+    console.log('%cDebug Panel activo', 'color: #0f0; font-size: 12px; font-weight: bold;');
+    console.log('Presiona Ctrl+Shift+D para abrir el panel de debug');
+    {% endif %}
+</script>
+
 <!-- sb-open class is toggled by JS after reading localStorage -->
 <body>
   {% import "components.html" as comp %}

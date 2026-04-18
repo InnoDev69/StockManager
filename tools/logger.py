@@ -3,6 +3,18 @@ import os
 import sys
 from datetime import datetime
 
+def get_current_log_file():
+    """
+    Retorna la ruta del archivo de log actual (de hoy).
+    Si no existe, retorna None.
+    """
+    log_dir = get_log_dir()
+    log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y%m%d')}.log")
+    
+    if os.path.exists(log_file):
+        return log_file
+    return None
+
 def get_log_dir():
     """
     Retorna el directorio de logs:
