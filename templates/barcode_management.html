@@ -455,22 +455,80 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Descargar PDF con seleccionados
-  downloadPdfBtn.addEventListener('click', function() {
-    const selectedIds = Array.from(productCheckboxes)
-      .filter(cb => cb.checked)
-      .map(cb => cb.dataset.productId);
-    
-    if (selectedIds.length === 0) {
-      if (window.Notify) {
-        Notify.error('Selecciona al menos un producto');
-      }
-      return;
+  // Descargar PDF con seleccionados
+// Descargar PDF con seleccionados
+downloadPdfBtn.addEventListener('click', async function() {
+  const selectedIds = Array.from(productCheckboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.dataset.productId);
+  
+  if (selectedIds.length === 0) {
+    if (window.Notify) {
+      Notify.error('Selecciona al menos un producto');
     }
-    
-    // Descargar PDF
+    return;
+  }
+  
+  try {
     const url = `/products/barcodes/pdf?ids=${selectedIds.join(',')}`;
-    window.location.href = url;
-  });
+    const timestamp = new Date().getTime();
+    const fileName = `barcodes_${timestamp}.pdf`;
+    
+    // Intentar usar File System Access API (navegadores modernos)
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await showSaveFilePicker({
+          suggestedName: fileName,
+          types: [
+            {
+              description: 'PDF',
+              accept: { 'application/pdf': ['.pdf'] }
+            }
+          ]
+        });
+        
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        
+        if (window.Notify) {
+          Notify.success('Archivo guardado correctamente');
+        }
+      } catch (err) {
+        // Si el usuario cancela o no soporta la API, usar descarga normal
+        if (err.name !== 'AbortError') {
+          console.warn('File System API no disponible, usando descarga normal:', err);
+          descargarPDFNormal(url, fileName);
+        }
+      }
+    } else {
+      // Fallback para navegadores que no soportan File System API
+      descargarPDFNormal(url, fileName);
+    }
+  } catch (error) {
+    console.error('Error al descargar PDF:', error);
+    if (window.Notify) {
+      Notify.error('Error al descargar PDF');
+    }
+  }
+});
+
+// Función auxiliar para descarga normal
+function descargarPDFNormal(url, fileName) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  if (window.Notify) {
+    Notify.success('Descarga iniciada (Descargado en carpeta de descargas)');
+  }
+}
 });
 </script>
 

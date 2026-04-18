@@ -498,18 +498,26 @@
 
         /* ── CSV export ──────────────────────────────────────── */
         window.exportToCSV = function () {
-            const table = document.querySelector('.sh-table:not(.sh-table--modal)');
-            const rows  = table.querySelectorAll('tr');
-            const csv   = [];
-            rows.forEach(row => {
-                const cells = Array.from(row.querySelectorAll('td, th')).slice(0, -1);
-                csv.push(cells.map(c => '"' + c.innerText.replace(/\n/g, ' ').replace(/"/g, '""') + '"').join(','));
-            });
-            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-            const a    = document.createElement('a');
-            a.href     = URL.createObjectURL(blob);
-            a.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
-            a.click();
+            try {
+                const table = document.querySelector('.sh-table:not(.sh-table--modal)');
+                const rows  = table.querySelectorAll('tr');
+                const csv   = [];
+                rows.forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('td, th')).slice(0, -1);
+                    csv.push(cells.map(c => '"' + c.innerText.replace(/\n/g, ' ').replace(/"/g, '""') + '"').join(','));
+                });
+                const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+                const a    = document.createElement('a');
+                a.href     = URL.createObjectURL(blob);
+                a.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
+                a.click();
+
+                Notify.success('CSV exportado correctamente en tu carpeta de descargas');
+
+            } catch (err) {
+                console.error(err);
+                Notify.error('Error al exportar CSV');
+            }
         };
 
         /* ── Stats ───────────────────────────────────────────── */

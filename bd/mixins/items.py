@@ -404,7 +404,8 @@ class ItemsMixin:
 
     def generate_barcode_image(self, barrs_code):
         """
-        Genera imagen PNG del código de barras CODE128.
+        Genera imagen PNG del código de barras.
+        Detecta automáticamente el tipo o usa CODE128 por defecto.
         
         Args:
             barrs_code: El código a codificar
@@ -418,14 +419,64 @@ class ItemsMixin:
         except ImportError:
             raise DatabaseError("Librería 'python-barcode' no instalada. Ejecuta: pip install python-barcode pillow")
         
-        CODE128 = barcode.get_barcode_class('code128')
-        bc = CODE128(barrs_code, writer=barcode.writer.ImageWriter())
+        barcode_type = self._detect_barcode_type(barrs_code)
         
-        img_io = BytesIO()
-        bc.write(img_io)
-        img_io.seek(0)
+        try:
+            BarcodeClass = barcode.get_barcode_class(barcode_type)
+            bc = BarcodeClass(barrs_code, writer=barcode.writer.ImageWriter())
+            
+            img_io = BytesIO()
+            bc.write(img_io, options={"write_text": False})
+            img_io.seek(0)
+            
+            return img_io
+        except Exception as e:
+            raise DatabaseError(f"Error generando barcode ({barcode_type}): {str(e)}")
+
+    def _detect_barcode_type(self, code):
+        """
+        Detecta el tipo de código de barras basado en el formato.
         
-        return img_io
+        Returns:
+            str: Tipo de código ('code128', 'ean13', 'upca', etc.)
+        """
+        if not code:
+            return 'code128'
+        
+        code = str(code).strip()
+        length = len(code)
+        
+        # EAN-13 (13 dígitos)
+        if length == 13 and code.isdigit():
+            return 'ean13'
+        
+        # EAN-8 (8 dígitos)
+        if length == 8 and code.isdigit():
+            return 'ean8'
+        
+        # UPC-A (12 dígitos)
+        if length == 12 and code.isdigit():
+            return 'upca'
+        
+        # UPC-E (6 o 8 dígitos)
+        if length in (6, 8) and code.isdigit():
+            return 'upce'
+        
+        # ISBN-13 (con o sin guiones)
+        if (length == 13 or length == 17) and (code.isdigit() or '-' in code):
+            if code.startswith('978') or code.startswith('979'):
+                return 'isbn13'
+        
+        # ISBN-10 (10 dígitos + X opcional)
+        if length == 10 and (code[:-1].isdigit() and code[-1] in '0123456789X'):
+            return 'isbn10'
+        
+        # Código personalizado (PRD######)
+        if code.startswith('PRD'):
+            return 'code128'
+        
+        # Por defecto es CODE128 (acepta más caracteres)
+        return 'code128'
     
     def get_all_items(self):
         """Obtiene una lista de todos los productos activos."""
