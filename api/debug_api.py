@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session
 from tools.logger import logger, get_current_log_file
 import json
 
-debug_bp = Blueprint('debug', __name__, url_prefix='/api/debug')
+debug_bp = Blueprint('debug', __name__, url_prefix='/debug')
 
 def require_admin():
     if not session.get("user_id"):
@@ -49,3 +49,48 @@ def get_recent_logs():
         return jsonify({'logs': recent}), 200
     except:
         return jsonify({'logs': [], 'error': 'No logs available'}), 200
+    
+@debug_bp.route('/command', methods=['POST'])
+def execute_command():
+    """Ejecuta código Python en el servidor (solo admin)."""
+    if not session.get("user_id"):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    code = data.get('code', '')
+    
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+    
+    try:
+        safe_dict = {
+            'db': db,
+            'logger': logger,
+            '__builtins__': {
+                'len': len,
+                'str': str,
+                'int': int,
+                'float': float,
+                'list': list,
+                'dict': dict,
+                'print': print,
+                'range': range,
+                'enumerate': enumerate,
+            }
+        }
+        
+        import io
+        from contextlib import redirect_stdout
+        
+        f = io.StringIO()
+        with redirect_stdout(f):
+            exec(code, safe_dict)
+        
+        output = f.getvalue() or "Executed successfully"
+        logger.info(f"[DEBUG] Server command executed: {code[:100]}")
+        
+        return jsonify({'output': output}), 200
+        
+    except Exception as e:
+        logger.error(f"[DEBUG] Server command error: {e}")
+        return jsonify({'error': str(e)}), 400

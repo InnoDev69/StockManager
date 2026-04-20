@@ -496,27 +496,24 @@
         window.closeSaleModal = function () { $('saleModal').classList.remove('sh-modal--open'); };
         window.printSale      = function () { window.print(); };
 
-        /* ── CSV export ──────────────────────────────────────── */
-        window.exportToCSV = function () {
+        /* ── CSV export con File System API ──────────────────────────────────── */
+        window.exportToCSV = async function () {
             try {
                 const table = document.querySelector('.sh-table:not(.sh-table--modal)');
-                const rows  = table.querySelectorAll('tr');
-                const csv   = [];
-                rows.forEach(row => {
-                    const cells = Array.from(row.querySelectorAll('td, th')).slice(0, -1);
-                    csv.push(cells.map(c => '"' + c.innerText.replace(/\n/g, ' ').replace(/"/g, '""') + '"').join(','));
-                });
-                const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-                const a    = document.createElement('a');
-                a.href     = URL.createObjectURL(blob);
-                a.download = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
-                a.click();
+                if (!table) {
+                    Notify.error('No se encontró tabla para exportar');
+                    return;
+                }
 
-                Notify.success('CSV exportado correctamente en tu carpeta de descargas');
-
+                const filename = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
+                
+                await window.CSVExporter.exportFromHTMLTable(table, filename, 1);
+                Notify.success('CSV exportado correctamente ✓');
             } catch (err) {
-                console.error(err);
-                Notify.error('Error al exportar CSV');
+                console.error('Error al exportar CSV:', err);
+                if (err.name !== 'AbortError') {
+                    Notify.error('Error al exportar: ' + err.message);
+                }
             }
         };
 

@@ -107,27 +107,23 @@ def stream_notifications():
     
     def generate():
         try:
-            # Primer evento: conectado
             unread = db.get_unread_notifications(user_id, limit=5)
             yield f"event: init\ndata: {json.dumps({'notifications': unread, 'count': db.get_unread_count(user_id)})}\n\n"
             logger.info(f"[SSE] Usuario {user_id} conectado")
             
-            # Loop de eventos
             event = _user_events[user_id]
             failcount = 0
             
             while True:
                 try:
-                    # Esperar por evento o timeout
                     triggered = event.wait(timeout=25)
-                    failcount = 0  # Reset contador de fallos
+                    failcount = 0
                     
                     if triggered:
                         event.clear()
                         unread = db.get_unread_notifications(user_id, limit=10)
                         yield f"event: update\ndata: {json.dumps({'notifications': unread, 'count': db.get_unread_count(user_id)})}\n\n"
                     else:
-                        # Timeout: enviar heartbeat
                         yield f": heartbeat at {time.time()}\n\n"
                         
                 except GeneratorExit:
@@ -137,7 +133,7 @@ def stream_notifications():
                     failcount += 1
                     logger.error(f"[SSE] Error en loop usuario {user_id}: {err}", exc_info=True)
                     if failcount > 3:
-                        break  # Salir después de 3 errores
+                        break
                     yield f": error\n\n"
                     
         except Exception as e:
@@ -151,7 +147,6 @@ def stream_notifications():
             'Cache-Control': 'no-cache, no-transform',
             'Content-Type': 'text/event-stream; charset=utf-8',
             'X-Accel-Buffering': 'no',
-            'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
         }
     )

@@ -236,46 +236,63 @@
 </section>
 
 <!-- Alertas de bajo stock -->
+<!-- Alertas de bajo stock -->
 {% if low_stock_list %}
 <section id="alerts" aria-live="polite" aria-label="Alertas de inventario" style="margin-top: 1.5rem;">
   <div class="card" style="padding: 0; overflow: hidden; border-left: 3px solid var(--warning, #f59e0b);">
 
-    <!-- Header con título + info de paginación -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1.25rem; border-bottom: 1px solid var(--border);">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <svg style="width: 20px; height: 20px; color: var(--warning, #f59e0b); flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"></path>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; gap: 0.625rem;">
+        <svg style="width: 18px; height: 18px; color: var(--warning, #f59e0b); flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"/>
         </svg>
-        <strong style="font-size: 1rem; color: var(--warning, #f59e0b);">
+        <span style="font-size: 0.875rem; font-weight: 600; color: var(--warning, #f59e0b);">
           Productos con bajo stock
-          (<span id="ls-total">{{ low_stock_list|length }}</span>)
-        </strong>
+        </span>
+        <span style="font-size: 0.75rem; font-weight: 700; padding: 0.125rem 0.625rem; border-radius: 20px; background: rgba(245,158,11,0.12); color: var(--warning, #f59e0b); border: 1px solid rgba(245,158,11,0.2);">
+          <span id="ls-total">{{ low_stock_list|length }}</span>
+        </span>
       </div>
-      <span id="ls-page-info" class="text-muted" style="font-size: 0.8rem;">
+      <span id="ls-page-info" class="text-muted" style="font-size: 0.8rem; display: none;">
         Mostrando <span id="ls-from">1</span>–<span id="ls-to">5</span> de <span id="ls-of">{{ low_stock_list|length }}</span>
       </span>
     </div>
 
-    <!-- Lista paginada -->
-    <ul id="ls-list" style="margin: 0; padding: 0.75rem 1.25rem; list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+    <ul id="ls-list" style="margin: 0; padding: 0.75rem 1.25rem; list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
       {% for item in low_stock_list %}
-      <li class="ls-item" data-index="{{ loop.index0 }}" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border-radius: 6px; border: 1px solid var(--glass);">
-        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-          <span style="font-weight: 600; font-size: 0.95rem;">{{ item.name }}</span>
-          <span class="text-muted mono" style="font-size: 0.85rem;">SKU: {{ item.sku | default('N/A') }}</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <div style="text-align: right;">
-            <div class="mono" style="font-size: 1.25rem; font-weight: 700; color: var(--warning, #f59e0b);">{{ item.stock }}</div>
-            <div class="text-muted" style="font-size: 0.75rem;">unidades</div>
+      <li class="ls-item" data-index="{{ loop.index0 }}"
+          style="display: flex; align-items: stretch; gap: 1rem; padding: 0.875rem 1rem; background: rgba(245,158,11,0.04); border-radius: 8px; border: 1px solid rgba(245,158,11,0.1);">
+
+        <!-- Indicador lateral -->
+        <div style="width: 3px; border-radius: 2px; background: var(--warning, #f59e0b); flex-shrink: 0; opacity: 0.6;"></div>
+
+        <!-- Info del producto -->
+        <div style="flex: 1; min-width: 0; display: flex; align-items: center;">
+          <div>
+            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ item.name }}
+            </div>
+            <div class="mono" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+              SKU: {{ item.sku | default('N/A') }}
+            </div>
           </div>
         </div>
+
+        <!-- Stock -->
+        <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex-shrink: 0; gap: 0.1rem;">
+          <span class="mono" style="font-size: 1.375rem; font-weight: 700; line-height: 1; color: var(--warning, #f59e0b);">
+            {{ item.stock }}
+          </span>
+          <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+            unidades
+          </span>
+        </div>
+
       </li>
       {% endfor %}
     </ul>
 
-    <!-- Controles de paginación -->
-    <div id="ls-pagination" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.875rem 1.25rem; border-top: 1px solid var(--border);">
+    <div id="ls-pagination" style="display: none; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <label class="text-muted" style="font-size: 0.875rem;">Por página:</label>
         <select id="ls-page-size" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; width: auto;">
@@ -285,9 +302,7 @@
           <option value="50">50</option>
         </select>
       </div>
-      <div id="ls-page-buttons" style="display: flex; align-items: center; gap: 0.375rem;">
-        <!-- Botones generados dinámicamente -->
-      </div>
+      <div id="ls-page-buttons" style="display: flex; align-items: center; gap: 0.375rem;"></div>
     </div>
 
   </div>
