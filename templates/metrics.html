@@ -1023,7 +1023,7 @@ function updateInsights(insights, fullData) {
       : 'Sin datos suficientes';
 
   document.getElementById('insight-peak-hour').textContent =
-    insights.peakHour !== undefined
+    insights.peakHour != null
       ? `${insights.peakHour}:00 - ${insights.peakHour + 1}:00 es tu hora más activa`
       : 'Sin datos suficientes';
 

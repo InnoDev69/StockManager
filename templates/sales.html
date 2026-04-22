@@ -26,48 +26,50 @@
         </header>
 
         <!-- ── Stats ──────────────────────────────────────────── -->
-        <div class="sh-stats-grid">
-            <div class="sh-stat">
-                <div class="sh-stat__icon sh-stat__icon--blue">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
+        {% if sales %}
+            <div class="sh-stats-grid">
+                <div class="sh-stat">
+                    <div class="sh-stat__icon sh-stat__icon--blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <div class="sh-stat__body">
+                        <span class="sh-stat__label">Total Ventas</span>
+                        <span class="sh-stat__value" id="totalSales">$0.00</span>
+                    </div>
+                    <div class="sh-stat__glow sh-stat__glow--blue"></div>
                 </div>
-                <div class="sh-stat__body">
-                    <span class="sh-stat__label">Total Ventas</span>
-                    <span class="sh-stat__value" id="totalSales">$0.00</span>
-                </div>
-                <div class="sh-stat__glow sh-stat__glow--blue"></div>
-            </div>
 
-            <div class="sh-stat">
-                <div class="sh-stat__icon sh-stat__icon--green">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                    </svg>
+                <div class="sh-stat">
+                    <div class="sh-stat__icon sh-stat__icon--green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <div class="sh-stat__body">
+                        <span class="sh-stat__label">Transacciones</span>
+                        <span class="sh-stat__value" id="totalTransactions">0</span>
+                    </div>
+                    <div class="sh-stat__glow sh-stat__glow--green"></div>
                 </div>
-                <div class="sh-stat__body">
-                    <span class="sh-stat__label">Transacciones</span>
-                    <span class="sh-stat__value" id="totalTransactions">0</span>
-                </div>
-                <div class="sh-stat__glow sh-stat__glow--green"></div>
-            </div>
 
-            <div class="sh-stat">
-                <div class="sh-stat__icon sh-stat__icon--red">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                        <line x1="12" y1="22.08" x2="12" y2="12"/>
-                    </svg>
+                <div class="sh-stat">
+                    <div class="sh-stat__icon sh-stat__icon--red">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                    <div class="sh-stat__body">
+                        <span class="sh-stat__label">Productos Vendidos</span>
+                        <span class="sh-stat__value" id="totalProducts">0</span>
+                    </div>
+                    <div class="sh-stat__glow sh-stat__glow--red"></div>
                 </div>
-                <div class="sh-stat__body">
-                    <span class="sh-stat__label">Productos Vendidos</span>
-                    <span class="sh-stat__value" id="totalProducts">0</span>
-                </div>
-                <div class="sh-stat__glow sh-stat__glow--red"></div>
             </div>
-        </div>
+        {% endif %}
 
         <!-- ── Filters ─────────────────────────────────────────── -->
         <div class="card sh-filters-card">
@@ -444,19 +446,132 @@
         $('dateFrom').valueAsDate = thirtyAgo;
 
         /* ── Filter form ─────────────────────────────────────── */
+        function applyClientFilters() {
+            const dateFrom = $('dateFrom').value;
+            const dateTo = $('dateTo').value;
+            const productFilter = $('productFilter').value.toLowerCase();
+            const vendedorFilter = $('vendedorFilter').value.toLowerCase();
+
+            const rows = document.querySelectorAll('#salesTableBody .sale-row');
+            let visibleCount = 0;
+            let totalSales = 0, totalProducts = 0;
+
+            rows.forEach(row => {
+                const saleDate = row.cells[1].textContent.trim();
+                const products = row.cells[2].textContent.toLowerCase();
+                const vendedor = row.cells[5].textContent.toLowerCase();
+                const total = parseFloat((row.cells[4].textContent || '').replace(/[$,]/g, '')) || 0;
+                const quantity = parseInt(row.cells[3].textContent) || 0;
+
+                let show = true;
+
+                if (dateFrom && saleDate < dateFrom) show = false;
+                if (dateTo && saleDate > dateTo) show = false;
+                if (productFilter && !products.includes(productFilter)) show = false;
+                if (vendedorFilter && !vendedor.includes(vendedorFilter)) show = false;
+
+                row.style.display = show ? '' : 'none';
+                
+                if (show) {
+                    visibleCount++;
+                    totalSales += total;
+                    totalProducts += quantity;
+                }
+            });
+
+            // Update stats
+            $('totalSales').textContent = '$' + totalSales.toFixed(2);
+            $('totalTransactions').textContent = visibleCount;
+            $('totalProducts').textContent = totalProducts;
+
+            // Show/hide empty state
+            const emptyRow = $('empty-sales-row');
+            if (visibleCount === 0 && emptyRow) {
+                emptyRow.style.display = '';
+            } else if (emptyRow) {
+                emptyRow.style.display = 'none';
+            }
+
+            // Re-init pagination with visible rows
+            initSalesPaginationAfterFilter();
+        }
+
+        function initSalesPaginationAfterFilter() {
+            const rows = Array.from(document.querySelectorAll('.sale-row'));
+            const visibleRows = rows.filter(r => r.style.display !== 'none');
+            const total = visibleRows.length;
+
+            const paginationEl = $('sales-pagination');
+            const pageInfoEl = $('sales-page-info');
+            const psWrapEl = $('sales-pagesize-wrap');
+            const fromEl = $('sales-from');
+            const toEl = $('sales-to');
+            const totalEl = $('sales-total');
+            const buttonsEl = $('sales-page-buttons');
+            const pageSizeSel = $('sales-page-size');
+
+            let page = 1;
+            let pageSize = 10;
+
+            function renderFilterPagination() {
+                const totalPages = Math.ceil(total / pageSize) || 1;
+                if (page > totalPages) page = totalPages;
+
+                const start = (page - 1) * pageSize;
+                const end = Math.min(start + pageSize, total);
+
+                rows.forEach(row => {
+                    const idx = visibleRows.indexOf(row);
+                    row.style.display = (idx >= start && idx < end) ? '' : 'none';
+                });
+
+                fromEl.textContent = start + 1;
+                toEl.textContent = end;
+                totalEl.textContent = total;
+                pageInfoEl.style.display = total > 0 ? '' : 'none';
+                psWrapEl.style.display = total > 0 ? '' : 'none';
+
+                const showPag = totalPages > 1;
+                paginationEl.style.display = showPag ? '' : 'none';
+                if (showPag) renderPagination(buttonsEl, page, totalPages, function (pg) { page = pg; renderFilterPagination(); });
+            }
+
+            pageSizeSel.onchange = null;
+            pageSizeSel.addEventListener('change', function () { pageSize = parseInt(this.value); page = 1; renderFilterPagination(); });
+            renderFilterPagination();
+        }
+
         $('filterForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            const params = new URLSearchParams(new FormData(this));
-            window.location.href = '{{ url_for("sales.sales") }}?' + params.toString();
+            applyClientFilters();
         });
 
         window.clearFilters = function () {
             $('filterForm').reset();
             const t = new Date(), tda = new Date(t);
             tda.setDate(t.getDate() - 30);
-            $('dateTo').valueAsDate   = t;
+            $('dateTo').valueAsDate = t;
             $('dateFrom').valueAsDate = tda;
-            window.location.href = '{{ url_for("sales.sales") }}';
+            
+            // Show all rows and recalculate stats
+            document.querySelectorAll('#salesTableBody .sale-row').forEach(row => {
+                row.style.display = '';
+            });
+            
+            // Reinitialize pagination
+            const rows = Array.from(document.querySelectorAll('.sale-row'));
+            const total = rows.length;
+            let totalSales = 0, totalProducts = 0;
+            rows.forEach(row => {
+                totalSales += parseFloat((row.cells[4].textContent || '').replace(/[$,]/g, '')) || 0;
+                totalProducts += parseInt(row.cells[3].textContent) || 0;
+            });
+            $('totalSales').textContent = '$' + totalSales.toFixed(2);
+            $('totalTransactions').textContent = total;
+            $('totalProducts').textContent = totalProducts;
+            
+            // Reset pagination
+            location.reload();
         };
 
         /* ── View detail ─────────────────────────────────────── */

@@ -51,9 +51,9 @@ def create_sale():
         if stock < qty:
             return jsonify({"error": "Stock insuficiente"}), 400
         
-        vendedor = session.get("username", "unknown")
+        vendedor_id = session.get("user_id", 0)
         payment_method = data.get("payment_method", "Efectivo")
-        db.record_product_sale(item_id, qty, vendedor, payment_method)
+        db.record_product_sale(item_id, qty, vendedor_id, payment_method)
         
     except ValueError:
         return jsonify({"error": "Cantidad inválida"}), 400
@@ -162,12 +162,12 @@ def create_sales_bulk():
             })
             total += subtotal
         
-        vendedor = session.get("username", "unknown")
+        vendor_id = session.get("user_id", 0)
         payment_method = data.get("payment_method", "Efectivo")
         
         try:
-            sale_id = db.record_bulk_sale(validated_items, vendedor, payment_method)
-            logger.info(f"Bulk sale {sale_id} created by {vendedor} with {len(validated_items)} items")
+            sale_id = db.record_bulk_sale(validated_items, vendor_id, payment_method)
+            logger.info(f"Bulk sale {sale_id} created by {vendor_id} with {len(validated_items)} items")
             
             db.check_and_notify_low_stock(session.get('user_id'))
             
@@ -258,7 +258,8 @@ def list_sales():
         sell_where.append("s.id IN (SELECT d2.sell_id FROM details d2 JOIN items i2 ON d2.item_id = i2.id WHERE i2.name LIKE ?)")
         sell_params.append(f"%{product_q}%")
     if vendedor_q:
-        sell_where.append("s.vendedor LIKE ?")
+        sell_where.append("s.vendor_id IN (SELECT id FROM users WHERE username LIKE ? OR email LIKE ?)")
+        sell_params.append(f"%{vendedor_q}%")
         sell_params.append(f"%{vendedor_q}%")
 
     sell_where_clause = " AND ".join(sell_where)
@@ -294,17 +295,18 @@ def list_sales():
 
         placeholders = ",".join("?" * len(sale_ids))
         detail_query = f"""
-            SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method
+            SELECT s.id, s.date, i.name, d.quantity, d.price, u.username, s.vendor_id, s.payment_method
             FROM sells s
             JOIN details d ON s.id = d.sell_id
             JOIN items  i ON d.item_id = i.id
+            LEFT JOIN users u ON s.vendor_id = u.id
             WHERE s.id IN ({placeholders})
             ORDER BY s.date DESC, s.id DESC
         """
         rows = cur.execute(detail_query, tuple(sale_ids)).fetchall()
 
         sales_dict = {}
-        for sale_id, date, name, quantity, price, vendedor, payment_method in rows:
+        for sale_id, date, name, quantity, price, username, vendor_id, payment_method in rows:
             if sale_id not in sales_dict:
                 sales_dict[sale_id] = {
                     "id":             sale_id,
@@ -312,7 +314,8 @@ def list_sales():
                     "products":       [],
                     "total_quantity": 0,
                     "total":          0.0,
-                    "vendedor":       vendedor,
+                    "vendedor":       username,
+                    "vendor_id":      vendor_id,
                     "payment_method": payment_method,
                 }
             sales_dict[sale_id]["products"].append({
@@ -366,10 +369,11 @@ def get_sale_detail(sale_id):
     
     sale_data = db.execute_query(
         """
-        SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method
+        SELECT s.id, s.date, i.name, d.quantity, d.price, u.username, s.vendor_id, s.payment_method
         FROM sells s 
         JOIN details d ON s.id = d.sell_id 
         JOIN items i ON d.item_id = i.id 
+        LEFT JOIN users u ON s.vendor_id = u.id
         WHERE s.id = ?
         """,
         (sale_id,)
@@ -384,7 +388,8 @@ def get_sale_detail(sale_id):
         "products":       [],
         "total":          0.0,
         "vendedor":       sale_data[0][5],
-        "payment_method": sale_data[0][6],
+        "vendor_id":      sale_data[0][6],
+        "payment_method": sale_data[0][7],
     }
     
     for row in sale_data:
@@ -421,10 +426,10 @@ def update_sale(sale_id):
         if "items" not in data or not isinstance(data["items"], list):
             return jsonify({"error": "Items inválidos"}), 400
         
-        if not data.get("vendedor") or not data.get("payment_method"):
+        if not data.get("vendor_id") or not data.get("payment_method"):
             return jsonify({"error": "Faltan campos requeridos"}), 400
         
-        db.update_sale(sale_id, data["items"], data["vendedor"], data["payment_method"])
+        db.update_sale(sale_id, data["items"], data["vendor_id"], data["payment_method"])
         
         db.check_and_notify_low_stock(session.get('user_id'))
         

@@ -64,14 +64,15 @@ def sales():
         where_clauses.append("i.name LIKE ?")
         params.append(f"%{product_q}%")
     if vendedor_q:
-        where_clauses.append("s.vendedor LIKE ?")
+        where_clauses.append("s.vendor_id IN (SELECT id FROM users WHERE username LIKE ? OR email LIKE ?)")
+        params.append(f"%{vendedor_q}%")
         params.append(f"%{vendedor_q}%")
     
     where_clause = " AND ".join(where_clauses)
     
     # Ejecutar consulta con filtros
     sales_data = db.execute_query(
-        f"SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendedor, s.payment_method "
+        f"SELECT s.id, s.date, i.name, d.quantity, d.price, s.vendor_id, s.payment_method "
         f"FROM sells s "
         f"JOIN details d ON s.id = d.sell_id "
         f"JOIN items i ON d.item_id = i.id "
@@ -91,7 +92,7 @@ def sales():
                 "products": [],
                 "total": 0.0,
                 "total_quantity": 0,
-                "vendedor": row[5],
+                "vendedor": db.get_username_by_id(row[5]) if db.get_username_by_id(row[5]) else "unknown",
                 "payment_method": row[6]
             }
         

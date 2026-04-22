@@ -331,7 +331,7 @@
   <!-- ── Existing overlays (unchanged) ────────────── -->
   <div id="drawer" class="drawer hidden" aria-hidden="true">
     <div class="overlay" data-close="true"></div>
-    <form id="item-form" class="card form-card" autocomplete="off">
+    <form id="item-form" class="card form-card" autocomplete="new-password">
       <h3 id="form-title" class="m-0 mb-lg">Nuevo producto</h3>
       {{ comp.form_field('Nombre', 'name', required=true, maxlength=Limits.MAX_ITEMS_CHARACTERS) }}
       {{ comp.form_field('Stock', 'stock', type='number', min='0', max=Limits.MAX_STOCK_VALUE) }}

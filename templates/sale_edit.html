@@ -67,6 +67,7 @@
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
             </svg>
             <p style="color: var(--text-muted); margin: 0 0 4px 0; font-size: 0.88rem;">Cargando venta...</p>
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.75rem; opacity: 0.7;">La venta se ha cargado pero el carrito está vacío</p>
           </div>
         </div>
 
@@ -94,10 +95,14 @@
         
         <div style="padding: 20px; flex: 1; overflow-y: auto;">
           <!-- Vendedor -->
-          <div style="margin-bottom: 24px;">
+          <div style="margin-bottom: 24px; position: relative;">
             <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Vendedor</label>
-            <input type="text" id="vendedorInput" placeholder="Nombre del vendedor"
-                   style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 2px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.95rem; outline: none; transition: border-color .15s ease, box-shadow .15s ease;">
+            <input type="text" id="vendedorInput" placeholder="Nombre del vendedor" style="width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 2px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.95rem; outline: none; transition: border-color .15s ease, box-shadow .15s ease;">
+            <input type="hidden" id="vendorIdInput" value="">
+            <!-- Dropdown de sugerencias -->
+            <div id="vendorSuggestionsDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div id="vendorSuggestionsContainer" style="padding: 8px 0;"></div>
+            </div>
           </div>
 
           <!-- Método de pago -->
@@ -133,7 +138,7 @@
           <a href="/sales" class="btn btn-ghost" style="flex: 1;">
             Cancelar
           </a>
-          <button id="updateSaleBtn" class="btn" style="flex: 1.5; padding: 12px;">
+          <button id="updateSaleBtn" class="btn" style="flex: 1.5; padding: 12px;" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -147,6 +152,31 @@
   <div class="hr" style="margin: 32px 0;"></div>
 
 </main>
+
+<!-- ============ MODAL DE CARRITO VACÍO ============ -->
+<div id="emptyCartModal" class="modal-overlay" style="display: none;">
+  <div class="modal-card">
+    <div style="text-align: center; padding: 24px 24px 0;">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--danger) 12%, transparent); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--danger);">
+          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 4px; font-size: 1.15rem;">¿Eliminar último producto?</h3>
+      <p style="margin: 0; color: var(--text-muted); font-size: 0.88rem;">No puedes guardar una venta sin productos</p>
+    </div>
+    <div style="padding: 24px;">
+      <p style="margin: 0 0 16px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+        Si eliminas este producto, el carrito quedará vacío. Tienes dos opciones:
+      </p>
+      <div style="display: flex; gap: 12px; flex-direction: column;">
+        <button id="emptyCartKeep" class="btn btn-ghost" style="padding: 12px; text-align: center;">
+          Mantener el producto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ MODAL DE CONFIRMACION ============ -->
 <div id="confirmModal" class="modal-overlay" style="display: none;">
@@ -350,6 +380,25 @@
     from { transform: translateY(-20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Estilos para sugerencias de vendedor */
+  .vendor-suggestion:hover {
+    background: var(--panel-2);
+  }
+
+  .vendor-suggestion:focus {
+    outline: 2px solid var(--brand);
+    outline-offset: -2px;
+  }
+
+  #vendorSuggestionsDropdown {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 </style>
 
 <script>
@@ -396,6 +445,7 @@ async function loadSaleData() {
     
     // Cargar vendedor y método
     document.getElementById('vendedorInput').value = sale.vendedor || '';
+    document.getElementById('vendorIdInput').value = sale.vendor_id || '';
     selectedPaymentMethod = sale.payment_method || 'Efectivo';
     activatePaymentMethod(selectedPaymentMethod);
     
@@ -424,9 +474,11 @@ function renderCart() {
   if (!cart.size) {
     document.getElementById('emptyCart').style.display = 'block';
     document.getElementById('cartSummaryLine').style.display = 'none';
+    document.getElementById('updateSaleBtn').disabled = true;
   } else {
     document.getElementById('emptyCart').style.display = 'none';
     document.getElementById('cartSummaryLine').style.display = 'flex';
+    document.getElementById('updateSaleBtn').disabled = false;
     
     cart.forEach((item, item_id) => {
       const itemSubtotal = item.unit_price * item.quantity;
@@ -482,20 +534,23 @@ function setQty(item_id, value) {
 }
 
 function removeFromCart(item_id) {
-  cart.delete(item_id);
-  renderCart();
+  if (cart.size === 1) {
+    showEmptyCartConfirmModal(item_id);
+  } else {
+    cart.delete(item_id);
+    renderCart();
+  }
 }
 
-// Preparar datos para enviar
 function prepareUpdatePayload() {
   if (!cart.size) {
-    Notify.error('El carrito está vacío');
+    Notify.error(' El carrito está vacío. Debe haber al menos un producto para guardar la venta.');
     return null;
   }
 
-  const vendedor = document.getElementById('vendedorInput').value.trim();
-  if (!vendedor) {
-    Notify.error('Ingresa el nombre del vendedor');
+  const vendor_id = parseInt(document.getElementById('vendorIdInput').value.trim());
+  if (!vendor_id || isNaN(vendor_id)) {
+    Notify.error('Selecciona un vendedor válido');
     return null;
   }
 
@@ -506,12 +561,26 @@ function prepareUpdatePayload() {
 
   return {
     items,
-    vendedor,
+    vendor_id,
     payment_method: selectedPaymentMethod
   };
 }
 
-// Mostrar modal de confirmación
+function showEmptyCartConfirmModal(item_id) {
+  const modal = document.getElementById('emptyCartModal');
+  
+  document.getElementById('emptyCartKeep').onclick = () => {
+    modal.style.display = 'none';
+  };
+  
+  document.getElementById('emptyCartDelete').onclick = () => {
+    modal.style.display = 'none';
+    window.location.href = '/sales';
+  };
+  
+  modal.style.display = 'flex';
+}
+
 function showConfirmModal() {
   const payload = prepareUpdatePayload();
   if (!payload) return;
@@ -579,8 +648,80 @@ document.querySelectorAll('.payment-method-btn').forEach(btn => {
   });
 });
 
-// Cargar venta al iniciar
+// ===== SUGERENCIAS DE VENDEDOR =====
+let vendorSuggestionsTimeout;
+
+document.getElementById('vendedorInput')?.addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  clearTimeout(vendorSuggestionsTimeout);
+  
+  // Limpiar ID si el input cambió
+  if (query !== document.getElementById('vendorIdInput').dataset.lastUsername) {
+    document.getElementById('vendorIdInput').value = '';
+  }
+  
+  if (!query) {
+    document.getElementById('vendorSuggestionsDropdown').style.display = 'none';
+    return;
+  }
+  
+  const dropdown = document.getElementById('vendorSuggestionsDropdown');
+  const suggestionContainer = document.getElementById('vendorSuggestionsContainer');
+  
+  // Mostrar indicador de carga
+  dropdown.style.display = 'block';
+  suggestionContainer.innerHTML = '<div style="padding: 12px 16px; text-align: center; color: var(--text-muted);">Buscando vendedores...</div>';
+  
+  vendorSuggestionsTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/suggest/vendors?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error('Error en la búsqueda');
+      
+      const data = await res.json();
+      const suggestions = data.data || [];
+      
+      if (suggestions.length === 0) {
+        suggestionContainer.innerHTML = '<div style="padding: 12px 16px; color: var(--text-muted);">No se encontraron vendedores</div>';
+        return;
+      }
+      
+      suggestionContainer.innerHTML = suggestions.map((vendor, idx) => `
+        <div data-vendor-id="${vendor.id}" data-vendor-name="${vendor.username}" data-index="${idx}"
+             style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .1s;" 
+             onmouseenter="this.style.background='var(--hover-light)'" 
+             onmouseleave="this.style.background='transparent'">
+          <div style="font-weight: 500;">${vendor.username}</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">${vendor.email || ''}</div>
+        </div>
+      `).join('');
+      
+      // Event delegation for clicks
+      suggestionContainer.querySelectorAll('[data-vendor-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          const vendorId = el.getAttribute('data-vendor-id');
+          const vendorName = el.getAttribute('data-vendor-name');
+          document.getElementById('vendedorInput').value = vendorName;
+          document.getElementById('vendorIdInput').value = vendorId;
+          document.getElementById('vendorIdInput').dataset.lastUsername = vendorName;
+          dropdown.style.display = 'none';
+        });
+      });
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      suggestionContainer.innerHTML = '<div style="padding: 12px 16px; color: var(--error);">Error buscando vendedores</div>';
+    }
+  }, 300);
+});
+
+// Cerrar dropdown al hacer click fuera
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[id="vendedorInput"]') && 
+      !e.target.closest('[id="vendorSuggestionsDropdown"]')) {
+    document.getElementById('vendorSuggestionsDropdown').style.display = 'none';
+  }
+});
+
+// Cargar datos cuando la página se carga
 document.addEventListener('DOMContentLoaded', loadSaleData);
 </script>
-
 {% endblock %}

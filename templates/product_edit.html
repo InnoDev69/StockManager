@@ -430,6 +430,21 @@
       }
     );
   }
+
+  // Initialize CalendarPicker for expiration date field
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof CalendarPicker !== 'undefined') {
+      const input = document.querySelector('input[name="expiration_date"]');
+      if (input) {
+        const minYear = parseInt(input.dataset.calendarMinYear) || 2020;
+        const maxYear = parseInt(input.dataset.calendarMaxYear) || 2030;
+        new CalendarPicker('input[name="expiration_date"]', {
+          minYear: minYear,
+          maxYear: maxYear
+        });
+      }
+    }
+  });
 </script>
 
 <style>

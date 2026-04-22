@@ -467,6 +467,19 @@
     show($('edit-modal'));
     loadProductAttributes(productId);
     $('edit-modal').setAttribute('aria-hidden', 'false');
+    
+    // Reinitialize CalendarPicker for the expiration date field
+    if (typeof CalendarPicker !== 'undefined') {
+      const input = $('edit-expiration-date');
+      if (input._calendarPicker) {
+        input._calendarPicker.destroy?.();
+        delete input._calendarPicker;
+      }
+      new CalendarPicker('#edit-expiration-date', {
+        minYear: 2020,
+        maxYear: 2030
+      });
+    }
   }
 
   function closeEditModal() {

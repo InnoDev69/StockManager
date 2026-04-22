@@ -1,5 +1,6 @@
 from bd.bdErrors import DatabaseError
 from tools.local_time import localDate
+from tools.logger import logger
 
 class SalesMixin:
     """Métodos de registro y consulta de ventas."""
@@ -36,14 +37,14 @@ class SalesMixin:
             "low_stock_list": low_list,
         }
 
-    def record_product_sale(self, item_id, quantity, vendedor, payment_method="Efectivo"):
+    def record_product_sale(self, item_id, quantity, vendor_id, payment_method="Efectivo"):
         """
         Registra una venta y actualiza el inventario de forma atómica.
 
         Args:
             item_id (int): ID del producto a vender
             quantity (int): Cantidad a vender
-            vendedor (str): Nombre del vendedor
+            vendor_id (int): ID del vendedor
             payment_method (str): Método de pago
 
         Raises:
@@ -53,8 +54,8 @@ class SalesMixin:
         with self._cursor() as cur:
             try:
                 cur.execute(
-                    "INSERT INTO sells (item_id, date,vendedor, payment_method) VALUES (?, ?,?, ?)",
-                    (item_id, localDate(), vendedor, payment_method),
+                    "INSERT INTO sells (item_id, date,vendor_id, payment_method) VALUES (?, ?,?, ?)",
+                    (item_id, localDate(), vendor_id, payment_method),
                 )
                 sell_id = cur.lastrowid
 
@@ -67,8 +68,8 @@ class SalesMixin:
                     raise ValueError("Stock insuficiente")
 
                 cur.execute(
-                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
-                    (sell_id, item_id, quantity, price, vendedor, payment_method),
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sell_id, item_id, quantity, price, vendor_id, payment_method),
                 )
                 cur.execute(
                     "UPDATE items SET quantity = ? WHERE id = ?",
@@ -77,13 +78,13 @@ class SalesMixin:
             except Exception as e:
                 raise DatabaseError(f"Error al registrar venta: {e}")
 
-    def record_bulk_sale(self, items, vendedor, payment_method="Efectivo"):
+    def record_bulk_sale(self, items, vendor_id, payment_method="Efectivo"):
         """
         Registra una venta con múltiples productos en una sola transacción.
 
         Args:
             items (list): Lista de dicts con {item_id, quantity}
-            vendedor (str): Nombre del vendedor
+            vendor_id (int): ID del vendedor
             payment_method (str): Método de pago
 
         Returns:
@@ -96,11 +97,13 @@ class SalesMixin:
         if not items:
             raise ValueError("La lista de items no puede estar vacía")
 
+        logger.debug(f"Registrando venta con {items} items para vendor_id={vendor_id}")
+        
         with self.transaction() as cur:
             try:
                 cur.execute(
-                    "INSERT INTO sells (item_id, vendedor, payment_method, date) VALUES (?, ?, ?, ?)",
-                    (items[0]["item_id"], vendedor, payment_method, localDate()),
+                    "INSERT INTO sells (item_id, vendor_id, payment_method, date) VALUES (?, ?, ?, ?)",
+                    (items[0]["item_id"], vendor_id, payment_method, localDate()),
                 )
                 sell_id = cur.lastrowid
             except Exception as e:
@@ -120,8 +123,8 @@ class SalesMixin:
                     raise ValueError(f"Stock insuficiente para producto ID {item_id}")
 
                 cur.execute(
-                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
-                    (sell_id, item_id, quantity, price, vendedor, payment_method),
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sell_id, item_id, quantity, price, vendor_id, payment_method),
                 )
                 cur.execute(
                     "UPDATE items SET quantity = ? WHERE id = ?",
@@ -134,11 +137,12 @@ class SalesMixin:
         """Obtiene detalles completos de una venta por ID"""
         with self._cursor() as cur:
             cur.execute("""
-                SELECT s.id, s.date, s.vendedor, s.payment_method,
+                SELECT s.id, s.date, s.vendor_id, s.payment_method, u.username,
                     d.item_id, d.quantity, d.price, i.name
                 FROM sells s
                 JOIN details d ON s.id = d.sell_id
                 JOIN items i ON d.item_id = i.id
+                LEFT JOIN users u ON s.vendor_id = u.id
                 WHERE s.id = ?
             """, (sale_id,))
             rows = cur.fetchall()
@@ -150,15 +154,16 @@ class SalesMixin:
             return {
                 "id": first[0],
                 "date": first[1],
-                "vendedor": first[2],
+                "vendor_id": first[2],
+                "vendedor": self.get_username_by_id(first[2]) if self.get_username_by_id(first[2]) else "unknown",
                 "payment_method": first[3],
                 "items": [
-                    {"item_id": r[4], "quantity": r[5], "price": r[6], "name": r[7]}
+                    {"item_id": r[5], "quantity": r[6], "price": r[7], "name": r[8]}
                     for r in rows
                 ]
             }
 
-    def update_sale(self, sale_id, items, vendedor, payment_method):
+    def update_sale(self, sale_id, items, vendor_id, payment_method):
         """
         Actualiza una venta existente:
         1. Restaura stock de productos antiguos
@@ -166,23 +171,19 @@ class SalesMixin:
         3. Actualiza details y sells
         """
         with self.transaction() as cur:
-            # Obtener venta anterior
             cur.execute("""
                 SELECT item_id, quantity FROM details WHERE sell_id = ?
             """, (sale_id,))
             old_items = cur.fetchall()
             
-            # Restaurar stock anterior
             for old_item_id, old_qty in old_items:
                 cur.execute(
                     "UPDATE items SET quantity = quantity + ? WHERE id = ?",
                     (old_qty, old_item_id)
                 )
             
-            # Deletar detalles antiguos
             cur.execute("DELETE FROM details WHERE sell_id = ?", (sale_id,))
             
-            # Insertar nuevos detalles y deducir stock
             for item in items:
                 item_id = item["item_id"]
                 quantity = item["quantity"]
@@ -197,16 +198,15 @@ class SalesMixin:
                     raise ValueError(f"Stock insuficiente para ID {item_id}")
                 
                 cur.execute(
-                    "INSERT INTO details (sell_id, item_id, quantity, price, vendedor, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
-                    (sale_id, item_id, quantity, price, vendedor, payment_method)
+                    "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sale_id, item_id, quantity, price, vendor_id, payment_method)
                 )
                 cur.execute(
                     "UPDATE items SET quantity = quantity - ? WHERE id = ?",
                     (quantity, item_id)
                 )
             
-            # Actualizar encabezado de venta
             cur.execute(
-                "UPDATE sells SET vendedor = ?, payment_method = ? WHERE id = ?",
-                (vendedor, payment_method, sale_id)
+                "UPDATE sells SET vendor_id = ?, payment_method = ? WHERE id = ?",
+                (vendor_id, payment_method, sale_id)
             )

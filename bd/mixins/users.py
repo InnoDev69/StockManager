@@ -58,3 +58,19 @@ class UsersMixin:
             (email,),
         )
         return rows[0] if rows else None
+    
+    def get_username_by_id(self, user_id):
+        """
+        Busca un usuario por su ID.
+
+        Args:
+            user_id (int): ID del usuario
+
+        Returns:
+            str|None: Nombre de usuario o None si no existe
+        """
+        rows = self.execute_query(
+            "SELECT username FROM users WHERE id = ?",
+            (user_id,),
+        )
+        return rows[0][0] if rows else None

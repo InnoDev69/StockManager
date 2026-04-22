@@ -438,3 +438,45 @@ def api_login():
         "username": username,
         "role": role
     }), 200
+    
+@users_api.route("/suggest/vendors", methods=["GET"])
+@require_auth
+def suggest_vendedor():
+    """
+    Endpoint para autocompletar vendedores activos.
+    Requiere login: Sí
+    Query Params:
+        q (str): Texto de búsqueda para el nombre de usuario del vendedor
+    Returns:
+        JSON: {"data": [lista de sugerencias de vendedores]}
+    Status Codes:
+        200: Sugerencias obtenidas exitosamente
+        400: Parámetro de búsqueda faltante o vacío
+    Example Request:
+        GET /suggest/vendors?q=juan
+    """
+    
+    try:
+        search = request.args.get("q", "").strip()
+        
+        if not search:
+            return jsonify({"data": []}), 200
+        
+        rows = db.execute_query(
+            """
+            SELECT id, username, email 
+            FROM users 
+            WHERE (role = 'vendedor' OR role = 'admin') AND status = 1 
+            AND (username LIKE ? OR email LIKE ?)
+            LIMIT 10
+            """,
+            (f"%{search}%", f"%{search}%")
+        )
+        
+        suggestions = [{"id": r[0], "username": r[1], "email": r[2]} for r in rows]
+        
+        return jsonify({"data": suggestions}), 200
+    
+    except Exception as e:
+        logger.error(f"Error al obtener sugerencias de vendedores: {str(e)}")
+        return jsonify({"error": "Error al obtener sugerencias"}), 500

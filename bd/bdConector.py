@@ -158,7 +158,7 @@ class BDConector(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id INTEGER NOT NULL,
             date TEXT NOT NULL,
-            vendedor TEXT NOT NULL,
+            vendor_id INTEGER NOT NULL REFERENCES users(id),
             payment_method TEXT NOT NULL DEFAULT 'Efectivo',
             FOREIGN KEY (item_id) REFERENCES items (id)
         )
@@ -170,7 +170,7 @@ class BDConector(
             item_id INTEGER NOT NULL,
             quantity INTEGER NOT NULL,
             price REAL NOT NULL,
-            vendedor TEXT NOT NULL,
+            vendor_id INTEGER NOT NULL REFERENCES users(id),
             payment_method TEXT NOT NULL DEFAULT 'Efectivo',
             FOREIGN KEY (sell_id) REFERENCES sells (id),
             FOREIGN KEY (item_id) REFERENCES items (id)
@@ -235,15 +235,15 @@ class BDConector(
 
             # Índice compuesto para las queries de ventas filtradas por fecha y vendedor
             cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sells_date_vendedor
-                ON sells(date, vendedor)
+                CREATE INDEX IF NOT EXISTS idx_sells_date_vendor_id
+                ON sells(date, vendor_id)
             """)
             # Índice individual de fecha para queries sin filtro de vendedor
             cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_date ON sells(date)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_details_sell_id ON details(sell_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_details_item_id ON details(item_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_items_name ON items(name)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendedor ON sells(vendedor)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendor_id ON sells(vendor_id)")
             
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)")
@@ -270,7 +270,9 @@ class BDConector(
             ("items", "id", "INTEGER PRIMARY KEY NOT NULL"),
             ("items", "notified_low_stock", "INTEGER NOT NULL DEFAULT 0"),
             ("items", "created_at", "TEXT"),
-            ("items", "updated_at", "TEXT")
+            ("items", "updated_at", "TEXT"),
+            ("sells",   "vendor_id",       "INTEGER DEFAULT NULL"),
+            ("details", "vendor_id",       "INTEGER DEFAULT NULL"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

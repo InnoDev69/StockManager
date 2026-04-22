@@ -23,9 +23,11 @@
   const tempKeyInput  = document.getElementById('temp_key');
   const dropzone      = document.getElementById('dropzone');
 
-  const selectIds  = ['col_barcode','col_name','col_description','col_quantity','col_min_quantity','col_price'];
+  let droppedFile = null;  // Guardar referencia al archivo deslizado
+
+  const selectIds  = ['col_barcode','col_name','col_description','col_quantity','col_min_quantity','col_price','col_expiration_date'];
   const reqIds     = ['col_barcode','col_name','col_quantity','col_price'];
-  const optIds     = ['col_description','col_min_quantity'];
+  const optIds     = ['col_description','col_min_quantity','col_expiration_date'];
 
   function clearNode(n) { while (n && n.firstChild) n.removeChild(n.firstChild); }
 
@@ -53,7 +55,10 @@
     }
   }
 
-  fileInput.addEventListener('change', () => updateFileHint(fileInput.files && fileInput.files[0]));
+  fileInput.addEventListener('change', () => {
+    droppedFile = fileInput.files && fileInput.files[0];
+    updateFileHint(droppedFile);
+  });
 
   dropzone.addEventListener('click', (e) => {
     if (e.target !== fileInput) fileInput.click();
@@ -63,10 +68,11 @@
     e.preventDefault(); dropzone.classList.add('ci-dropzone--drag');
   }));
   ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => {
-    e.preventDefault(); dropzone.classList.remove('ci-dropzone--drag');
+    e.preventDefault(); 
+    dropzone.classList.remove('ci-dropzone--drag');
     if (ev === 'drop' && e.dataTransfer.files[0]) {
-      fileInput.files = e.dataTransfer.files;
-      updateFileHint(e.dataTransfer.files[0]);
+      droppedFile = e.dataTransfer.files[0];
+      updateFileHint(droppedFile);
     }
   }));
 
@@ -136,7 +142,8 @@
       col_description:['descripcion','descripcion','detalle','desc'],
       col_quantity:   ['cantidad','stock','qty','quantity','existencia'],
       col_min_quantity:['min','minimo','min stock','stock minimo'],
-      col_price:      ['precio','price','valor','costo','cost']
+      col_price:      ['precio','price','valor','costo','cost'],
+      col_expiration_date:['vencimiento','expiration','expiration_date','fecha vencimiento','fecha de vencimiento']
     };
     const picked = new Set();
     Object.keys(mapping).forEach(id => {
@@ -214,7 +221,7 @@
     e.preventDefault();
     clearNode(importAlerts);
 
-    const file = fileInput.files && fileInput.files[0];
+    const file = droppedFile || (fileInput.files && fileInput.files[0]);
     if (!file) { if (typeof NotificationManager !== 'undefined') NotificationManager.error('Selecciona un archivo CSV antes de previsualizar.'); return; }
 
     let d = (delimInp.value || '').trim();
@@ -224,16 +231,33 @@
 
     setLoadingPreview(true);
     try {
-      const fd  = new FormData(importForm);
-      const res = await fetch(window.location.href, { method: 'POST', body: fd });
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('delimiter', d);
+      fd.append('has_header', document.getElementById('has_header').checked ? '1' : '0');
+      
+      const action = importForm.getAttribute('action') || window.location.href;
+      const res = await fetch(action, { method: 'POST', body: fd });
 
       if (!res.ok) {
-        addInlineAlert(importAlerts, 'No se pudo procesar el archivo. Verifica el delimitador y el formato.', 'error');
-        if (typeof NotificationManager !== 'undefined') NotificationManager.error('Error al previsualizar el CSV.');
+        const errorText = await res.text();
+        console.error('Error response:', res.status, errorText);
+        addInlineAlert(importAlerts, `Error ${res.status}: No se pudo procesar el archivo.`, 'error');
         return;
       }
 
-      const data = await res.json();
+      let responseText = await res.text();
+      let _data;
+      try {
+        _data = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error('JSON parse error:', parseErr);
+        console.error('Response text:', responseText.substring(0, 500));
+        addInlineAlert(importAlerts, 'Respuesta inválida del servidor.', 'error');
+        return;
+      }
+
+      const data = _data;
       const headers = Array.isArray(data.headers) ? data.headers.map(h => String(h)) : [];
       const rows    = Array.isArray(data.rows)    ? data.rows : [];
 
@@ -254,6 +278,7 @@
       if (typeof NotificationManager !== 'undefined') NotificationManager.success('Previsualización lista.');
     } catch (err) {
       addInlineAlert(importAlerts, 'Ocurrió un error inesperado al previsualizar. Intenta de nuevo.', 'error');
+      console.log('Error en previsualización:', err);
       if (typeof NotificationManager !== 'undefined') NotificationManager.error('Error al previsualizar el CSV.');
     } finally {
       setLoadingPreview(false);

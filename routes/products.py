@@ -77,7 +77,7 @@ def product_management():
     
     return render_template("product_management.html")
 
-@products_bp.route("/import", methods=["GET"])
+@products_bp.route("/import", methods=["GET", "POST"])
 @require_admin
 def import_preview():
     """
@@ -129,7 +129,7 @@ def import_preview():
         'rows': data_rows[:10]
     }
     
-@products_bp.route("/import", methods=["GET", "POST"])
+@products_bp.route("/import/confirm", methods=["POST"])
 @require_admin
 def confirm_import():
     """
@@ -167,6 +167,8 @@ def confirm_import():
     col_quantity = int(request.form.get('col_quantity', 3))
     col_min_quantity = int(request.form.get('col_min_quantity', 4))
     col_price = int(request.form.get('col_price', 5))
+    col_expiration_date = request.form.get('col_expiration_date')
+    col_expiration_date = int(col_expiration_date) if col_expiration_date else None
     
     imported = 0
     for row in rows:
@@ -178,9 +180,10 @@ def confirm_import():
         desc = row[col_description].strip() if col_description < len(row) else ""
         qty = int(row[col_quantity]) if row[col_quantity].isdigit() else 0
         min_qty = int(row[col_min_quantity]) if col_min_quantity < len(row) and row[col_min_quantity].isdigit() else 0
+        exp_date = row[col_expiration_date].strip() if col_expiration_date is not None and col_expiration_date < len(row) else None
         price = float(row[col_price]) if col_price < len(row) else 0.0
         
-        db.add_item(barcode, desc, name, qty, min_qty, price)
+        db.add_item(barcode, desc, name, qty, min_qty, exp_date, price)
         imported += 1
     
     flash(f"{imported} productos importados correctamente")
