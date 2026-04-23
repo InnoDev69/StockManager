@@ -1,19 +1,29 @@
 /**
- * CSV Exporter - File System Access API with Fallback
- * Usa showSaveFilePicker para diálogo "Guardar como" (Chrome, Edge, Opera)
- * Fallback a descarga tradicional para otros navegadores
+ * CSV Exporter - Usa FileDownloader modular
+ * Soporta: showDirectoryPicker → showSaveFilePicker → Blob
+ * Funciona en Windows, Linux, macOS y navegadores
  */
 
 class CSVExporter {
     constructor() {
-        this.supportsFileSystemAPI = typeof window.showSaveFilePicker !== 'undefined';
+        this.waitForFileDownloader();
+    }
+
+    /**
+     * Espera a que FileDownloader esté disponible
+     */
+    waitForFileDownloader() {
+        if (!window.FileDownloader) {
+            console.warn('FileDownloader aún no disponible, reintentando...');
+            setTimeout(() => this.waitForFileDownloader(), 100);
+        }
     }
 
     /**
      * Exporta datos a CSV desde array de arrays
      * @param {Array<Array>} rows - Array de arrays: [[col1, col2], [data1, data2]]
      * @param {String} filename - Nombre del archivo (ej: "datos_2026-04-20.csv")
-     * @param {String} format - Formato: 'array' (por defecto) o 'custom'
+     * @param {Function} onSuccess - Callback opcional cuando se completa
      */
     async exportFromArray(rows, filename = 'export.csv', onSuccess = null) {
         try {
@@ -31,6 +41,7 @@ class CSVExporter {
      * @param {Element} tableElement - Elemento <table> a exportar
      * @param {String} filename - Nombre del archivo
      * @param {Number} excludeLastCols - Columnas a excluir desde el final
+     * @param {Function} onSuccess - Callback opcional
      */
     async exportFromHTMLTable(tableElement, filename = 'export.csv', excludeLastCols = 1, onSuccess = null) {
         try {
@@ -77,7 +88,6 @@ class CSVExporter {
      * Escapa celdas CSV según RFC 4180
      */
     escapeCSVCell(cell) {
-        // Si contiene comoma, comillas o saltos de línea, encapsular en comillas
         if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
             return '"' + cell.replace(/"/g, '""') + '"';
         }
@@ -85,73 +95,16 @@ class CSVExporter {
     }
 
     /**
-     * Guardar archivo - Intenta File System API, fallback a blob
+     * Guardar archivo usando FileDownloader (modular)
      */
     async saveFile(csvContent, filename) {
-        const csvWithBOM = '\uFEFF' + csvContent;
+        if (!window.FileDownloader) {
+            console.error('FileDownloader no disponible');
+            throw new Error('FileDownloader no cargado');
+        }
         
-        if (this.supportsFileSystemAPI) {
-            return this.saveWithFileSystemAPI(csvWithBOM, filename);
-        } else {
-            return this.saveWithBlobFallback(csvWithBOM, filename);
-        }
-    }
-
-    /**
-     * Guarda usando File System Access API (diálogo nativo)
-     */
-    async saveWithFileSystemAPI(csvContent, filename) {
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: filename,
-                types: [
-                    {
-                        description: 'CSV Files',
-                        accept: { 'text/csv': ['.csv'] }
-                    },
-                    {
-                        description: 'All Files',
-                        accept: { '*/*': [''] }
-                    }
-                ],
-                startInDownloads: true
-            });
-
-            const writable = await handle.createWritable();
-            await writable.write(csvContent);
-            await writable.close();
-
-            console.log(`✓ Archivo guardado: ${filename}`);
-            return true;
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('Descarga cancelada por el usuario');
-                return false;
-            }
-            console.warn('File System API no disponible, usando fallback:', err.message);
-            return this.saveWithBlobFallback(csvContent, filename);
-        }
-    }
-
-    /**
-     * Fallback: Descarga tradicional con Blob
-     */
-    saveWithBlobFallback(csvContent, filename) {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
-        console.log(`✓ Archivo descargado (blob): ${filename}`);
-        return true;
+        // Crear blob y descargar usando el sistema modular
+        await window.FileDownloader.downloadCSVContent(csvContent, filename);
     }
 }
 

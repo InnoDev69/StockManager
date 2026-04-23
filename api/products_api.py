@@ -393,12 +393,6 @@ def update_product(product_id):
         "expiration_date": "expiration_date",
         "status": "status"
     }
-    try:
-        data = ItemValidator.validate("0", data.get("description", ""), data.get("name", ""), 
-                                    data.get("quantity"), data.get("min_quantity"), 
-                                    data.get("price"), data.get("expiration_date"), data.get("status"))
-    except ValidationError as e:
-        return jsonify({"error": e.field + ": " + e.message}), 400
     
     for key, db_field in field_mapping.items():
         if key in data and data[key] != current_values.get(key):

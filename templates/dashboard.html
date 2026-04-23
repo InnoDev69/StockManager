@@ -137,18 +137,19 @@
 </section>
 
 <!-- KPIs Section -->
-<section class="card kv" aria-label="Resumen de métricas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1.25rem;">
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+<section class="card kv" aria-label="Resumen de métricas" style="display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: flex-start; gap: 1.5rem; padding: 1.25rem; overflow-x: auto;">
+  
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: max-content;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Expira pronto</div>
     <div id="count" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">{{ stats.expire_soon | default(0) }}</div>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: max-content;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Productos</div>
     <div id="count" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">{{ stats.products | default(0) }}</div>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: max-content;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Bajo stock</div>
     <div style="display: flex; align-items: baseline; gap: 0.5rem;">
       <div id="lowstock" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--warning, #f59e0b);">{{ stats.low_stock | default(0) }}</div>
@@ -158,10 +159,21 @@
     </div>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: max-content;">
+    <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Sin stock</div>
+    <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+      <div id="out-of-stock" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--danger, #ef4444);">{{ stats.out_of_stock | default(0) }}</div>
+      {% if stats.out_of_stock > 0 %}
+      <span style="font-size: 0.75rem; padding: 0.125rem 0.5rem; background: var(--danger-bg, rgba(239, 68, 68, 0.1)); border-radius: 12px; color: var(--danger, #ef4444);">⚠ Alerta</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: max-content;">
     <div class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Ventas hoy</div>
     <div id="sales-today" class="mono" style="font-size: 1.75rem; font-weight: 700; color: var(--success, #10b981);">{{ stats.sales_today | default(0) }}</div>
   </div>
+
 </section>
 
 <!-- Acciones y Filtros -->
@@ -236,7 +248,6 @@
 </section>
 
 <!-- Alertas de bajo stock -->
-<!-- Alertas de bajo stock -->
 {% if low_stock_list %}
 <section id="alerts" aria-live="polite" aria-label="Alertas de inventario" style="margin-top: 1.5rem;">
   <div class="card" style="padding: 0; overflow: hidden; border-left: 3px solid var(--warning, #f59e0b);">
@@ -246,8 +257,8 @@
         <svg style="width: 18px; height: 18px; color: var(--warning, #f59e0b); flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"/>
         </svg>
-        <span style="font-size: 0.875rem; font-weight: 600; color: var(--warning, #f59e0b);">
-          Productos con bajo stock
+        <span style="font-size: 0.875rem; font-weight: 600; color: var(--text);">
+          Alertas de Stock
         </span>
         <span style="font-size: 0.75rem; font-weight: 700; padding: 0.125rem 0.625rem; border-radius: 20px; background: rgba(245,158,11,0.12); color: var(--warning, #f59e0b); border: 1px solid rgba(245,158,11,0.2);">
           <span id="ls-total">{{ low_stock_list|length }}</span>
@@ -263,14 +274,17 @@
       <li class="ls-item" data-index="{{ loop.index0 }}"
           style="display: flex; align-items: stretch; gap: 1rem; padding: 0.875rem 1rem; background: rgba(245,158,11,0.04); border-radius: 8px; border: 1px solid rgba(245,158,11,0.1);">
 
-        <!-- Indicador lateral -->
-        <div style="width: 3px; border-radius: 2px; background: var(--warning, #f59e0b); flex-shrink: 0; opacity: 0.6;"></div>
+        <div class="stock-indicator" style="{% if item.stock == 0 %} --alert-color: var(--danger, #ef4444); --alert-opacity: 0.8;{% else %} --alert-color: var(--warning, #f59e0b); --alert-opacity: 0.5;{% endif %}"></div>
 
-        <!-- Info del producto -->
         <div style="flex: 1; min-width: 0; display: flex; align-items: center;">
-          <div>
-            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              {{ item.name }}
+          <div style="width: 100%;">
+            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">{{ item.name }}</span>
+              {% if item.stock == 0 %}
+                <span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: var(--danger, #ef4444); border: 1px solid rgba(239, 68, 68, 0.2); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">Sin stock</span>
+              {% else %}
+                <span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: var(--warning, #f59e0b); border: 1px solid rgba(245, 158, 11, 0.2); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">Bajo stock</span>
+              {% endif %}
             </div>
             <div class="mono" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
               SKU: {{ item.sku | default('N/A') }}
@@ -278,9 +292,8 @@
           </div>
         </div>
 
-        <!-- Stock -->
         <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex-shrink: 0; gap: 0.1rem;">
-          <span class="mono" style="font-size: 1.375rem; font-weight: 700; line-height: 1; color: var(--warning, #f59e0b);">
+          <span class="mono" style="font-size: 1.375rem; font-weight: 700; line-height: 1; color: {% if item.stock == 0 %}var(--danger, #ef4444){% else %}var(--warning, #f59e0b){% endif %};">
             {{ item.stock }}
           </span>
           <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
@@ -552,6 +565,14 @@
     padding: 0 0.25rem;
     color: var(--text-muted);
     user-select: none;
+  }
+
+  .stock-indicator {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--alert-color);
+    flex-shrink: 0;
+    opacity: var(--alert-opacity);
   }
 
   @media (max-width: 768px) {

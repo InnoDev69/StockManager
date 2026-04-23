@@ -33,6 +33,9 @@ def index():
     }
     low_stock_list = stats_data.get("low_stock_list", [])
     
+    out_of_stock = db.execute_query("SELECT COUNT(*) FROM items WHERE quantity = 0 AND status = 1")[0][0]
+    stats["out_of_stock"] = out_of_stock
+    
     role = session.get("role", "Vendedor")
     return render_template('dashboard.html', stats=stats, role=role,
                        low_stock_list=low_stock_list, products=[], show_back=False,
