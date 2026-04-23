@@ -6,7 +6,6 @@
 {% block content %}
 <div style="padding: var(--spacing-lg); max-width: 1000px; margin: 0 auto;">
   
-  <!-- Header con navegación -->
   <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-2xl);">
     <button onclick="history.back()" class="btn btn-ghost" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer; border: none; background: none; padding: 0.5rem 0.75rem;">
       <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,11 +25,9 @@
     {% endif %}
   </div>
 
-  <!-- Información Principal -->
   <div class="card" style="margin-bottom: var(--spacing-2xl); padding: var(--spacing-2xl); overflow: hidden;">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-2xl); align-items: start;">
       
-      <!-- Columna Izquierda: Datos principales -->
       <div style="min-width: 0;">
         <h1 style="margin: 0 0 var(--spacing-sm) 0; font-size: 2rem; font-weight: 700; line-height: 1.2; word-break: break-word; overflow-wrap: break-word;">
           {{ product.name }}
@@ -39,10 +36,8 @@
           {{ product.description or '—' }}
         </p>
 
-        <!-- Grid de Meta Info -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); padding: var(--spacing-lg); background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); border: 1px solid var(--border); overflow: hidden;">
           
-          <!-- SKU -->
           <div style="min-width: 0;">
             <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-xs);">
               SKU

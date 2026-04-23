@@ -11,6 +11,27 @@ class FileDownloader {
   }
 
   /**
+   * Obtener tipos de archivo para showSaveFilePicker (Windows compatible)
+   * @param {String} fileName - Nombre del archivo con extensión
+   * @returns {Array} - Array de tipos para showSaveFilePicker
+   */
+  getFileTypes(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const typeMap = {
+      'csv': [{ description: 'Archivos CSV', accept: { 'text/csv': ['.csv'] } }],
+      'pdf': [{ description: 'Archivos PDF', accept: { 'application/pdf': ['.pdf'] } }],
+      'png': [{ description: 'Imágenes PNG', accept: { 'image/png': ['.png'] } }],
+      'jpg': [{ description: 'Imágenes JPG', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }],
+      'jpeg': [{ description: 'Imágenes JPEG', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }],
+      'xlsx': [{ description: 'Archivos Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+      'xls': [{ description: 'Archivos Excel', accept: { 'application/vnd.ms-excel': ['.xls'] } }],
+      'json': [{ description: 'Archivos JSON', accept: { 'application/json': ['.json'] } }],
+      'txt': [{ description: 'Archivos de texto', accept: { 'text/plain': ['.txt'] } }]
+    };
+    return typeMap[ext] || [];
+  }
+
+  /**
    * Modal genérico para seleccionar nombre de archivo
    * @param {String} defaultFileName - Nombre sugerido
    * @param {Function} onSubmit - Callback cuando el usuario confirma
@@ -96,7 +117,8 @@ class FileDownloader {
         try {
           const fileHandle = await window.showSaveFilePicker({
             suggestedName: defaultFileName,
-            startIn: dirHandle
+            startIn: dirHandle,
+            types: this.getFileTypes(defaultFileName)
           });
 
           // Descargar el archivo en la ubicación seleccionada
@@ -121,7 +143,8 @@ class FileDownloader {
         // Paso 3: Si no tenemos carpeta, intentar showSaveFilePicker directo
         try {
           const fileHandle = await window.showSaveFilePicker({
-            suggestedName: defaultFileName
+            suggestedName: defaultFileName,
+            types: this.getFileTypes(defaultFileName)
           });
 
           const response = await fetch(url);

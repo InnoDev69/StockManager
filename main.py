@@ -101,7 +101,6 @@ if __name__ == "__main__":
         flask_thread.start()
         time.sleep(1)
 
-        # --- Crea ventana apuntando a la URL ---
         window = webview.create_window("Stockly", "http://127.0.0.1:5000", width=1200, height=800)
 
         if sys.platform == "linux" and os.path.exists(icon_path):
