@@ -2,6 +2,7 @@ import os
 import sys
 import signal
 import uuid
+import atexit
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
 
@@ -55,12 +56,22 @@ def close_db(exception=None):
     db.close_conn()
 
 # --- Señales ---
+def cleanup():
+    """Limpia recursos antes de cerrar."""
+    logger.info("Limpiando recursos...")
+    SCHEDULER.stop()
+    db.close_conn()
+
 def signal_handler(sig, frame):
     logger.info("Señal de terminación recibida, cerrando servidor...")
+    cleanup()
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
+
+# Registra cleanup al salir
+atexit.register(cleanup)
 
 # --- Scheduler ---
 SCHEDULER.add_task(86400, logger._cleanup_old_logs)
@@ -114,3 +125,5 @@ if __name__ == "__main__":
             webview.start()
     except Exception as e:
         logger.exception(f"Error al iniciar el servidor: {str(e)}")
+    finally:
+        cleanup()
