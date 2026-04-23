@@ -5,7 +5,6 @@ import uuid
 import atexit
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
-
 from api import api_bp
 from data.variables import Var
 from routes import all_blueprints
@@ -13,8 +12,7 @@ from data.limits import Limits
 from tools.logger import logger
 from tools.scheduler import SCHEDULER
 from bd.bdInstance import db
-
-from waitress import serve
+from waitress import create_server
 import threading
 import time
 
@@ -55,10 +53,22 @@ def handle_exception(e):
 def close_db(exception=None):
     db.close_conn()
 
-# --- Señales ---
+# --- Servidor Waitress ---
+_server = None
+
+def run_waitress():
+    global _server
+    _server = create_server(app, host='127.0.0.1', port=5000, threads=16)
+    _server.run()
+
+# --- Cleanup y señales ---
 def cleanup():
     """Limpia recursos antes de cerrar."""
     logger.info("Limpiando recursos...")
+    global _server
+    if _server:
+        _server.close()
+        _server = None
     SCHEDULER.stop()
     db.close_conn()
 
@@ -70,7 +80,6 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
-# Registra cleanup al salir
 atexit.register(cleanup)
 
 # --- Scheduler ---
@@ -85,8 +94,6 @@ if __name__ == "__main__":
         if sys.platform == "linux":
             os.environ["PYWEBVIEW_GTK"] = "1"
             os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
-            
-            # Silencia los errores de Qt
             import io
             import contextlib
             with contextlib.redirect_stderr(io.StringIO()):
@@ -105,10 +112,7 @@ if __name__ == "__main__":
 
         icon_path = os.path.join(base_path, "static", "app", "icon.png")
 
-        def run_waitress():
-            serve(app, host='127.0.0.1', port=5000, threads=16, _quiet=True)
-
-        flask_thread = threading.Thread(target=run_waitress, daemon=False)
+        flask_thread = threading.Thread(target=run_waitress, daemon=True)
         flask_thread.start()
         time.sleep(1)
 
@@ -123,6 +127,7 @@ if __name__ == "__main__":
         else:
             logger.info("Aplicación iniciada")
             webview.start()
+
     except Exception as e:
         logger.exception(f"Error al iniciar el servidor: {str(e)}")
     finally:
