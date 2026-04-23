@@ -27,7 +27,7 @@
     <div id="form-validation-error" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-radius: 6px; background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem;"></div>
 
     <!-- Alert de cambios sin guardar -->
-    <div id="unsaved-changes" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--warning); border-radius: 6px; background: rgba(245, 158, 11, 0.1); color: var(--warning); margin-bottom: 1rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+    <div id="unsaved-changes" style="display: none; padding: 0.75rem 1rem; border: 1px solid var(--warning); border-radius: 6px; background: rgba(245, 158, 11, 0.1); color: var(--warning); margin-bottom: 1rem; font-size: 0.9rem; align-items: center; gap: 0.5rem;">
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 0h.01M12 21c5.523 0 10-4.477 10-10S17.523 1 12 1 2 5.477 2 11s4.477 10 10 10z"/>
       </svg>
@@ -143,19 +143,23 @@
   const unsavedAlert = document.getElementById('unsaved-changes');
   const inputs = form.querySelectorAll('input, select');
   const initialValues = {};
+  let pendingNavigation = null;
 
   // Guardar valores iniciales
   inputs.forEach(input => {
     initialValues[input.name] = input.value;
   });
 
+  function hasUnsavedChanges() {
+    return Array.from(inputs).some(
+      inp => inp.value !== initialValues[inp.name]
+    );
+  }
+
   // Detectar cambios
   inputs.forEach(input => {
     input.addEventListener('change', () => {
-      const hasChanges = Array.from(inputs).some(
-        inp => inp.value !== initialValues[inp.name]
-      );
-      if (hasChanges) {
+      if (hasUnsavedChanges()) {
         unsavedAlert.style.display = 'flex';
       } else {
         unsavedAlert.style.display = 'none';
@@ -163,14 +167,57 @@
     });
   });
 
-  // Prevenir salir sin guardar
-  window.addEventListener('beforeunload', (e) => {
-    const hasChanges = Array.from(inputs).some(
-      inp => inp.value !== initialValues[inp.name]
-    );
-    if (hasChanges) {
+  // Modal de confirmación para cambios sin guardar
+  function showUnsavedChangesModal(onLeave) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2>Cambios sin guardar</h2>
+          <button class="modal-close" id="modal-close" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Tienes cambios sin guardar. ¿Deseas abandonar la página sin guardarlos?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="modal-cancel" type="button">Continuar editando</button>
+          <button class="btn" id="modal-leave" type="button" style="background: var(--danger); color: white;">Abandonar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const closeBtn = modal.querySelector('#modal-close');
+    const cancelBtn = modal.querySelector('#modal-cancel');
+    const leaveBtn = modal.querySelector('#modal-leave');
+    
+    closeBtn.addEventListener('click', () => modal.remove());
+    cancelBtn.addEventListener('click', () => modal.remove());
+    leaveBtn.addEventListener('click', () => {
+      modal.remove();
+      onLeave();
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+  }
+
+
+  // Detectar navegación en links
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link && !link.target && hasUnsavedChanges()) {
       e.preventDefault();
-      e.returnValue = '';
+      pendingNavigation = link.href;
+      showUnsavedChangesModal(() => {
+        window.location.href = pendingNavigation;
+      });
     }
   });
 
@@ -256,12 +303,17 @@
   }
 
   function convertDateFormat(dateStr) {
-    // Convierte DD/MM/YYYY a YYYY-MM-DD
+    if (!dateStr) return null;
     const [d, m, y] = dateStr.split('/');
     return `${y}-${m}-${d}`;
   }
 
-  // Modal genérico de confirmación
+  function formatDateForDisplay(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
   function showConfirmModal(title, message, onConfirm, onCancel = null) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -436,6 +488,11 @@
     if (typeof CalendarPicker !== 'undefined') {
       const input = document.querySelector('input[name="expiration_date"]');
       if (input) {
+        // Convertir fecha del backend (YYYY-MM-DD) a formato de display (DD/MM/YYYY)
+        if (input.value) {
+          input.value = formatDateForDisplay(input.value);
+        }
+        
         const minYear = parseInt(input.dataset.calendarMinYear) || 2020;
         const maxYear = parseInt(input.dataset.calendarMaxYear) || 2030;
         new CalendarPicker('input[name="expiration_date"]', {

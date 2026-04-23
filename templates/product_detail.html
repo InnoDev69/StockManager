@@ -139,9 +139,10 @@
           {% if product.expiration_date %}
             {% set fecha = product.expiration_date %}
             {% if fecha is string %}
-              {{ fecha }}
+              {% set partes = fecha.split('-') %}
+              {{ partes[2] }}/{{ partes[1] }}/{{ partes[0] }}
             {% else %}
-              {{ fecha.strftime('%d de %B de %Y') }}
+              {{ fecha.strftime('%d/%m/%Y') }}
             {% endif %}
           {% endif %}
         </div>

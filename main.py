@@ -95,9 +95,9 @@ if __name__ == "__main__":
         icon_path = os.path.join(base_path, "static", "app", "icon.png")
 
         def run_waitress():
-            serve(app, host='127.0.0.1', port=5000, _quiet=True)
+            serve(app, host='127.0.0.1', port=5000, threads=16, _quiet=True)
 
-        flask_thread = threading.Thread(target=run_waitress, daemon=True)
+        flask_thread = threading.Thread(target=run_waitress, daemon=False)
         flask_thread.start()
         time.sleep(1)
 
