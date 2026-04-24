@@ -4,7 +4,6 @@
 <body>
     <div class="container sh-root">
 
-        <!-- ── Page Header ─────────────────────────────────────── -->
         <header class="sh-page-header">
             <div class="sh-page-header__left">
                 <div class="sh-page-header__eyebrow">
@@ -25,7 +24,6 @@
             </div>
         </header>
 
-        <!-- ── Stats ──────────────────────────────────────────── -->
         {% if sales %}
             <div class="sh-stats-grid">
                 <div class="sh-stat">
@@ -71,7 +69,6 @@
             </div>
         {% endif %}
 
-        <!-- ── Filters ─────────────────────────────────────────── -->
         <div class="card sh-filters-card">
             <div class="sh-filters-card__header">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -101,10 +98,8 @@
             </form>
         </div>
 
-        <!-- ── Table ───────────────────────────────────────────── -->
         <div class="card sh-table-card">
 
-            <!-- Table Header -->
             <div class="sh-table-card__header">
                 <div class="sh-table-card__title-row">
                     <h3 class="sh-table-card__title">Detalle de Ventas</h3>
@@ -125,7 +120,6 @@
                 </div>
             </div>
 
-            <!-- Table -->
             <div class="sh-table-wrap">
                 <table class="sh-table">
                     <thead>
@@ -200,14 +194,12 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
             <div id="sales-pagination" class="sh-pagination" style="display:none;">
                 <div id="sales-page-buttons" class="sh-pg-buttons"></div>
             </div>
         </div>
     </div>
 
-    <!-- ── Sale Detail Modal ────────────────────────────────────── -->
     <div id="saleModal" class="sh-modal">
         <div class="sh-modal__backdrop" onclick="closeSaleModal()"></div>
         <div class="sh-modal__panel">
@@ -221,7 +213,6 @@
             </div>
 
             <div class="sh-modal__body">
-                <!-- Meta info -->
                 <div class="sh-modal__meta">
                     <div class="sh-meta-item">
                         <span class="sh-meta-label">Fecha</span>
@@ -241,7 +232,6 @@
                     </div>
                 </div>
 
-                <!-- Products section -->
                 <div class="sh-modal__section-header">
                     <h4 class="sh-modal__section-title">Productos</h4>
                     <div class="sh-modal__section-controls">
@@ -272,7 +262,6 @@
                     <div id="detail-page-buttons" class="sh-pg-buttons"></div>
                 </div>
 
-                <!-- Total -->
                 <div class="sh-modal__total">
                     <span class="sh-modal__total-label">Total</span>
                     <span class="sh-modal__total-value" id="detailTotal"></span>
@@ -609,7 +598,28 @@
         });
 
         window.closeSaleModal = function () { $('saleModal').classList.remove('sh-modal--open'); };
-        window.printSale      = function () { window.print(); };
+        
+        /* ── CORRECCIÓN: Print Sale ──────────────────────────── */
+        window.printSale = function () {
+            // 1. Guardamos la configuración actual de la paginación
+            const originalPageSize = detailPageSize;
+            const originalPage = detailPage;
+
+            // 2. Forzamos a mostrar todos los productos de la venta actual
+            detailPageSize = detailProducts.length > 0 ? detailProducts.length : 1;
+            detailPage = 1;
+            renderDetailTable();
+
+            // 3. Damos un breve tiempo para que el DOM se repinte antes de abrir el diálogo
+            setTimeout(() => {
+                window.print();
+
+                // 4. Al cerrar el diálogo de impresión, restauramos la paginación
+                detailPageSize = originalPageSize;
+                detailPage = originalPage;
+                renderDetailTable();
+            }, 150);
+        };
 
         /* ── CSV export con File System API ──────────────────────────────────── */
         window.exportToCSV = async function () {
@@ -623,7 +633,7 @@
                 const filename = 'ventas_' + new Date().toISOString().split('T')[0] + '.csv';
                 
                 await window.CSVExporter.exportFromHTMLTable(table, filename, 1);
-                Notify.success('CSV exportado correctamente ✓');
+                Notify.success('CSV exportado correctamente');
             } catch (err) {
                 console.error('Error al exportar CSV:', err);
                 if (err.name !== 'AbortError') {
@@ -1072,12 +1082,115 @@
         .sh-table th, .sh-table td { padding: 0.65rem 0.75rem; font-size: 0.8rem; }
     }
 
-    /* ── Print ────────────────────────────────────── */
+    /* ── CORRECCIÓN: Print ────────────────────────────── */
     @media print {
-        body * { visibility: hidden; }
-        .sh-modal__panel, .sh-modal__panel * { visibility: visible; }
-        .sh-modal__panel { position: absolute; inset: 0; max-height: none; overflow: visible; }
-        .sh-modal__close, .sh-modal__footer, #detail-pagination { display: none !important; }
+        /* 1. Ocultar la aplicación principal por completo (elimina espacios en blanco) */
+        .sh-root,
+        .sh-modal__backdrop,
+        .sh-modal__close,
+        .sh-modal__footer,
+        .sh-modal__section-controls,
+        #detail-pagination {
+            display: none !important;
+        }
+
+        /* 2. Resetear el canvas de impresión (fondo blanco, texto negro) */
+        body, html {
+            margin: 0;
+            padding: 0;
+            background: #fff !important;
+            color: #000 !important;
+        }
+
+        /* 3. Configurar la página (márgenes reducidos para optimizar como recibo) */
+        @page {
+            margin: 10mm;
+        }
+
+        /* 4. Devolver el modal al flujo normal del documento */
+        .sh-modal {
+            position: relative;
+            inset: auto;
+            opacity: 1 !important;
+            pointer-events: auto;
+            display: block !important;
+            padding: 0;
+        }
+
+        .sh-modal__panel {
+            position: relative;
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            max-height: none;
+            overflow: visible;
+            box-shadow: none;
+            border: none;
+            transform: none !important;
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        /* 5. Ajustes estéticos para "Formato Ticket/Recibo" */
+        .sh-modal__header {
+            padding: 0 0 10px 0 !important;
+            border-bottom: 2px solid #000 !important;
+            background: transparent !important;
+        }
+
+        .sh-modal__title, .sh-modal__eyebrow {
+            color: #000 !important;
+        }
+
+        .sh-modal__body {
+            padding: 15px 0 !important;
+        }
+
+        .sh-modal__meta {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            margin-bottom: 20px !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        .sh-meta-label { color: #555 !important; }
+        .sh-meta-value { color: #000 !important; }
+
+        /* 6. Tabla de productos optimizada */
+        .sh-table--modal th {
+            background: transparent !important;
+            border-bottom: 1px solid #000 !important;
+            color: #000 !important;
+            padding: 5px 0 !important;
+        }
+
+        .sh-table--modal td {
+            border-bottom: 1px dashed #ccc !important;
+            color: #000 !important;
+            padding: 8px 0 !important;
+        }
+
+        /* 7. Regla clave: Evitar que las filas se corten a la mitad en un salto de página */
+        .sh-table--modal tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        /* 8. Totalizador */
+        .sh-modal__total {
+            background: transparent !important;
+            border: none !important;
+            border-top: 2px solid #000 !important;
+            border-radius: 0 !important;
+            padding: 10px 0 0 0 !important;
+            margin-top: 15px !important;
+        }
+
+        .sh-modal__total-value, .sh-modal__total-label {
+            color: #000 !important;
+        }
     }
     </style>
 </body>
