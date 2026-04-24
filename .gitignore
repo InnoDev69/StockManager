@@ -22,6 +22,7 @@ credentials.json
 *.csv
 generate_sales.py
 test.py
+.python-version
 
 # Byte-compiled / distribution / packaging
 build/

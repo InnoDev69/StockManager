@@ -412,7 +412,7 @@ def update_product(product_id):
     
     db.check_and_notify_low_stock(session.get('user_id'))
     
-    db.create_notification(user_id=session.get('user_id'), title="Producto actualizado", message=f"El producto '{data.get('name', 'ID ' + str(product_id))}' ha sido actualizado.", notification_type='success')
+    db.create_notification(user_id=session.get('user_id'), title="Producto actualizado", message=f"El producto '{data.get('name') if data.get('name') else db.get_item_name(product_id)}' ha sido actualizado.", notification_type='success')
     notify_user(session.get('user_id'))
     
     return jsonify({"message": "Producto actualizado"}), 200
