@@ -5,6 +5,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, co
 
 block_cipher = None
 
+# En onedir, el exe no lleva extensión en Linux; en Windows sí.
 exe_extension = '.exe' if sys.platform == 'win32' else ''
 exe_name = 'stockly' + exe_extension
 
@@ -12,13 +13,9 @@ webview_datas = collect_data_files('webview')
 
 # Recoger typelibs y libs de gi en Linux
 gi_datas = []
-gi_binaries = []
 if sys.platform == 'linux':
     gi_datas = collect_data_files('gi')
-    # NO recoger binaries automáticamente para evitar conflictos
-    # gi_binaries = collect_dynamic_libs('gi')
-    
-    # Incluir GObject introspection typelibs
+
     typelib_dirs = [
         '/usr/lib/x86_64-linux-gnu/girepository-1.0',
         '/usr/lib/girepository-1.0',
@@ -34,7 +31,7 @@ if sys.platform == 'linux':
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],  # No incluir gi_binaries para evitar conflictos
+    binaries=[],
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
@@ -62,7 +59,6 @@ a = Analysis(
         'webview.platforms.gtk',
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
-        # GObject/GTK
         'gi',
         'gi.repository',
         'gi.repository.Gtk',
@@ -77,11 +73,11 @@ a = Analysis(
         'gi._gi',
         'gi._gi_cairo',
         'waitress',
-        "barcode",
-        "barcode.writer",
-        "barcode.codex", 
-        "Pillow",
-        "reportlab",
+        'barcode',
+        'barcode.writer',
+        'barcode.codex',
+        'PIL',
+        'reportlab',
     ],
     hookspath=[],
     hooksconfig={},
@@ -93,10 +89,9 @@ a = Analysis(
     noarchive=False,
 )
 
+# Excluir libs de sistema en Linux para evitar conflictos con GTK del host
 if sys.platform == 'linux':
-    system_libs = [
-        'libglib', 'libgio', 'libgobject', 'libgmodule',
-    ]
+    system_libs = ['libglib', 'libgio', 'libgobject', 'libgmodule']
     a.binaries = [
         (name, path, kind)
         for name, path, kind in a.binaries
@@ -105,20 +100,18 @@ if sys.platform == 'linux':
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# --- MODO ONEDIR ---
+# EXE solo lleva pyz + scripts. Los binaries/datas van en COLLECT.
+# Esto evita la extracción a /tmp en cada arranque (que es lo que hace onefile).
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
+    [],          # <-- vacío: NO pasar a.binaries / a.zipfiles / a.datas aquí
     name=exe_name,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
+    upx=False,   # UPX desactivado: en onedir no ayuda y puede corromper .so de GTK
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -126,4 +119,18 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='static/app/icon.ico' if sys.platform == 'win32' else 'static/app/icon.png',
+    exclude_binaries=True,
+)
+
+# COLLECT ensambla la carpeta final dist/stockly/
+# En Linux: dist/stockly/stockly  (ejecutable dentro de la carpeta)
+# En Windows: dist/stockly/stockly.exe
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=sys.platform == 'linux',  # strip solo en Linux, ahorra ~20-30% de tamaño
+    upx=False,
+    name='stockly',
 )
