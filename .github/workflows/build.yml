@@ -75,7 +75,7 @@ jobs:
         if: matrix.platform == 'linux-ubuntu'
         run: |
           cd dist
-          tar -czf StockManager-ubuntu-x64.tar.gz stock-manager-server
+          tar -czf Stockly-ubuntu-x64.tar.gz stockly
         shell: bash
 
       - name: Upload Ubuntu tarball
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/StockManager-ubuntu-x64.tar.gz
+          path: dist/Stockly-ubuntu-x64.tar.gz
           if-no-files-found: error
 
       # --- Windows artifacts ---
@@ -121,14 +121,14 @@ jobs:
             echo 'SMTP_PASSWORD='$SMTP_PASSWORD >> .env &&
             pyinstaller build.spec &&
             cd dist &&
-            tar -czf StockManager-arch-x64.tar.gz stock-manager-server
+            tar -czf Stockly-arch-x64.tar.gz stockly
             "
 
       - name: Upload Arch tarball
         uses: actions/upload-artifact@v4
         with:
-          name: StockManager-Arch
-          path: dist/StockManager-arch-x64.tar.gz
+          name: Stockly-Arch
+          path: dist/Stockly-arch-x64.tar.gz
           if-no-files-found: error
 
   release:
@@ -159,17 +159,17 @@ jobs:
           body: |
             ## Descargas
             ### Windows
-            - **stock-manager-server.exe** - Ejecutable para Windows 10/11
+            - **stockly.exe** - Ejecutable para Windows 10/11
             
             ### Linux
-            - **StockManager-ubuntu-x64.tar.gz** - Para Ubuntu/Debian y derivados
-            - **StockManager-arch-x64.tar.gz** - Para Arch Linux/Manjaro y derivados
+            - **Stockly-ubuntu-x64.tar.gz** - Para Ubuntu/Debian y derivados
+            - **Stockly-arch-x64.tar.gz** - Para Arch Linux/Manjaro y derivados
             
             ## Instalación
             **Windows:**
             ```bash
             # Descarga y ejecuta
-            stock-manager-server.exe
+            stockly.exe
             ```
             
             **Ubuntu/Debian:**
@@ -178,9 +178,9 @@ jobs:
             sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
             
             # Extraer y ejecutar
-            tar -xzf StockManager-ubuntu-x64.tar.gz
-            chmod +x stock-manager-server
-            ./stock-manager-server
+            tar -xzf Stockly-ubuntu-x64.tar.gz
+            chmod +x stockly
+            ./stockly
             ```
             
             **Arch Linux/Manjaro:**
@@ -189,9 +189,9 @@ jobs:
             sudo pacman -S python-gobject gtk3 webkit2gtk-4.1
             
             # Extraer y ejecutar
-            tar -xzf StockManager-arch-x64.tar.gz
-            chmod +x stock-manager-server
-            ./stock-manager-server
+            tar -xzf Stockly-arch-x64.tar.gz
+            chmod +x stockly
+            ./stockly
             ```
             
             **Fedora/RHEL:**
@@ -200,9 +200,9 @@ jobs:
             sudo dnf install python3-gobject gtk3 webkit2gtk4.1
             
             # Usar el tarball de Ubuntu
-            tar -xzf StockManager-ubuntu-x64.tar.gz
-            chmod +x stock-manager-server
-            ./stock-manager-server
+            tar -xzf Stockly-ubuntu-x64.tar.gz
+            chmod +x stockly
+            ./stockly
             ```
             
             ## Notas

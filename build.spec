@@ -6,7 +6,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, co
 block_cipher = None
 
 exe_extension = '.exe' if sys.platform == 'win32' else ''
-exe_name = 'stock-manager-server' + exe_extension
+exe_name = 'stockly' + exe_extension
 
 webview_datas = collect_data_files('webview')
 
