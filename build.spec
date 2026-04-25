@@ -10,15 +10,10 @@ exe_name = 'stockly' + exe_extension
 
 webview_datas = collect_data_files('webview')
 
-# Recoger typelibs y libs de gi en Linux
+# Recoger typelibs de gi en Linux
 gi_datas = []
-gi_binaries = []
 if sys.platform == 'linux':
     gi_datas = collect_data_files('gi')
-    # NO recoger binaries automáticamente para evitar conflictos
-    # gi_binaries = collect_dynamic_libs('gi')
-    
-    # Incluir GObject introspection typelibs
     typelib_dirs = [
         '/usr/lib/x86_64-linux-gnu/girepository-1.0',
         '/usr/lib/girepository-1.0',
@@ -31,10 +26,39 @@ if sys.platform == 'linux':
                     gi_datas.append((os.path.join(td, f), 'gi_typelibs'))
             break
 
+# Hiddenimports específicos por plataforma
+platform_hiddenimports = []
+if sys.platform == 'win32':
+    # pythonnet es el backend de pywebview en Windows (WinForms)
+    platform_hiddenimports = [
+        'clr',
+        'clr_loader',
+        'clr_loader.finders',
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
+    ]
+else:
+    platform_hiddenimports = [
+        'gi',
+        'gi.repository',
+        'gi.repository.Gtk',
+        'gi.repository.Gdk',
+        'gi.repository.GdkPixbuf',
+        'gi.repository.GLib',
+        'gi.repository.GObject',
+        'gi.repository.Gio',
+        'gi.repository.Pango',
+        'gi.repository.WebKit2',
+        'cairo',
+        'gi._gi',
+        'gi._gi_cairo',
+        'webview.platforms.gtk',
+    ]
+
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],  # No incluir gi_binaries para evitar conflictos
+    binaries=[],
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
@@ -59,44 +83,27 @@ a = Analysis(
         'dotenv',
         'webview',
         'webview.platforms',
-        'webview.platforms.gtk',
-        'webview.platforms.winforms',
-        'webview.platforms.edgechromium',
-        # GObject/GTK
-        'gi',
-        'gi.repository',
-        'gi.repository.Gtk',
-        'gi.repository.Gdk',
-        'gi.repository.GdkPixbuf',
-        'gi.repository.GLib',
-        'gi.repository.GObject',
-        'gi.repository.Gio',
-        'gi.repository.Pango',
-        'gi.repository.WebKit2',
-        'cairo',
-        'gi._gi',
-        'gi._gi_cairo',
         'waitress',
-        "barcode",
-        "barcode.writer",
-        "barcode.codex", 
-        "Pillow",
-        "reportlab",
-    ],
+        'barcode',
+        'barcode.writer',
+        'barcode.codex',
+        'PIL',
+        'reportlab',
+    ] + platform_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy'],
+    # numpy/numba/llvmlite pueden estar en el venv local pero no son parte de la app
+    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'numba', 'llvmlite'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
 
+# Excluir libs de sistema en Linux para evitar conflictos con GTK del host
 if sys.platform == 'linux':
-    system_libs = [
-        'libglib', 'libgio', 'libgobject', 'libgmodule',
-    ]
+    system_libs = ['libglib', 'libgio', 'libgobject', 'libgmodule']
     a.binaries = [
         (name, path, kind)
         for name, path, kind in a.binaries
@@ -108,17 +115,13 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name=exe_name,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -126,4 +129,14 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='static/app/icon.ico' if sys.platform == 'win32' else 'static/app/icon.png',
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=sys.platform == 'linux',
+    upx=False,
+    name='stockly',
 )

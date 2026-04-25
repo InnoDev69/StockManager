@@ -18,7 +18,6 @@ jobs:
           - os: ubuntu-latest
             platform: linux-ubuntu
             artifact_name: StockManager-Ubuntu
-            distro_name: Ubuntu/Debian
           - os: windows-latest
             platform: windows
             artifact_name: StockManager-Windows
@@ -40,8 +39,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
+      # --- Dependencias de sistema (Ubuntu) ---
       - name: Install system dependencies (Ubuntu)
         if: matrix.platform == 'linux-ubuntu'
         run: |
@@ -51,26 +51,45 @@ jobs:
             gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
             libgirepository-2.0-dev gcc libcairo2-dev \
             pkg-config python3-dev meson
-      
+
+      # --- Dependencias Python comunes ---
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install pyinstaller pyinstaller-hooks-contrib pywebview waitress python-barcode Pillow reportlab
+          pip install pyinstaller==6.19.0 pyinstaller-hooks-contrib
           pip install -r requirements.txt
-      
+        shell: bash
+
+      # --- PyGObject solo en Linux ---
       - name: Install PyGObject (Linux)
         if: matrix.platform == 'linux-ubuntu'
-        run: pip install PyGObject
+        run: pip install PyGObject pycairo
+
+      # --- pythonnet solo en Windows (backend WinForms de pywebview) ---
+      - name: Install pythonnet (Windows)
+        if: matrix.platform == 'windows'
+        run: pip install pythonnet
+        shell: bash
+
+      # --- Debug: mostrar entorno antes de buildear ---
+      - name: Debug environment
+        run: |
+          python --version
+          pip show pyinstaller
+          pip show pywebview
+        shell: bash
 
       - name: Build with PyInstaller
-        run: pyinstaller build.spec
+        run: pyinstaller --clean build.spec
         shell: bash
 
-      - name: Verify build
-        run: ls -lh dist/
+      - name: Verify build output
+        run: ls -lhR dist/stockly/
         shell: bash
 
-      # --- Ubuntu artifacts ---
+      # ============================================================
+      # Ubuntu artifacts
+      # ============================================================
       - name: Create Ubuntu tarball
         if: matrix.platform == 'linux-ubuntu'
         run: |
@@ -86,18 +105,32 @@ jobs:
           path: dist/Stockly-ubuntu-x64.tar.gz
           if-no-files-found: error
 
-      # --- Windows artifacts ---
-      - name: Upload Windows EXE
+      # ============================================================
+      # Windows artifacts
+      # -Path stockly (sin *) para que el zip contenga la carpeta
+      # y al extraer quede: stockly\stockly.exe
+      # ============================================================
+      - name: Create Windows zip
+        if: matrix.platform == 'windows'
+        run: |
+          cd dist
+          Compress-Archive -Path stockly -DestinationPath Stockly-windows-x64.zip
+        shell: pwsh
+
+      - name: Upload Windows zip
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/*.exe
+          path: dist/Stockly-windows-x64.zip
           if-no-files-found: error
 
+  # ================================================================
+  # Build Arch Linux
+  # ================================================================
   build-arch:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -112,16 +145,20 @@ jobs:
         with:
           args: /bin/bash -c "
             pacman -Syu --noconfirm &&
-            pacman -S --noconfirm python python-pip python-gobject gtk3 webkit2gtk-4.1 base-devel &&
-            pip install --break-system-packages pyinstaller pyinstaller-hooks-contrib pywebview flask werkzeug requests python-dotenv pytz waitress python-barcode Pillow reportlab &&
+            pacman -S --noconfirm python python-pip python-gobject python-cairo gtk3 webkit2gtk-4.1 base-devel &&
+            python --version &&
+            pip install --break-system-packages pyinstaller==6.19.0 pyinstaller-hooks-contrib &&
+            pip install --break-system-packages -r /github/workspace/requirements.txt &&
             cd /github/workspace &&
             echo 'SMTP_SERVER='$SMTP_SERVER >> .env &&
             echo 'SMTP_PORT='$SMTP_PORT >> .env &&
             echo 'SMTP_USERNAME='$SMTP_USERNAME >> .env &&
             echo 'SMTP_PASSWORD='$SMTP_PASSWORD >> .env &&
-            pyinstaller build.spec &&
+            pyinstaller --clean build.spec &&
             cd dist &&
-            tar -czf Stockly-arch-x64.tar.gz stockly
+            tar -czf Stockly-arch-x64.tar.gz stockly &&
+            echo '=== BUILD OK ===' &&
+            ls -lh Stockly-arch-x64.tar.gz
             "
 
       - name: Upload Arch tarball
@@ -131,6 +168,9 @@ jobs:
           path: dist/Stockly-arch-x64.tar.gz
           if-no-files-found: error
 
+  # ================================================================
+  # Release — solo cuando se pushea un tag v*.*.*
+  # ================================================================
   release:
     needs: [build, build-arch]
     runs-on: ubuntu-latest
@@ -152,62 +192,55 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             artifacts/**/*.tar.gz
-            artifacts/**/*.exe
+            artifacts/**/*.zip
           generate_release_notes: true
           draft: false
           prerelease: false
           body: |
             ## Descargas
             ### Windows
-            - **stockly.exe** - Ejecutable para Windows 10/11
-            
+            - **Stockly-windows-x64.zip** — Windows 10/11 (x64)
+
             ### Linux
-            - **Stockly-ubuntu-x64.tar.gz** - Para Ubuntu/Debian y derivados
-            - **Stockly-arch-x64.tar.gz** - Para Arch Linux/Manjaro y derivados
-            
+            - **Stockly-ubuntu-x64.tar.gz** — Ubuntu/Debian y derivados
+            - **Stockly-arch-x64.tar.gz** — Arch Linux/Manjaro y derivados
+
             ## Instalación
+
             **Windows:**
-            ```bash
-            # Descarga y ejecuta
-            stockly.exe
             ```
-            
+            1. Descomprimí Stockly-windows-x64.zip
+            2. Entrá a la carpeta stockly\
+            3. Ejecutá stockly.exe
+            ```
+
             **Ubuntu/Debian:**
             ```bash
-            # Instalar dependencias
             sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
-            
-            # Extraer y ejecutar
             tar -xzf Stockly-ubuntu-x64.tar.gz
-            chmod +x stockly
-            ./stockly
+            chmod +x stockly/stockly
+            ./stockly/stockly
             ```
-            
+
             **Arch Linux/Manjaro:**
             ```bash
-            # Instalar dependencias
             sudo pacman -S python-gobject gtk3 webkit2gtk-4.1
-            
-            # Extraer y ejecutar
             tar -xzf Stockly-arch-x64.tar.gz
-            chmod +x stockly
-            ./stockly
+            chmod +x stockly/stockly
+            ./stockly/stockly
             ```
-            
+
             **Fedora/RHEL:**
             ```bash
-            # Instalar dependencias
             sudo dnf install python3-gobject gtk3 webkit2gtk4.1
-            
-            # Usar el tarball de Ubuntu
             tar -xzf Stockly-ubuntu-x64.tar.gz
-            chmod +x stockly
-            ./stockly
+            chmod +x stockly/stockly
+            ./stockly/stockly
             ```
-            
+
             ## Notas
-            - Descarga el archivo correspondiente a tu distribución Linux para mejor compatibilidad
-            - Si tu distro no está listada, prueba primero con el build de Ubuntu
-            - El ejecutable debe tener permisos de ejecución (`chmod +x`)
+            - Windows: el exe está dentro de la carpeta extraída en `stockly\stockly.exe`
+            - Linux: el ejecutable está en `stockly/stockly`
+            - Si tu distro Linux no está listada, probá primero con el build de Ubuntu
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
