@@ -19,7 +19,7 @@ class UsersMixin:
             "SELECT id FROM users WHERE username = ? OR email = ?",
             (username, email),
         )
-        return len(rows) > 0
+        return bool(rows)
 
     def add_user(self, username, password, email, role="user"):
         """
