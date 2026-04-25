@@ -5,17 +5,15 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, co
 
 block_cipher = None
 
-# En onedir, el exe no lleva extensión en Linux; en Windows sí.
 exe_extension = '.exe' if sys.platform == 'win32' else ''
 exe_name = 'stockly' + exe_extension
 
 webview_datas = collect_data_files('webview')
 
-# Recoger typelibs y libs de gi en Linux
+# Recoger typelibs de gi en Linux
 gi_datas = []
 if sys.platform == 'linux':
     gi_datas = collect_data_files('gi')
-
     typelib_dirs = [
         '/usr/lib/x86_64-linux-gnu/girepository-1.0',
         '/usr/lib/girepository-1.0',
@@ -27,6 +25,35 @@ if sys.platform == 'linux':
                 if f.endswith('.typelib'):
                     gi_datas.append((os.path.join(td, f), 'gi_typelibs'))
             break
+
+# Hiddenimports específicos por plataforma
+platform_hiddenimports = []
+if sys.platform == 'win32':
+    # pythonnet es el backend de pywebview en Windows (WinForms)
+    platform_hiddenimports = [
+        'clr',
+        'clr_loader',
+        'clr_loader.finders',
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
+    ]
+else:
+    platform_hiddenimports = [
+        'gi',
+        'gi.repository',
+        'gi.repository.Gtk',
+        'gi.repository.Gdk',
+        'gi.repository.GdkPixbuf',
+        'gi.repository.GLib',
+        'gi.repository.GObject',
+        'gi.repository.Gio',
+        'gi.repository.Pango',
+        'gi.repository.WebKit2',
+        'cairo',
+        'gi._gi',
+        'gi._gi_cairo',
+        'webview.platforms.gtk',
+    ]
 
 a = Analysis(
     ['main.py'],
@@ -56,37 +83,17 @@ a = Analysis(
         'dotenv',
         'webview',
         'webview.platforms',
-        'webview.platforms.gtk',
-        'webview.platforms.winforms',
-        'webview.platforms.edgechromium',
-        'gi',
-        'gi.repository',
-        'gi.repository.Gtk',
-        'gi.repository.Gdk',
-        'gi.repository.GdkPixbuf',
-        'gi.repository.GLib',
-        'gi.repository.GObject',
-        'gi.repository.Gio',
-        'gi.repository.Pango',
-        'gi.repository.WebKit2',
-        'cairo',
-        'gi._gi',
-        'gi._gi_cairo',
         'waitress',
         'barcode',
         'barcode.writer',
         'barcode.codex',
         'PIL',
         'reportlab',
-        # Windows pywebview backend
-        'clr',
-        'clr_loader',
-        'pythonnet',
-        'webview.platforms.winforms',
-    ],
+    ] + platform_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
+    # numpy/numba/llvmlite pueden estar en el venv local pero no son parte de la app
     excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'numba', 'llvmlite'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
@@ -105,37 +112,31 @@ if sys.platform == 'linux':
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# --- MODO ONEDIR ---
-# EXE solo lleva pyz + scripts. Los binaries/datas van en COLLECT.
-# Esto evita la extracción a /tmp en cada arranque (que es lo que hace onefile).
 exe = EXE(
     pyz,
     a.scripts,
-    [],          # <-- vacío: NO pasar a.binaries / a.zipfiles / a.datas aquí
+    [],
+    exclude_binaries=True,
     name=exe_name,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,   # UPX desactivado: en onedir no ayuda y puede corromper .so de GTK
-    console=False,
+    upx=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='static/app/icon.ico' if sys.platform == 'win32' else 'static/app/icon.png',
-    exclude_binaries=True,
 )
 
-# COLLECT ensambla la carpeta final dist/stockly/
-# En Linux: dist/stockly/stockly  (ejecutable dentro de la carpeta)
-# En Windows: dist/stockly/stockly.exe
 coll = COLLECT(
     exe,
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=sys.platform == 'linux',  # strip solo en Linux, ahorra ~20-30% de tamaño
+    strip=sys.platform == 'linux',
     upx=False,
     name='stockly',
 )
