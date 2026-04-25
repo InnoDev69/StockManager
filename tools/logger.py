@@ -48,6 +48,8 @@ class AppLogger:
     
     _instance = None
     _logger = None
+    _level = logging.DEBUG if os.getenv("APP_ENV") == "development" else logging.INFO
+    _is_freeze = getattr(sys, 'frozen', False)
     
     def __new__(cls):
         if cls._instance is None:
@@ -75,7 +77,7 @@ class AppLogger:
     
     def _setup_logger(self):
         self._logger = logging.getLogger("StockManager")
-        self._logger.setLevel(logging.DEBUG)
+        self._logger.setLevel(self._level)
         
         #evita duplicar handlers
         if self._logger.handlers:
@@ -97,7 +99,7 @@ class AppLogger:
         
         log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y%m%d')}.log")
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(self._level)
         file_handler.setFormatter(formatter)
         self._logger.addHandler(file_handler)
     

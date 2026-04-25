@@ -3,6 +3,11 @@ import sys
 import signal
 import uuid
 import atexit
+import threading
+import time
+import socket
+from time import perf_counter
+
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
 from api import api_bp
@@ -13,25 +18,50 @@ from tools.logger import logger
 from tools.scheduler import SCHEDULER
 from bd.bdInstance import db
 from waitress import create_server
-import threading
-import time
+
+t0 = perf_counter()
+logger.info("boot:start")
 
 load_dotenv()
+
+# ── Configuración ─────────────────────────────────────────────────────────────
+
+WAITRESS_THREADS = 8
+FLASK_HOST = '127.0.0.1'
+FLASK_PORT = 5000
+
+# ── App Flask ─────────────────────────────────────────────────────────────────
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
 
-# --- Context processors ---
-@app.context_processor
-def inject_limits():
-    return {"Limits": Limits, "Var": Var}
+app.config.update(
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=1800,
+    DEBUG=False,
+    TESTING=False,
+    TEMPLATES_AUTO_RELOAD=False,
+)
 
-# --- Registra blueprints ---
+# ── Context processors ────────────────────────────────────────────────────────
+
+@app.context_processor
+def inject_globals():
+    return {
+        "Limits": Limits,
+        "Var": Var,
+    }
+
+# ── Blueprints ────────────────────────────────────────────────────────────────
+
 app.register_blueprint(api_bp, url_prefix="/api")
+
 for bp in all_blueprints:
     app.register_blueprint(bp)
 
-# --- Error handlers ---
+# ── Error handlers ────────────────────────────────────────────────────────────
+
 @app.errorhandler(404)
 def page_not_found(e):
     logger.warning(f"404 - Ruta no encontrada: {request.path}")
@@ -49,27 +79,51 @@ def handle_exception(e):
     logger.exception(f"Excepción no capturada en {request.path}: {str(e)}")
     return render_template("500.html", error_id=error_id, error=e), 500
 
-@app.teardown_appcontext
-def close_db(exception=None):
-    db.close_conn()
+# ── Servidor Waitress ─────────────────────────────────────────────────────────
 
-# --- Servidor Waitress ---
 _server = None
 
 def run_waitress():
     global _server
-    _server = create_server(app, host='127.0.0.1', port=5000, threads=16)
+    _server = create_server(
+        app,
+        host=FLASK_HOST,
+        port=FLASK_PORT,
+        threads=WAITRESS_THREADS,
+        channel_timeout=30,
+        cleanup_interval=10,
+    )
     _server.run()
 
-# --- Cleanup y señales ---
+# ── Health check: reemplaza time.sleep(1) ────────────────────────────────────
+
+def wait_for_server(host: str, port: int, timeout: float = 10.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.1):
+                return True
+        except OSError:
+            time.sleep(0.05)
+    return False
+
+# ── Cleanup y señales ─────────────────────────────────────────────────────────
+
+_cleanup_done = False
+
 def cleanup():
-    """Limpia recursos antes de cerrar."""
+    global _cleanup_done, _server
+    if _cleanup_done:
+        return
+    _cleanup_done = True
+
     logger.info("Limpiando recursos...")
-    global _server
+    SCHEDULER.stop()
+
     if _server:
         _server.close()
         _server = None
-    SCHEDULER.stop()
+
     db.close_conn()
 
 def signal_handler(sig, frame):
@@ -79,21 +133,22 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
-
 atexit.register(cleanup)
 
-# --- Scheduler ---
+# ── Scheduler ─────────────────────────────────────────────────────────────────
+
 SCHEDULER.add_task(86400, logger._cleanup_old_logs)
 SCHEDULER.start()
 
-# --- Arranque ---
+# ── Arranque ──────────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     try:
         logger.info("Iniciando aplicación...")
 
         if sys.platform == "linux":
-            os.environ["PYWEBVIEW_GTK"] = "1"
-            os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
+            os.environ.setdefault("PYWEBVIEW_GTK", "1")
+            os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
             import io
             import contextlib
             with contextlib.redirect_stderr(io.StringIO()):
@@ -101,34 +156,45 @@ if __name__ == "__main__":
         else:
             import webview
 
-        app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
-        app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-        app.config["PERMANENT_SESSION_LIFETIME"] = 1800
-
+        # Ruta al ícono — usa _MEIPASS si está compilado
         if getattr(sys, "frozen", False):
             base_path = sys._MEIPASS
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
-
         icon_path = os.path.join(base_path, "static", "app", "icon.png")
 
-        flask_thread = threading.Thread(target=run_waitress, daemon=True)
+        # Arrancar Waitress en hilo daemon
+        flask_thread = threading.Thread(target=run_waitress, daemon=True, name="waitress")
         flask_thread.start()
-        time.sleep(1)
 
-        window = webview.create_window("Stockly", "http://127.0.0.1:5000", width=1200, height=800)
+        if not wait_for_server(FLASK_HOST, FLASK_PORT, timeout=15.0):
+            raise RuntimeError("Waitress no respondió en 15 segundos.")
 
+        logger.info("Servidor listo, abriendo ventana...")
+        logger.info(f"boot:server_ready {(perf_counter() - t0) * 1000} ms")
+
+        window = webview.create_window(
+            "Stockly",
+            f"http://{FLASK_HOST}:{FLASK_PORT}",
+            width=1200,
+            height=800,
+            min_size=(800, 600),
+        )
+        
+        logger.info(f"boot:window_created {(perf_counter() - t0) * 1000} ms")
+
+        # Iniciar webview
         if sys.platform == "linux" and os.path.exists(icon_path):
             try:
                 webview.start(icon=icon_path)
             except Exception as e:
-                logger.warning(f"No se pudo establecer el ícono: {str(e)}")
+                logger.warning(f"No se pudo establecer el ícono: {e}")
                 webview.start()
         else:
             logger.info("Aplicación iniciada")
             webview.start()
 
     except Exception as e:
-        logger.exception(f"Error al iniciar el servidor: {str(e)}")
+        logger.exception(f"Error al iniciar el servidor: {e}")
     finally:
         cleanup()
