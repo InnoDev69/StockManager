@@ -52,6 +52,7 @@ def login_post():
         return render_template("login.html", error="Usuario desactivado. Contacta al administrador")
     
     if check_password_hash(pw_hash, password):
+        session.permanent = True
         session["user_id"] = user_id
         session["username"] = user
         session["role"] = role_db

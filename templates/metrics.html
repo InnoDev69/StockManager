@@ -11,10 +11,14 @@
   
   /* ── Grilla Principal ── */
   .metrics-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 1.25rem;
     margin-bottom: 1.5rem;
+  }
+
+  .metrics-kpi-grid > .kpi-card {
+    flex: 1 1 230px;
   }
 
   /* ── Tarjetas Superiores (Anti-Overflow) ── */
@@ -44,7 +48,7 @@
   
   /* ── Banner de Proyección ── */
   .kpi-card--banner {
-    grid-column: 1 / -1;
+    flex: 1 1 100% !important;
   }
 
   .banner-content {
@@ -106,35 +110,16 @@
 </section>
 
 <section class="metrics-kpi-grid">
-  
-  <div class="card kpi-card" style="padding: 1.25rem;">
-    <div class="kpi-card-inner">
-      <div class="kpi-text-wrap">
-        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ingresos Totales</p>
-        <h2 id="kpi-revenue" class="mono kpi-value-top" style="color: var(--success);">$0.00</h2>
-        <div id="kpi-revenue-change" class="kpi-change positive" style="margin-top: 0.5rem;">
-          <span class="change-icon">↑</span>
-          <span class="change-value">0%</span>
-          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
-        </div>
-      </div>
-      <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 70%, #000)); padding: 0.75rem; border-radius: 12px;">
-        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
 
   <div class="card kpi-card" style="padding: 1.25rem;">
     <div class="kpi-card-inner">
       <div class="kpi-text-wrap">
         <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Total Ventas</p>
         <h2 id="kpi-sales" class="mono kpi-value-top" style="color: var(--brand);">0</h2>
-        <div id="kpi-sales-change" class="kpi-change positive" style="margin-top: 0.5rem;">
+        <div id="kpi-sales-change" class="kpi-change positive" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
           <span class="change-icon">↑</span>
           <span class="change-value">0%</span>
-          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+          <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">vs período anterior</span>
         </div>
       </div>
       <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, var(--brand), var(--brand-2)); padding: 0.75rem; border-radius: 12px;">
@@ -150,10 +135,10 @@
       <div class="kpi-text-wrap">
         <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ticket Promedio</p>
         <h2 id="kpi-avg-ticket" class="mono kpi-value-top" style="color: #8b5cf6;">$0.00</h2>
-        <div id="kpi-ticket-change" class="kpi-change neutral" style="margin-top: 0.5rem;">
+        <div id="kpi-ticket-change" class="kpi-change neutral" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
           <span class="change-icon">→</span>
           <span class="change-value">0%</span>
-          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+          <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">vs período anterior</span>
         </div>
       </div>
       <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 0.75rem; border-radius: 12px;">
@@ -167,17 +152,56 @@
   <div class="card kpi-card" style="padding: 1.25rem;">
     <div class="kpi-card-inner">
       <div class="kpi-text-wrap">
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Vendedor Top</p>
+        <h2 id="kpi-top-vendor" class="mono kpi-value-top" style="color: #ec4899;">—</h2>
+        <div id="kpi-vendor-revenue" style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--success); font-weight: 600;">
+          $0.00
+        </div>
+        <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">Dinero total</span>
+      </div>
+      <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, #ec4899, #db2777); padding: 0.75rem; border-radius: 12px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div class="kpi-card-inner">
+      <div class="kpi-text-wrap">
         <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Unidades Vendidas</p>
         <h2 id="kpi-units" class="mono kpi-value-top" style="color: #f59e0b;">0</h2>
-        <div id="kpi-units-change" class="kpi-change positive" style="margin-top: 0.5rem;">
-          <span class="change-icon">↑</span>
-          <span class="change-value">0%</span>
-          <span class="text-muted" style="font-size: 0.75rem;">vs período anterior</span>
+        <div id="kpi-units-change" class="kpi-change positive" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.15rem;">
+            <span class="change-icon">↑</span>
+            <span class="change-value">0%</span>
+          </div>
+          <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">vs período anterior</span>
         </div>
       </div>
       <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, #f59e0b, #d97706); padding: 0.75rem; border-radius: 12px;">
         <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div class="kpi-card-inner">
+      <div class="kpi-text-wrap">
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ingresos Totales</p>
+        <h2 id="kpi-revenue" class="mono kpi-value-top" style="color: var(--success);">$0.00</h2>
+        <div id="kpi-revenue-change" class="kpi-change positive" style="margin-top: 0.5rem;">
+          <span class="change-icon">↑</span>
+          <span class="change-value">0%</span>
+          <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">vs período anterior</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 70%, #000)); padding: 1rem; border-radius: 14px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
       </div>
     </div>
@@ -350,15 +374,39 @@
   </section>
 
   <section class="card" style="padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div>
+        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Ranking de Vendedores</h3>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Desempeño individual por vendedor</p>
+      </div>
+    </div>
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">#</th>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Vendedor</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ventas</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ingresos</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ticket Promedio</th>
+            <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Cambio</th>
+          </tr>
+        </thead>
+        <tbody id="vendors-ranking-table"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" style="padding: 1.5rem; grid-column: 1/-1;">
     <div style="margin-bottom: 1rem;">
-      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Alertas de Inventario</h3>
+      <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Alertas de Stock</h3>
       <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Productos que requieren atención</p>
     </div>
     <div class="alerts-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
       <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;">
         <div style="width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
           <svg style="width: 20px; height: 20px; color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667-1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
           </svg>
         </div>
         <div style="flex: 1;">
@@ -472,7 +520,7 @@
       </div>
       <p id="insight-top-product" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Calculando...</p>
     </div>
-    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border);">
+    <div class="insight-card" style="padding: 1rem; background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border); grid-column: 1/-1;">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
         <span style="font-weight: 600; font-size: 0.9rem;">Tendencia</span>
       </div>
@@ -512,6 +560,7 @@ let salesChart, topProductsChart, weekdayChart, hourlyChart, comparisonChart;
 let _salesOverTimeData = null;
 let _topProductsData = [];
 let _neverSoldData = [];
+let _vendorsData = [];
 let _currentChartMode = 'revenue';
 
 // ============================================
@@ -582,7 +631,7 @@ async function loadMetricsData(dateFrom = null, dateTo = null) {
     if (!response.ok) throw new Error('Error al cargar métricas');
     const data = await response.json();
 
-    updateKPIs(data.kpis);
+    updateKPIs(data.kpis, data.vendors);
     updateProjection(data.projection);       
     updateCharts(data);
     updateTables(data.topProducts);
@@ -590,6 +639,7 @@ async function loadMetricsData(dateFrom = null, dateTo = null) {
     updateInsights(data.insights, data);     
     updateHeatmap(data.heatmap);
     updateInventoryForecast(data.inventoryForecast);
+    updateVendorsTable(data.vendors);
   } catch (error) {
     console.error('Error cargando métricas:', error);
     if(typeof Notify !== 'undefined') Notify.error('Error al cargar las métricas');
@@ -608,7 +658,7 @@ async function loadNeverSoldData() {
   }
 }
 
-function updateKPIs(kpis) {
+function updateKPIs(kpis, vendors = []) {
   if (!kpis) return;
   document.getElementById('kpi-revenue').textContent    = formatCurrency(kpis.revenue || 0);
   document.getElementById('kpi-sales').textContent      = formatNumber(kpis.totalSales || 0);
@@ -618,6 +668,16 @@ function updateKPIs(kpis) {
   updateChangeIndicator('kpi-sales-change',   kpis.salesChange);
   updateChangeIndicator('kpi-ticket-change',  kpis.ticketChange);
   updateChangeIndicator('kpi-units-change',   kpis.unitsChange);
+
+  // Top vendor
+  if (vendors && vendors.length > 0) {
+    const topVendor = vendors[0];
+    document.getElementById('kpi-top-vendor').textContent = topVendor.name;
+    document.getElementById('kpi-vendor-revenue').textContent = formatCurrency(topVendor.revenue);
+  } else {
+    document.getElementById('kpi-top-vendor').textContent = '—';
+    document.getElementById('kpi-vendor-revenue').textContent = '$0.00';
+  }
 }
 
 function updateChangeIndicator(elementId, change) {
@@ -807,6 +867,32 @@ function updateTables(products) {
             </div>
             <span style="font-size: 0.8rem; color: var(--text-muted); min-width: 40px;">${pct}%</span>
           </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateVendorsTable(vendors) {
+  _vendorsData = vendors || [];
+  const tbody = document.getElementById('vendors-ranking-table');
+  if (!tbody || !vendors || vendors.length === 0) {
+    if (tbody) tbody.innerHTML = `<tr style="height: 60px;"><td colspan="6" style="text-align: center; color: var(--text-muted);">Sin datos de vendedores</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = vendors.map((vendor, index) => {
+    const changeColor = vendor.revenueChange > 0 ? 'var(--success)' : vendor.revenueChange < 0 ? 'var(--danger)' : 'var(--text-muted)';
+    const changeIcon = vendor.revenueChange > 0 ? '↑' : vendor.revenueChange < 0 ? '↓' : '→';
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
+        <td style="padding: 0.75rem; font-weight: 500;">${escapeHtml(vendor.name)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(vendor.salesCount)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--success);">${formatCurrency(vendor.revenue)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(vendor.avgTicket)}</td>
+        <td style="padding: 0.75rem; text-align: center; color: ${changeColor}; font-weight: 600;">
+          ${changeIcon} ${Math.abs(vendor.revenueChange).toFixed(1)}%
         </td>
       </tr>
     `;

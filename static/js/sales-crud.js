@@ -76,11 +76,13 @@ function renderSuggestions(items) {
           '<span style="font-weight:700;font-size:0.95rem;">$' + it.price.toFixed(2) + '</span>' +
         '</div>' +
       '</div>';
-    div.addEventListener('click', function() {
-      addToCart(it, 1);
-      hideSuggestions();
-      focusSearch();
-    });
+    if (it.stock > 0) {
+      div.addEventListener('click', function() {
+        addToCart(it, 1);
+        hideSuggestions();
+        focusSearch();
+      });
+    } 
     box.appendChild(div);
   });
 }

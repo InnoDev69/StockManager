@@ -229,7 +229,7 @@ def product_edit(product_id):
     product = db.get_item_by_id(product_id)
     if not product:
         flash("Producto no encontrado", "error")
-        return redirect(url_for("products.product_management"))
+        return redirect(url_for("products.product_management"), show_back=False,)
     
     return render_template("product_edit.html", product=product)
 

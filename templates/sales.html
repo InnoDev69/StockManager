@@ -599,29 +599,25 @@
 
         window.closeSaleModal = function () { $('saleModal').classList.remove('sh-modal--open'); };
         
-        /* ── CORRECCIÓN: Print Sale ──────────────────────────── */
+        /* ── Print Sale ──────────────────────────────────────── */
         window.printSale = function () {
-            // 1. Guardamos la configuración actual de la paginación
             const originalPageSize = detailPageSize;
             const originalPage = detailPage;
 
-            // 2. Forzamos a mostrar todos los productos de la venta actual
             detailPageSize = detailProducts.length > 0 ? detailProducts.length : 1;
             detailPage = 1;
             renderDetailTable();
 
-            // 3. Damos un breve tiempo para que el DOM se repinte antes de abrir el diálogo
             setTimeout(() => {
                 window.print();
 
-                // 4. Al cerrar el diálogo de impresión, restauramos la paginación
                 detailPageSize = originalPageSize;
                 detailPage = originalPage;
                 renderDetailTable();
             }, 150);
         };
 
-        /* ── CSV export con File System API ──────────────────────────────────── */
+        /* ── CSV export ──────────────────────────────────────── */
         window.exportToCSV = async function () {
             try {
                 const table = document.querySelector('.sh-table:not(.sh-table--modal)');
@@ -1082,63 +1078,73 @@
         .sh-table th, .sh-table td { padding: 0.65rem 0.75rem; font-size: 0.8rem; }
     }
 
-    /* ── CORRECCIÓN: Print ────────────────────────────── */
+    /* ══════════════════════════════════════════════
+       PRINT — Técnica visibility:hidden
+       Oculta TODO el DOM sin dejar espacio residual,
+       luego restaura solo el modal abierto.
+       Esto evita que el sidebar/navbar del base.html
+       aparezca en la impresión.
+       ══════════════════════════════════════════════ */
     @media print {
-        /* 1. Ocultar la aplicación principal por completo (elimina espacios en blanco) */
-        .sh-root,
-        .sh-modal__backdrop,
-        .sh-modal__close,
-        .sh-modal__footer,
-        .sh-modal__section-controls,
-        #detail-pagination {
+
+        /* 1. Ocultar absolutamente todo sin dejar espacio */
+        body * {
+            visibility: hidden !important;
+        }
+
+        /* 2. Restaurar solo el modal abierto y su contenido */
+        .sh-modal--open,
+        .sh-modal--open * {
+            visibility: visible !important;
+        }
+
+        /* 3. Anclar el modal en el origen de la página */
+        .sh-modal--open {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            display: block !important;
+            padding: 0 !important;
+            background: #fff !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        /* 4. Eliminar el backdrop oscuro */
+        .sh-modal__backdrop {
             display: none !important;
         }
 
-        /* 2. Resetear el canvas de impresión (fondo blanco, texto negro) */
-        body, html {
-            margin: 0;
-            padding: 0;
+        /* 5. Panel ocupa toda la hoja */
+        .sh-modal__panel {
+            position: relative !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            transform: none !important;
             background: #fff !important;
-            color: #000 !important;
         }
 
-        /* 3. Configurar la página (márgenes reducidos para optimizar como recibo) */
+        /* 6. Márgenes de página */
         @page {
             margin: 10mm;
         }
 
-        /* 4. Devolver el modal al flujo normal del documento */
-        .sh-modal {
-            position: relative;
-            inset: auto;
-            opacity: 1 !important;
-            pointer-events: auto;
-            display: block !important;
-            padding: 0;
-        }
-
-        .sh-modal__panel {
-            position: relative;
-            max-width: 100%;
-            width: 100%;
-            height: auto;
-            max-height: none;
-            overflow: visible;
-            box-shadow: none;
-            border: none;
-            transform: none !important;
-            background: #fff !important;
-            padding: 0 !important;
-        }
-
-        /* 5. Ajustes estéticos para "Formato Ticket/Recibo" */
+        /* 7. Colores para impresión en blanco y negro */
         .sh-modal__header {
             padding: 0 0 10px 0 !important;
             border-bottom: 2px solid #000 !important;
             background: transparent !important;
         }
-
-        .sh-modal__title, .sh-modal__eyebrow {
+        .sh-modal__eyebrow {
+            color: #555 !important;
+        }
+        .sh-modal__title {
             color: #000 !important;
         }
 
@@ -1149,36 +1155,35 @@
         .sh-modal__meta {
             background: transparent !important;
             border: none !important;
-            padding: 0 !important;
-            margin-bottom: 20px !important;
+            border-bottom: 1px solid #ddd !important;
+            border-radius: 0 !important;
+            padding: 0 0 12px 0 !important;
+            margin-bottom: 16px !important;
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10px !important;
+            gap: 8px 16px !important;
         }
-
         .sh-meta-label { color: #555 !important; }
         .sh-meta-value { color: #000 !important; }
 
-        /* 6. Tabla de productos optimizada */
+        /* 8. Tabla de productos */
         .sh-table--modal th {
             background: transparent !important;
             border-bottom: 1px solid #000 !important;
             color: #000 !important;
             padding: 5px 0 !important;
         }
-
         .sh-table--modal td {
             border-bottom: 1px dashed #ccc !important;
             color: #000 !important;
             padding: 8px 0 !important;
         }
-
-        /* 7. Regla clave: Evitar que las filas se corten a la mitad en un salto de página */
+        /* Evitar que una fila se corte entre páginas */
         .sh-table--modal tr {
             page-break-inside: avoid;
             break-inside: avoid;
         }
 
-        /* 8. Totalizador */
+        /* 9. Totalizador */
         .sh-modal__total {
             background: transparent !important;
             border: none !important;
@@ -1187,9 +1192,15 @@
             padding: 10px 0 0 0 !important;
             margin-top: 15px !important;
         }
+        .sh-modal__total-label { color: #555 !important; }
+        .sh-modal__total-value { color: #000 !important; }
 
-        .sh-modal__total-value, .sh-modal__total-label {
-            color: #000 !important;
+        /* 10. Ocultar elementos de UI que no van en el ticket */
+        .sh-modal__close,
+        .sh-modal__footer,
+        .sh-modal__section-controls,
+        #detail-pagination {
+            display: none !important;
         }
     }
     </style>

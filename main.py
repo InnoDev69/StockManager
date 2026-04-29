@@ -38,7 +38,6 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
 app.config.update(
     MAX_CONTENT_LENGTH=16 * 1024 * 1024,
     SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=1800,
     DEBUG=False,
     TESTING=False,
     TEMPLATES_AUTO_RELOAD=False,

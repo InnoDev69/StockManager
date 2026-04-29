@@ -112,3 +112,72 @@ class MetricsMixin:
             "best_day_revenue": float(best_day_revenue) if best_day_revenue else 0,
             "best_weekday_idx": best_weekday_idx,
         }
+
+    def get_vendors_metrics(self, start_date, end_date, prev_start_date, prev_end_date):
+        """
+        Obtiene métricas de desempeño por vendedor.
+
+        Args:
+            start_date (str): Fecha inicio periodo actual (YYYY-MM-DD)
+            end_date (str): Fecha fin periodo actual (YYYY-MM-DD)
+            prev_start_date (str): Fecha inicio periodo anterior (YYYY-MM-DD)
+            prev_end_date (str): Fecha fin periodo anterior (YYYY-MM-DD)
+
+        Returns:
+            dict: Vendedores con sus métricas (ingresos, ventas, ticket promedio)
+        """
+        with self._cursor() as cur:
+            # Vendedores actuales
+            cur.execute("""
+                SELECT 
+                    u.id,
+                    u.username,
+                    COALESCE(SUM(d.quantity * d.price), 0) as revenue,
+                    COUNT(DISTINCT s.id) as sales_count,
+                    COALESCE(SUM(d.quantity), 0) as units_sold
+                FROM users u
+                LEFT JOIN details d ON u.id = d.vendor_id
+                LEFT JOIN sells s ON d.sell_id = s.id AND DATE(s.date) BETWEEN ? AND ?
+                WHERE u.status = 1
+                GROUP BY u.id, u.username
+                ORDER BY revenue DESC
+            """, (start_date, end_date))
+            vendors_current = cur.fetchall()
+
+            # Vendedores periodo anterior
+            cur.execute("""
+                SELECT 
+                    u.id,
+                    COALESCE(SUM(d.quantity * d.price), 0) as revenue,
+                    COUNT(DISTINCT s.id) as sales_count
+                FROM users u
+                LEFT JOIN details d ON u.id = d.vendor_id
+                LEFT JOIN sells s ON d.sell_id = s.id AND DATE(s.date) BETWEEN ? AND ?
+                WHERE u.status = 1
+                GROUP BY u.id
+            """, (prev_start_date, prev_end_date))
+            vendors_prev = {row[0]: {"revenue": row[1], "sales": row[2]} for row in cur.fetchall()}
+
+        vendors_data = []
+        for vendor in vendors_current:
+            vendor_id, username, revenue, sales_count, units = vendor
+            prev_data = vendors_prev.get(vendor_id, {"revenue": 0, "sales": 0})
+            
+            avg_ticket = round(revenue / sales_count, 2) if sales_count > 0 else 0
+            prev_avg_ticket = round(prev_data["revenue"] / prev_data["sales"], 2) if prev_data["sales"] > 0 else 0
+            
+            revenue_change = round(((revenue - prev_data["revenue"]) / prev_data["revenue"] * 100), 1) if prev_data["revenue"] > 0 else (100 if revenue > 0 else 0)
+            sales_change = round(((sales_count - prev_data["sales"]) / prev_data["sales"] * 100), 1) if prev_data["sales"] > 0 else (100 if sales_count > 0 else 0)
+
+            vendors_data.append({
+                "id": vendor_id,
+                "name": username,
+                "revenue": round(revenue, 2),
+                "salesCount": int(sales_count),
+                "unitsSold": int(units),
+                "avgTicket": avg_ticket,
+                "revenueChange": revenue_change,
+                "salesChange": sales_change,
+            })
+
+        return vendors_data
