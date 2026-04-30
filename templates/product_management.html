@@ -660,4 +660,20 @@
 
 
 <script src="{{ url_for('static', filename='js/product-management.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          if (typeof NotificationManager !== 'undefined') {
+            NotificationManager.toast('{{ message }}', { 
+              type: '{{ category }}',
+              duration: 3000 
+            });
+          }
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  });
+</script>
 {% endblock %}

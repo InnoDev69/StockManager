@@ -136,9 +136,9 @@ class MetricsMixin:
                     COUNT(DISTINCT s.id) as sales_count,
                     COALESCE(SUM(d.quantity), 0) as units_sold
                 FROM users u
-                LEFT JOIN details d ON u.id = d.vendor_id
-                LEFT JOIN sells s ON d.sell_id = s.id AND DATE(s.date) BETWEEN ? AND ?
-                WHERE u.status = 1
+                INNER JOIN details d ON u.id = d.vendor_id
+                INNER JOIN sells s ON d.sell_id = s.id
+                WHERE u.status = 1 AND DATE(s.date) BETWEEN ? AND ?
                 GROUP BY u.id, u.username
                 ORDER BY revenue DESC
             """, (start_date, end_date))
@@ -151,11 +151,11 @@ class MetricsMixin:
                     COALESCE(SUM(d.quantity * d.price), 0) as revenue,
                     COUNT(DISTINCT s.id) as sales_count
                 FROM users u
-                LEFT JOIN details d ON u.id = d.vendor_id
-                LEFT JOIN sells s ON d.sell_id = s.id AND DATE(s.date) BETWEEN ? AND ?
-                WHERE u.status = 1
+                INNER JOIN details d ON u.id = d.vendor_id
+                INNER JOIN sells s ON d.sell_id = s.id
+                WHERE u.status = 1 AND DATE(s.date) BETWEEN ? AND ?
                 GROUP BY u.id
-            """, (prev_start_date, prev_end_date))
+                """, (prev_start_date, prev_end_date))
             vendors_prev = {row[0]: {"revenue": row[1], "sales": row[2]} for row in cur.fetchall()}
 
         vendors_data = []
