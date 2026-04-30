@@ -1,4 +1,5 @@
 from datetime import datetime
+from tools.logger import logger
 from tools.local_time import localDate
 
 from bd.bdErrors import DatabaseError
@@ -283,7 +284,8 @@ class ItemsMixin:
         result = self.execute_query(query, (item_id,))
         
         if not result:
-            raise ValueError(f"Producto con ID {item_id} no encontrado")
+            logger.warning(f"Producto con ID {item_id} no encontrado.")
+            return None
         
         row = result[0]
         

@@ -106,7 +106,6 @@ def get_inventory_forecast(start_date, end_date):
                 "status": status
             })
         
-        # Retornar solo productos con ventas, ordenados por riesgo
         return sorted([f for f in forecast if f["daysRemaining"] is not None], 
                      key=lambda x: x["daysRemaining"] or float('inf'))[:20]
 
@@ -153,7 +152,6 @@ def get_stats():
             "SELECT expiration_date FROM items WHERE expiration_date IS NOT NULL AND DATE(expiration_date) <= DATE('now', '+7 days') ORDER BY expiration_date ASC LIMIT 10"
         ).fetchall()
         
-        # Valor total de inventario
         total_inventory_value = cur.execute(
             "SELECT COALESCE(SUM(quantity * price), 0) FROM items WHERE status = 1"
         ).fetchone()[0]
@@ -214,6 +212,7 @@ def get_metrics():
     prev_start_date = (start_dt - timedelta(days=period_days)).strftime('%Y-%m-%d')
     
     data = db.get_metrics_data(start_date, end_date, prev_start_date, prev_end_date)
+    vendors_data = db.get_vendors_metrics(start_date, end_date, prev_start_date, prev_end_date)
     
     revenue = float(data["kpis"][0])
     total_sales = int(data["kpis"][1])
@@ -302,7 +301,6 @@ def get_metrics():
     # CALCULAR DATOS AVANZADOS
     # ============================================
     
-    # Valor total de inventario (cantidad * precio de venta)
     with db.transaction() as cur:
         cur.execute("SELECT COALESCE(SUM(quantity * price), 0) FROM items WHERE status = 1")
         total_inventory_value = float(cur.fetchone()[0])
@@ -353,6 +351,7 @@ def get_metrics():
             "topProduct": top_product,
             "trend": trend
         },
+        "vendors": vendors_data,
         "period": {
             "start": start_date,
             "end": end_date,
