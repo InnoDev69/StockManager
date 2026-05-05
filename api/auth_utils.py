@@ -1,6 +1,7 @@
 # api/auth_utils.py
 from functools import wraps
 from tempfile import template
+from data.roles import ROLES
 from flask import jsonify, render_template, render_template, session
 
 def require_auth(f):
@@ -34,38 +35,44 @@ def require_admin(f):
     def decorated_function(*args, **kwargs):
         user_id = session.get("user_id")
         if not user_id:
-            return jsonify({"error": "Unauthorized"}), 401
+            return render_template("login.html")
         
-        if session.get("role") != "admin":
-            return jsonify({"error": "Permiso denegado"}), 403
+        if session.get("role") != ROLES.ADMIN:
+            return render_template("403.html"), 403
         
         return f(*args, **kwargs)
     return decorated_function
 
-def require_role(role_required):
+def require_root(f):
     """
-    Decorador parametrizado: Verifica un rol específico.
+    Decorador: Verifica autenticación + rol root.
     
     Uso:
-        @require_role("admin")
-        def create_product():
-            pass
-        
-        @require_role("vendedor")
-        def create_sale():
-            pass
+        @require_root
+        def delete_user():
+            # Solo llega acá si está autenticado Y es root
     """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            return render_template("login.html")
+        
+        if session.get("role") != ROLES.ROOT:
+            return render_template("403.html"), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_role(*roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user_id = session.get("user_id")
-            if not user_id:
-                return jsonify({"error": "Unauthorized"}), 401
-            
-            user_role = session.get("role")
-            if user_role != role_required:
-                return jsonify({"error": f"Se requiere rol: {role_required}"}), 403
-            
+            if not session.get("user_id"):
+                return render_template("login.html")
+
+            if session.get("role") not in roles:
+                return render_template("403.html"), 403
             return f(*args, **kwargs)
         return decorated_function
     return decorator

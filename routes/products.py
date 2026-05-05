@@ -2,7 +2,8 @@ import csv
 import io
 import time
 import uuid
-from api.auth_utils import require_auth, require_admin
+from api.auth_utils import require_auth, require_admin, require_role
+from data.roles import ROLES
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify, send_file
 from api.notifications_api import notify_user
 from bd.bdInstance import db
@@ -41,7 +42,7 @@ def cleanup_temp_imports():
             del temp_imports[k]
 
 @products_bp.route("/products/new", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def product_new():
     """
     Muestra el formulario para crear un nuevo producto.
@@ -54,14 +55,14 @@ def product_new():
     Returns:
         Template: product_form.html (vacío, se envía por AJAX)
     """
-    return render_template("product_form.html", form_data={})
+    return render_template("product_form.html", form_data={}, role=session.get("role", ROLES.VENDOR))
         
 #Compatibilidad
 def legacy_product_form():
     return redirect(url_for("products.product_new"))
 
 @products_bp.route("/product_management")
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def product_management():
     """
     Página de administración de productos.
@@ -75,10 +76,10 @@ def product_management():
         Template: product_management.html con la interfaz de gestión
     """
     
-    return render_template("product_management.html")
+    return render_template("product_management.html", role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/import", methods=["GET", "POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def import_preview():
     """
     Vista previa de importación CSV.
@@ -94,7 +95,7 @@ def import_preview():
     """
     
     if request.method == "GET":
-        return render_template("import.html")
+        return render_template("import.html", role=session.get("role", ROLES.VENDOR))
     
     if 'file' not in request.files:
         return {"error": "No file"}, 400
@@ -130,7 +131,7 @@ def import_preview():
     }
     
 @products_bp.route("/import/confirm", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def confirm_import():
     """
     Confirmar e importar productos desde CSV.
@@ -205,10 +206,10 @@ def product_detail(product_id):
     
     """
     product = db.get_item_by_id(product_id)
-    return render_template("product_detail.html", product=product)
+    return render_template("product_detail.html", product=product, role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/<int:product_id>/edit")
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def product_edit(product_id):
     """
     Página de edición de un producto existente.
@@ -231,10 +232,10 @@ def product_edit(product_id):
         flash("Producto no encontrado", "error")
         return redirect(url_for("products.product_management", show_back='0'),)
     
-    return render_template("product_edit.html", product=product)
+    return render_template("product_edit.html", product=product, role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/barcodes", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def barcode_management():
     """
     Panel de gestión de códigos de barras.
@@ -247,7 +248,8 @@ def barcode_management():
     
     return render_template("barcode_management.html", 
                          products=products,
-                         without_barcode=without_barcode)
+                         without_barcode=without_barcode,
+                         role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/<int:product_id>/barcode/image", methods=["GET"])
 @require_auth
@@ -269,7 +271,7 @@ def get_barcode_image(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/<int:product_id>/barcode/regenerate", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def regenerate_barcode(product_id):
     """
     Regenera/asigna un nuevo código de barras automático a un producto.
@@ -289,7 +291,7 @@ def regenerate_barcode(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/<int:product_id>/barcode/update", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def update_barcode_manual(product_id):
     """
     Actualiza manualmente el código de barras de un producto.
@@ -314,7 +316,7 @@ def update_barcode_manual(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/barcodes/pdf", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def download_barcodes_pdf():
     """
     Descarga un PDF con los códigos de barras seleccionados.

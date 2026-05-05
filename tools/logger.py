@@ -122,6 +122,9 @@ class AppLogger:
     def exception(self, message: str):
         """Log de excepción con traceback completo."""
         self._logger.exception(message)
-
+    
+    def critical(self, message: str):
+        """Log de error crítico."""
+        self._logger.critical(message)
 
 logger = AppLogger()

@@ -246,7 +246,7 @@
     </details>
 
     <!-- INVENTARIO (Admin) -->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Gestión de Inventario - Administración de Productos (Admin)</span>
@@ -549,7 +549,7 @@
     </details>
 
     <!-- MÉTRICAS (Admin) -->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Métricas y Reportes - Análisis Empresarial (Admin)</span>
@@ -832,7 +832,7 @@
     </details>
 
     <!-- ADMINISTRACIÓN (Admin) -->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Administración de Usuarios - Control de Acceso (Admin)</span>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Acceso denegado - Stockly{% endblock %}
+{% block content %}
+<style>
+  /* Ocultar sidebar y toggle */
+  #sb-toggle,
+  #sidebar,
+  #sb-backdrop { display: none !important; }
+
+  /* Neutralizar el margin-left del sb-main aunque sb-open esté activo en body */
+  .app-header,
+  .sb-main { margin-left: 0 !important; transition: none !important; }
+
+  /* Ocultar el botón "Volver atrás" del base */
+  .back-footer { display: none !important; }
+
+  /* Escapar del container y cubrir toda la ventana */
+  .denied-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    /* Tapa el header también visualmente si queda espacio */
+    z-index: 10;
+    background: var(--panel-1);
+  }
+
+  .denied-card {
+    text-align: center;
+    max-width: 380px;
+    width: 100%;
+  }
+
+  .denied-icon {
+    display: block;
+    margin: 0 auto 1.75rem;
+    color: var(--danger);
+  }
+
+  .denied-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .denied-desc {
+    color: var(--text-muted);
+    margin: 0 0 2rem;
+    line-height: 1.65;
+    font-size: 0.95rem;
+  }
+
+  .denied-btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: var(--brand);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: opacity 0.15s ease;
+  }
+
+  .denied-btn:hover { opacity: 0.85; }
+</style>
+
+<div class="denied-overlay">
+  <div class="denied-card">
+    <svg class="denied-icon" width="72" height="72" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+
+    <h1 class="denied-title">Acceso denegado</h1>
+    <p class="denied-desc">No tienes permisos suficientes para acceder a este recurso.</p>
+
+    <a href="{{ url_for('dashboard.index') }}" class="denied-btn">
+      Volver al inicio
+    </a>
+  </div>
+</div>
+{% endblock %}

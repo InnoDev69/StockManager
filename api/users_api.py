@@ -4,10 +4,11 @@ from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from api.error_handlers import handle_db_error
 from bd.bdInstance import db
-from api.auth_utils import require_auth, require_admin
-from data.validators import UserValidator, ValidationError
+from api.auth_utils import require_auth, require_admin, require_role
+from data.validators import RoleValidator, UserValidator, ValidationError
 from tools.logger import logger
 from tools.email import email_sender
+from data.roles import ROLES
 
 users_api = Blueprint("users_api", __name__)
 
@@ -17,7 +18,7 @@ def generate_reset_code():
     return f"{secrets.randbelow(10**6):06d}"
 
 @users_api.route("/users", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_users():
     """Lista todos los usuarios con paginación."""
 
@@ -73,7 +74,7 @@ def get_users():
 
 
 @users_api.route("/users/<int:user_id>", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_user(user_id):
     """Obtiene un usuario específico."""
 
@@ -96,7 +97,7 @@ def get_user(user_id):
 
 
 @users_api.route("/users", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def create_user():
     """Crea un nuevo usuario."""
 
@@ -121,6 +122,11 @@ def create_user():
         return jsonify({"error": f"{e.field}: {e.message}"}), 400
     
     try:
+        data["role"] = RoleValidator.validate_name(data["role"])
+    except ValidationError as e:
+        return jsonify({"error": e.message}), 400
+    
+    try:
         db.execute_query("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)", (data["username"].strip(), data["email"].strip(), hashed, data["role"]), fetch=False)
         logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
@@ -136,7 +142,7 @@ def create_user():
         return handle_db_error(e, "create_user")
 
 @users_api.route("/users/<int:user_id>", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def update_user(user_id):
     """Actualiza un usuario existente."""
 
@@ -159,6 +165,15 @@ def update_user(user_id):
     if "password" in data and data["password"]:
         updates.append("password = ?")
         params.append(generate_password_hash(data["password"]))
+    
+    # Validar los datos borrando el status para no interferir con la validación personalizada
+    try:
+        dataCleared = dict(data) 
+        dataCleared.pop("status", None)
+        
+        UserValidator.validate_custom(**dict(dataCleared))
+    except ValidationError as e:
+        return jsonify({"error": f"{e.field}: {e.message}"}), 400
 
     if not updates:
         return jsonify({"error": "No hay datos para actualizar"}), 400
@@ -174,7 +189,7 @@ def update_user(user_id):
 
 
 @users_api.route("/users/<int:user_id>", methods=["DELETE"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def delete_user(user_id):
     """Deshabilita un usuario (baja lógica)."""
 
@@ -191,7 +206,7 @@ def delete_user(user_id):
 
 
 @users_api.route("/users/<int:user_id>/activity", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_user_activity(user_id):
     """Obtiene los movimientos/ventas de un usuario."""
 
@@ -427,10 +442,13 @@ def api_login():
     if not check_password_hash(pw_hash, password):
         return jsonify({"error": "Credenciales inválidas"}), 401
     
+    if role not in [ROLES.ADMIN, ROLES.VENDOR, ROLES.ROOT]:
+        return jsonify({"error": "Rol de usuario no válido"}), 403
+    
     # Crear sesión
     session["user_id"] = user_id
     session["username"] = username
-    session["role"] = role
+    session["role"] = role 
     
     return jsonify({
         "success": True,
@@ -462,16 +480,16 @@ def suggest_vendedor():
         if not search:
             return jsonify({"data": []}), 200
         
-        rows = db.execute_query(
-            """
-            SELECT id, username, email 
-            FROM users 
-            WHERE (role = 'vendedor' OR role = 'admin') AND status = 1 
-            AND (username LIKE ? OR email LIKE ?)
-            LIMIT 10
-            """,
-            (f"%{search}%", f"%{search}%")
-        )
+        rows = db.execute_query(                                              
+            """                                                               
+            SELECT id, username, email                                        
+            FROM users                                                        
+            WHERE (role = ? OR role = ?) AND status = 1                      
+            AND (username LIKE ? OR email LIKE ?)                            
+            LIMIT 10                                                         
+            """,                                                              
+            (ROLES.VENDOR, ROLES.ADMIN, f"%{search}%", f"%{search}%")
+        )  
         
         suggestions = [{"id": r[0], "username": r[1], "email": r[2]} for r in rows]
         

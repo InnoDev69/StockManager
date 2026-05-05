@@ -1,13 +1,14 @@
 from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
-from api.auth_utils import require_auth, require_admin
+from api.auth_utils import require_auth, require_admin, require_role
 from data.validators import ItemValidator, ValidationError
 from tools.logger import logger
 from tools.local_time import localDate
 from bd.bdErrors import DatabaseError
 from api.error_handlers import handle_db_error
 import sqlite3
+from data.roles import ROLES
 
 ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
 
@@ -269,7 +270,7 @@ def get_product(product_id):
     return jsonify(product), 200
 
 @products_api.route("/products", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def create_product():
     """
     Crea un nuevo producto en el inventario.
@@ -334,7 +335,7 @@ def create_product():
         return jsonify({"error": "Error interno"}), 500
 
 @products_api.route("/products/<int:product_id>", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def update_product(product_id):
     """
     Actualiza un producto existente.
@@ -418,7 +419,7 @@ def update_product(product_id):
     return jsonify({"message": "Producto actualizado"}), 200
 
 @products_api.route("/products/<int:product_id>", methods=["DELETE"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def delete_product(product_id):
     """
     Deshabilita un producto del inventario.
@@ -437,10 +438,6 @@ def delete_product(product_id):
         401: No autorizado
         403: Permiso denegado (no es admin)
     """
-    
-    if session.get("role") != "admin":
-        logger.warning(f"Forbidden disable attempt for product ID {product_id} by user ID {session.get('user_id')}")
-        return jsonify({"error": "Permiso denegado"}), 403
     
     db.disable_item(product_id)
     db.create_notification(user_id=session.get('user_id'), title="Producto deshabilitado", message=f"El producto ha sido deshabilitado.", notification_type='warning')
@@ -496,7 +493,7 @@ def search_items():
     return jsonify(items), 200
 
 @products_api.route("/products/<int:item_id>/attributes", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def create_product_attribute_for_item(item_id):
     """
     POST /api/products/{item_id}/attributes
@@ -523,9 +520,6 @@ def create_product_attribute_for_item(item_id):
         403: Permiso denegado (no es admin)
         404: Producto no encontrado
     """
-    
-    if session.get("role") != "admin":
-        return jsonify({"ok": False, "error": "Permiso denegado"}), 403
     
     if db.get_item_details(item_id) is None:
         return jsonify({"ok": False, "error": "Producto no encontrado"}), 404
@@ -649,7 +643,7 @@ def get_product_attributes(item_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 @products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def upsert_product_attributes(item_id):
     """
     PUT /api/products/1/attributes
@@ -715,7 +709,7 @@ def upsert_product_attributes(item_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     
 @products_api.route("/attributes/<int:attribute_id>", methods=["DELETE"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def delete_product_attribute(attribute_id):
     """
     DELETE /api/attributes/{attribute_id}
@@ -761,7 +755,7 @@ def delete_product_attribute(attribute_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     
 @products_api.route("/products/<int:item_id>/attributes", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def update_product_attributes(item_id):
     """
     PUT /api/products/{item_id}/attributes
@@ -844,7 +838,7 @@ def update_product_attributes(item_id):
         }), 400
         
 @products_api.route("/products/<int:product_id>/activate", methods=["POST"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def activate_product(product_id):
     """
     Activa un producto previamente deshabilitado.
@@ -864,8 +858,6 @@ def activate_product(product_id):
         403: Permiso denegado (no es admin)
     """
     try:
-        if session.get("role") != "admin":
-            return jsonify({"error": "Permiso denegado"}), 403
         
         db.activate_item(product_id)
         db.create_notification(user_id=session.get('user_id'), title="Producto activado", message=f"El producto {db.get_item_name(product_id)} ha sido activado.", notification_type='success')

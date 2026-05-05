@@ -6,12 +6,20 @@
   <meta name="color-scheme" content="dark">
   <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script>
+    window.ROLES = {
+      ADMIN:  "{{ ROLES.ADMIN }}",
+      VENDOR: "{{ ROLES.VENDOR }}",
+      ROOT:   "{{ ROLES.ROOT }}"
+    };
+    window.CURRENT_USER = "{{ session.get('username', '') }}";
+  </script>
 </head>
 
 <script src="{{ url_for('static', filename='js/debug-panel.js') }}"></script>
 <script>
     // Habilitar solo si hay sesión de admin
-    {% if session.get('role') == 'admin' %}
+    {% if role == ROLES.ADMIN %}
     // Debug panel ya está activo
     // Presiona Ctrl+Shift+D para abrir
     console.log('%cDebug Panel activo', 'color: #0f0; font-size: 12px; font-weight: bold;');
@@ -58,7 +66,7 @@
           Dashboard
         </a>
 
-        {% if session.get('role') == 'admin' %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
         <a href="{{ url_for('products.product_management') }}" class="sb__item" data-match="/product_management">
           <span class="sb__item-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -79,7 +87,7 @@
           Ventas
         </a>
 
-        {% if session.get('role') == 'admin' %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
         <a href="{{ url_for('metrics.metrics') }}" class="sb__item" data-match="/metrics">
           <span class="sb__item-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,7 +99,7 @@
         </a>
         {% endif %}
 
-        {% if session.get('role') == 'admin' %}
+        {% if role == ROLES.ROOT %}
         <a href="{{ url_for('users.users') }}" class="sb__item" data-match="/users">
           <span class="sb__item-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,7 +108,7 @@
             </svg>
           </span>
           Administración
-          <span class="sb__item-badge">Admin</span>
+          <span class="sb__item-badge">Root</span>
         </a>
         {% endif %}
       </nav>
@@ -119,7 +127,7 @@
           </span>
           Nueva venta
         </a>
-        {% if session.get('role') == 'admin' %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
         <a href="{{ url_for('products.product_new') }}" class="sb__action">
           <span class="sb__action-icon sb__action-icon--blue">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -139,7 +147,7 @@
           Importar CSV
         </a>
 
-        {% if session.get('role') == 'admin' %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
         <a href="/products/barcodes" class="sb__action">
           <span class="sb__action-icon sb__action-icon--purple">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -178,7 +186,7 @@
         <div class="sb__avatar">{{ (session.get('username') or 'U')[0].upper() }}</div>
         <div class="sb__user-info">
           <span class="sb__user-name">{{ session.get('username') }}</span>
-          <span class="sb__user-role">{{ session.get('role') }}</span>
+          <span class="sb__user-role">{{ role }}</span>
         </div>
         <svg class="sb__menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="6 9 12 15 18 9"></polyline>
@@ -299,7 +307,7 @@
         {% if session.get('user_id') %}
         <div class="flex items-center gap-sm">
           <span class="text-muted text-sm">{{ session.get('username') }}</span>
-          <span class="role-badge">{{ session.get('role') }}</span>
+          <span class="role-badge">{{ role }}</span>
         </div>
         {% else %}
         <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Iniciar sesión</a>

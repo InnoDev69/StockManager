@@ -18,6 +18,7 @@ from tools.logger import logger
 from tools.scheduler import SCHEDULER
 from bd.bdInstance import db
 from waitress import create_server
+from data.roles import ROLES
 
 t0 = perf_counter()
 logger.info("boot:start")
@@ -44,12 +45,16 @@ app.config.update(
 )
 
 # ── Context processors ────────────────────────────────────────────────────────
+IS_EXECUTABLE = getattr(sys, 'frozen', False)
 
 @app.context_processor
 def inject_globals():
     return {
         "Limits": Limits,
         "Var": Var,
+        "ROLES": ROLES,
+        'IS_EXECUTABLE': IS_EXECUTABLE,
+        'APP_MODE': 'Ejecutable' if IS_EXECUTABLE else 'Desarrollo'
     }
 
 # ── Blueprints ────────────────────────────────────────────────────────────────
@@ -137,6 +142,7 @@ atexit.register(cleanup)
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 
 SCHEDULER.add_task(86400, logger._cleanup_old_logs)
+SCHEDULER.add_task(1800, db._check_unique_root_user)
 SCHEDULER.start()
 
 # ── Arranque ──────────────────────────────────────────────────────────────────

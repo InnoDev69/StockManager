@@ -2,6 +2,7 @@ import os
 from flask import Blueprint, render_template, session, redirect, url_for
 from api.auth_utils import require_auth, require_admin
 from bd.bdInstance import db
+from data.roles import ROLES
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -36,7 +37,7 @@ def index():
     out_of_stock = db.execute_query("SELECT COUNT(*) FROM items WHERE quantity = 0 AND status = 1")[0][0]
     stats["out_of_stock"] = out_of_stock
     
-    role = session.get("role", "Vendedor")
+    role = session.get("role", ROLES.VENDOR)
     return render_template('dashboard.html', stats=stats, role=role,
                        low_stock_list=low_stock_list, products=[], show_back=False,
                        DEBUG=1 if os.getenv("DEBUG", "0") == "1" else 0)

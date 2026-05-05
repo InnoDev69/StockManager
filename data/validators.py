@@ -1,5 +1,5 @@
 from data.limits import Limits
-
+from data.roles import ROLES
 
 class ValidationError(Exception):
     """Excepción para errores de validación."""
@@ -147,6 +147,36 @@ class UserValidator:
     """Validador específico para usuarios."""
     
     @staticmethod
+    def validate_custom(**fields) -> dict:
+        """
+        Valida solo los campos que vienen.
+        
+        Uso:
+            UserValidator.validate(username="y", password="pass")
+            UserValidator.validate(email="x@y.com", role="admin")
+        """
+        
+        validated = {}
+        for field, value in fields.items():
+            if field.lower() == "username":
+                validated["username"] = Validator.validate_string(
+                    "Usuario", value, 
+                    Limits.USER_USERNAME_MAX, required=True
+                )
+            elif field.lower() == "password":
+                validated["password"] = Validator.validate_string(
+                    "Contraseña", value, 
+                    Limits.USER_PASSWORD_MAX, required=True
+                )
+            elif field.lower() == "email":
+                validated["email"] = UserValidator.validate_email(value)
+            elif field.lower() == "role":
+                validated["role"] = RoleValidator.validate_name(value)
+            else:
+                raise ValidationError(field, "Campo no reconocido")
+        return validated
+    
+    @staticmethod
     def validate_email(email) -> str:
         """Valida el formato de un email."""
         email = Validator.validate_string("Email", email, Limits.USER_EMAIL_MAX)
@@ -155,7 +185,7 @@ class UserValidator:
         return email
     
     @staticmethod
-    def validate(username, password, email, role="user") -> dict:
+    def validate(username, password, email, role=ROLES.VENDOR) -> dict:
         """
         Valida todos los campos de un usuario.
         
@@ -178,8 +208,48 @@ class UserValidator:
                 "Email", email, 
                 Limits.USER_EMAIL_MAX, required=True
             ),
-            "role": Validator.validate_string(
-                "Rol", role, 
-                Limits.USER_ROLE_MAX, required=True
+            "role": RoleValidator.validate_name(role),
+        }
+        
+class RoleValidator:
+    """Validador específico para roles."""
+    namespaces = [ROLES.ROOT, ROLES.ADMIN, ROLES.VENDOR]
+    permissions = {
+        "root": "all",
+        "admin": "manage_items, manage_users, view_metrics",
+        "vendedor": "record_sales, view_own_metrics"
+    }
+
+    @staticmethod
+    def validate_name(name) -> str:
+        """Valida el nombre de un rol."""
+        if name.lower() not in RoleValidator.namespaces:
+            raise ValidationError("Nombre del rol", "Rol no válido")
+        return name
+    
+    @staticmethod
+    def validate_permissions(permissions) -> str:
+        """Valida los permisos de un rol."""
+        return Validator.validate_string(
+            "Permisos", permissions, 
+            Limits.ROLE_PERMISSIONS_MAX, required=True
+        )
+
+    @staticmethod
+    def validate(name, permissions) -> dict:
+        """
+        Valida todos los campos de un rol.
+        
+        Returns:
+            dict: Campos validados y limpios
+        
+        Raises:
+            ValidationError: Si algún campo no es válido
+        """
+        return {
+            "name": RoleValidator.validate_name(name),
+            "permissions": Validator.validate_string(
+                "Permisos", permissions, 
+                Limits.ROLE_PERMISSIONS_MAX, required=True
             ),
         }

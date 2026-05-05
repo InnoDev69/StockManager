@@ -83,7 +83,7 @@ function renderTable(users) {
     const initial = u.username.charAt(0).toUpperCase();
     const hue     = [...u.username].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
 
-    const roleBadge = u.role === "admin"
+    const roleBadge = u.role === window.ROLES.ADMIN
       ? `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
                       border-radius:99px; font-size:.75rem; font-weight:600;
                       background:color-mix(in srgb,#f59e0b 18%,transparent);
@@ -271,6 +271,9 @@ async function saveUser() {
 
   if (!username || !email) { showToast("Completá los campos requeridos", "warning"); return; }
   if (!id && !password)    { showToast("La contraseña es obligatoria para nuevos usuarios", "warning"); return; }
+  // TOMAKE: cambiar el 6 hardcodeado por una constante o validación más robusta en el backend
+  if (password && password.length < 6) { showToast("La contraseña debe tener al menos 6 caracteres", "warning"); return; }
+  if (email === window.CURRENT_USER && status === "0") { showToast("No podés desactivar tu propio usuario", "warning"); return; }
 
   const btn = document.getElementById("saveBtn");
   btn.disabled    = true;

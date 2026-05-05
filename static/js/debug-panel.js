@@ -309,7 +309,8 @@
 
     _bindKeybind() {
       document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey === KEYBIND.ctrl && e.shiftKey === KEYBIND.shift && e.code === KEYBIND.code) {
+        if (e.ctrlKey === KEYBIND.ctrl && e.shiftKey === KEYBIND.shift && e.code === 
+          KEYBIND.code && window.ROLES?.ROOT === window.APP?.role) {
           e.preventDefault();
           this.toggle();
         }
