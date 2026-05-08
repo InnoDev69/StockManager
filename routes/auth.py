@@ -1,6 +1,7 @@
 from flask import Blueprint, app, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
+from data.roles import ROLES
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -96,7 +97,10 @@ def register_post():
     user = request.form.get("user", "").strip()
     password = request.form.get("password", "")
     email = request.form.get("email", "").strip()
-    role = request.form.get("role", "user")
+    role = request.form.get("role", ROLES.VENDOR).strip()
+    
+    if role not in [ROLES.ADMIN, ROLES.VENDOR, ROLES.ROOT]:
+        role = ROLES.VENDOR
     
     if not user or not password:
         return render_template("login.html", register=True, error="Completa todos los campos")

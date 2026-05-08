@@ -3,7 +3,8 @@
  * Tipos: toast, alert (inline), modal/popup
  */
 
-const NotificationManager = (function() {
+const NotificationManager = (function () {
+
   // Configuración por defecto
   const defaults = {
     toast: {
@@ -21,7 +22,14 @@ const NotificationManager = (function() {
   let toastContainer = null;
   let activeToasts = [];
 
-  // Inicializar contenedores
+  // FIX 3: listener de Escape registrado UNA sola vez, fuera de init()
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && defaults.modal.closeOnEscape) {
+      closeAllModals();
+    }
+  });
+
+  // Inicializar contenedor de toasts
   function init() {
     if (!toastContainer) {
       toastContainer = document.createElement('div');
@@ -29,17 +37,10 @@ const NotificationManager = (function() {
       toastContainer.setAttribute('data-position', defaults.toast.position);
       document.body.appendChild(toastContainer);
     }
-    
-    // Escuchar tecla Escape para modales
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && defaults.modal.closeOnEscape) {
-        closeAllModals();
-      }
-    });
   }
 
   // ==================== TOASTS ====================
-  
+
   /**
    * Mostrar notificación toast
    * @param {string} message - Mensaje a mostrar
@@ -54,7 +55,7 @@ const NotificationManager = (function() {
    */
   function toast(message, options = {}) {
     init();
-    
+
     const config = {
       type: options.type || 'info',
       duration: options.duration !== undefined ? options.duration : defaults.toast.duration,
@@ -75,7 +76,6 @@ const NotificationManager = (function() {
     toastEl.setAttribute('role', 'alert');
     toastEl.setAttribute('aria-live', config.type === 'error' ? 'assertive' : 'polite');
 
-    // Icono por defecto según tipo
     const icons = {
       success: '✓',
       error: '✕',
@@ -146,23 +146,29 @@ const NotificationManager = (function() {
   }
 
   function dismissToast(toastEl) {
-    if (!toastEl || !toastEl.parentNode) return;
-    
+    // FIX 1 + 2: guard contra elemento inválido y contra doble ejecución
+    if (!toastEl || toastEl._dismissing) return;
+    toastEl._dismissing = true;
+
+    // FIX 4: limpiar el array SINCRÓNICAMENTE para que el while loop
+    // de maxVisible no itere infinito sobre el mismo elemento bloqueado
+    activeToasts = activeToasts.filter(t => t !== toastEl);
+
     clearTimeout(toastEl._timeout);
     toastEl.classList.remove('notification-toast--visible');
     toastEl.classList.add('notification-toast--leaving');
-    
+
+    // Solo la animación del DOM va async
     setTimeout(() => {
-      toastEl.remove();
-      activeToasts = activeToasts.filter(t => t !== toastEl);
+      if (toastEl.parentNode) toastEl.remove();
     }, 300);
   }
 
   // Atajos para tipos de toast
   const success = (msg, opts = {}) => toast(msg, { ...opts, type: 'success' });
-  const error = (msg, opts = {}) => toast(msg, { ...opts, type: 'error' });
+  const error   = (msg, opts = {}) => toast(msg, { ...opts, type: 'error' });
   const warning = (msg, opts = {}) => toast(msg, { ...opts, type: 'warning' });
-  const info = (msg, opts = {}) => toast(msg, { ...opts, type: 'info' });
+  const info    = (msg, opts = {}) => toast(msg, { ...opts, type: 'info' });
 
   // ==================== MODALES / POPUP ====================
 
@@ -172,24 +178,24 @@ const NotificationManager = (function() {
    */
   function modal(options = {}) {
     const config = {
-      title: options.title || '',
-      message: options.message || '',
-      type: options.type || 'info', // success, error, warning, info, confirm
-      icon: options.icon || null,
+      title:       options.title || '',
+      message:     options.message || '',
+      type:        options.type || 'info',
+      icon:        options.icon || null,
       confirmText: options.confirmText || 'Aceptar',
-      cancelText: options.cancelText || 'Cancelar',
-      showCancel: options.showCancel !== undefined ? options.showCancel : (options.type === 'confirm'),
-      onConfirm: options.onConfirm || null,
-      onCancel: options.onCancel || null,
-      content: options.content || null, // HTML personalizado
-      size: options.size || 'small' // small, medium, large
+      cancelText:  options.cancelText || 'Cancelar',
+      showCancel:  options.showCancel !== undefined ? options.showCancel : (options.type === 'confirm'),
+      onConfirm:   options.onConfirm || null,
+      onCancel:    options.onCancel || null,
+      content:     options.content || null,
+      size:        options.size || 'small'
     };
 
     const icons = {
       success: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>',
-      error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+      error:   '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
       warning: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>',
-      info: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+      info:    '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
       confirm: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'
     };
 
@@ -205,7 +211,7 @@ const NotificationManager = (function() {
         <div class="notification-modal__icon notification-modal__icon--${config.type}">
           ${config.icon || icons[config.type]}
         </div>
-        ${config.title ? `<h3 class="notification-modal__title" id="notification-modal-title">${config.title}</h3>` : ''}
+        ${config.title   ? `<h3 class="notification-modal__title" id="notification-modal-title">${config.title}</h3>` : ''}
         ${config.message ? `<p class="notification-modal__message">${config.message}</p>` : ''}
         ${config.content ? `<div class="notification-modal__content">${config.content}</div>` : ''}
         <div class="notification-modal__actions">
@@ -217,10 +223,9 @@ const NotificationManager = (function() {
       </div>
     `;
 
-    // Event listeners
-    const overlay = modalEl.querySelector('.notification-modal__overlay');
+    const overlay    = modalEl.querySelector('.notification-modal__overlay');
     const confirmBtn = modalEl.querySelector('.notification-modal__btn--confirm');
-    const cancelBtn = modalEl.querySelector('.notification-modal__btn--cancel');
+    const cancelBtn  = modalEl.querySelector('.notification-modal__btn--cancel');
 
     const closeModal = (confirmed = false) => {
       modalEl.classList.add('notification-modal--leaving');
@@ -228,7 +233,7 @@ const NotificationManager = (function() {
         modalEl.remove();
         document.body.style.overflow = '';
       }, 200);
-      
+
       if (confirmed && config.onConfirm) {
         config.onConfirm();
       } else if (!confirmed && config.onCancel) {
@@ -241,23 +246,20 @@ const NotificationManager = (function() {
     }
 
     confirmBtn.addEventListener('click', () => closeModal(true));
-    
+
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => closeModal(false));
     }
 
-    // Guardar referencia para cerrar con Escape
     modalEl._close = closeModal;
 
     document.body.appendChild(modalEl);
     document.body.style.overflow = 'hidden';
 
-    // Animar entrada
     requestAnimationFrame(() => {
       modalEl.classList.add('notification-modal--visible');
     });
 
-    // Focus en el botón de confirmar
     confirmBtn.focus();
 
     return {
@@ -273,8 +275,11 @@ const NotificationManager = (function() {
   }
 
   // Atajos para modales
-  const alert = (message, title = '') => modal({ message, title, type: 'info' });
-  
+  const alert        = (message, title = '')          => modal({ message, title, type: 'info' });
+  const successModal = (message, title = '¡Éxito!')   => modal({ message, title, type: 'success' });
+  const errorModal   = (message, title = 'Error')     => modal({ message, title, type: 'error' });
+  const warningModal = (message, title = 'Advertencia') => modal({ message, title, type: 'warning' });
+
   const confirm = (message, options = {}) => {
     return new Promise((resolve) => {
       modal({
@@ -283,14 +288,10 @@ const NotificationManager = (function() {
         type: 'confirm',
         showCancel: true,
         onConfirm: () => resolve(true),
-        onCancel: () => resolve(false)
+        onCancel:  () => resolve(false)
       });
     });
   };
-
-  const successModal = (message, title = '¡Éxito!') => modal({ message, title, type: 'success' });
-  const errorModal = (message, title = 'Error') => modal({ message, title, type: 'error' });
-  const warningModal = (message, title = 'Advertencia') => modal({ message, title, type: 'warning' });
 
   // ==================== ALERTAS INLINE ====================
 
@@ -301,16 +302,16 @@ const NotificationManager = (function() {
    */
   function createInlineAlert(message, options = {}) {
     const config = {
-      type: options.type || 'info',
+      type:        options.type || 'info',
       dismissible: options.dismissible !== false,
-      icon: options.icon || null
+      icon:        options.icon || null
     };
 
     const icons = {
       success: '✓',
-      error: '✕',
+      error:   '✕',
       warning: '⚠',
-      info: 'ℹ'
+      info:    'ℹ'
     };
 
     const alertEl = document.createElement('div');
@@ -343,7 +344,7 @@ const NotificationManager = (function() {
     warning,
     info,
     dismissToast,
-    
+
     // Modales
     modal,
     alert,
@@ -352,19 +353,19 @@ const NotificationManager = (function() {
     errorModal,
     warningModal,
     closeAllModals,
-    
+
     // Inline alerts
     createInlineAlert,
-    
+
     // Configuración
     configure: (opts) => Object.assign(defaults, opts)
   };
+
 })();
 
-// Alias global para compatibilidad
 window.Notify = NotificationManager;
 
-// Reemplazar el showToast existente para retrocompatibilidad
+// Retrocompatibilidad con showToast existente
 function showToast(message, isError = false) {
   if (isError) {
     NotificationManager.error(message);

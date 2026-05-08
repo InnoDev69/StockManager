@@ -1,10 +1,11 @@
+from data.roles import ROLES
 from flask import Blueprint, render_template, session, redirect, url_for, flash
-from api.auth_utils import require_admin
+from api.auth_utils import require_admin, require_role
 
 users_bp = Blueprint('users', __name__)
 
 @users_bp.route("/users")
-@require_admin
+@require_role(ROLES.ROOT)
 def users():
     """
     Página de gestión de usuarios.
@@ -15,4 +16,4 @@ def users():
         Template: users.html con la interfaz de gestión
     """
     
-    return render_template("users.html")
+    return render_template("users.html", role=session.get('role', ROLES.VENDOR))

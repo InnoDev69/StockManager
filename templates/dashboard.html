@@ -26,7 +26,7 @@
       </div>
     </a>
 
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <!-- Nuevo Producto -->
     <a href="{{ url_for('products.product_new') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--brand), var(--brand-2));">
@@ -57,7 +57,7 @@
       {% endif %}
     </a>
 
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <!-- Importar CSV -->
     <a href="/import" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
@@ -87,7 +87,7 @@
     {% endif %}
 
     <!-- Ver Productos GENERALES -->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <a href="/product_management" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@
     {% endif %}
 
     <!-- Ver métricas-->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <a href="{{ url_for('metrics.metrics') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -120,7 +120,7 @@
     {% endif %}
 
     <!-- Gestion de usuarios-->
-    {% if role == 'admin' %}
+    {% if role == ROLES.ROOT %}
     <a href="/users" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -210,14 +210,14 @@
         <option value="all">Todos</option>
         <option value="in_stock">En stock</option>
         <option value="out_of_stock">Agotados</option>
-        {% if role == 'admin' %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
         <option value="discontinued">Descatalogados</option>
         {% endif %}
       </select>
     </div>
 
     <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-      {% if role == 'admin' %}
+      {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
       <a href="{{ url_for('products.product_new') }}" class="btn" style="white-space: nowrap;">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -363,7 +363,7 @@
       </svg>
       <h3 style="margin: 1.5rem 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
       <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros o agrega un nuevo producto.</p>
-      {% if role == 'admin' %}<a href="/products/new" class="btn">Agregar primer producto</a>{% endif %}
+      {% if role == ROLES.ADMIN or role == ROLES.ROOT %}<a href="/products/new" class="btn">Agregar primer producto</a>{% endif %}
     </div>
   </div>
 
@@ -848,7 +848,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
-    if (window.APP.role === 'admin') document.body.classList.add('role-admin');
+    if (window.APP.role === window.ROLES?.ADMIN) document.body.classList.add('role-admin');
     switchView('grid');
   });
 </script>

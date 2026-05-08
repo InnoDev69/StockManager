@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import contextlib
 from bd.bdErrors import *
+from data.roles import ROLES
 from tools.logger import logger
 from tools.timmer import measure_time
 from data.validators import ItemValidator, UserValidator, ValidationError
@@ -13,6 +14,7 @@ from bd.mixins.sales import SalesMixin
 from bd.mixins.metrics import MetricsMixin
 from bd.mixins.password_reset import PasswordResetMixin
 from bd.mixins.notifications import NotificationsMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 _thread_local = threading.local()
 
@@ -248,9 +250,47 @@ class BDConector(
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)")
 
-        self._run_migrations()
+        self.__create_default_root_user()
+        self.__run_migrations()
+        self._check_unique_root_user()
+        
+    def _check_unique_root_user(self):
+        """
+        Verifica que solo exista un usuario con rol ROOT.
 
-    def _run_migrations(self):
+        Si se detecta más de un usuario ROOT, se loggea un error crítico y se
+        lanza una excepción para evitar inconsistencias graves en la gestión de
+        usuarios.
+        """
+        rows = self.execute_query(
+            "SELECT COUNT(*) FROM users WHERE role = ?",
+            (ROLES.ROOT,),
+        )
+        if rows and rows[0][0] > 1:
+            logger.critical("Múltiples usuarios con rol ROOT detectados")
+            raise DatabaseError("Multiple ROOT users detected, database integrity compromised")
+        
+    def __create_default_root_user(self):
+        """
+        Crea un usuario root por defecto si no existe ninguno.
+
+        Esto asegura que siempre haya al menos un usuario administrador para
+        acceder al sistema después de la inicialización.
+        """
+        try:
+            if self.user_exists("root", "root@root.com"):
+                logger.info("Usuario root ya existe, skip creación")
+                return
+            self.add_user(
+                username="root",
+                password=generate_password_hash("root1234"),
+                email="root@root.com",
+                role=ROLES.ROOT
+            )
+        except DatabaseError as e:
+            logger.error(f"Error al crear usuario root: {e}")
+
+    def __run_migrations(self):
         """
         Aplica migraciones incrementales e idempotentes.
 

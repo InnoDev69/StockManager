@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from api.auth_utils import require_auth, require_admin
+from api.auth_utils import require_auth, require_admin, require_role
 from api.notifications_api import notify_user
 from bd.bdInstance import db
+from data.roles import ROLES
 
 sales_bp = Blueprint('sales', __name__)
 
@@ -24,7 +25,7 @@ def sale_new():
         Template/Redirect: Formulario en GET, redirect a dashboard en POST
     """
     
-    return render_template("sale_form.html")
+    return render_template("sale_form.html", role=session.get("role", ROLES.VENDOR))
 
 @sales_bp.route("/sales", methods=["GET"])
 @require_auth
@@ -105,10 +106,10 @@ def sales():
         sales_dict[sale_id]["total_quantity"] += row[3]
     
     sales = list(sales_dict.values())
-    return render_template("sales.html", sales=sales)
+    return render_template("sales.html", sales=sales, role=session.get("role", ROLES.VENDOR))
 
 @sales_bp.route("/sales/<int:sale_id>/edit", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def edit_sale_form(sale_id):
     """
     Muestra formulario para editar una venta.
@@ -119,4 +120,4 @@ def edit_sale_form(sale_id):
         flash("Venta no encontrada", "error")
         return redirect(url_for("sales.sales"))
     
-    return render_template("sale_edit.html", sale=sale)
+    return render_template("sale_edit.html", sale=sale, role=session.get("role", ROLES.VENDOR))

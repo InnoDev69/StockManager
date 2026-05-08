@@ -3,10 +3,11 @@ from collections import defaultdict
 import json
 import threading
 import time
+from data.roles import ROLES
 from tools.logger import logger
 
 from flask import Blueprint, Response, jsonify, request, session
-from api.auth_utils import require_admin, require_auth
+from api.auth_utils import require_admin, require_auth, require_role
 from bd.bdInstance import db
 
 notifications_api = Blueprint('notifications_api', __name__, url_prefix='/notifications')
@@ -59,7 +60,7 @@ def mark_all_read():
 
 
 @notifications_api.route('/create', methods=['POST'])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def create_notification():
     """
     Crea una nueva notificación (solo admin).
@@ -94,7 +95,7 @@ def create_notification():
 
 
 @notifications_api.route('/<int:notification_id>/delete', methods=['DELETE'])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def delete_notification(notification_id: int):
     """Elimina una notificación existente (solo admin)."""
     try:

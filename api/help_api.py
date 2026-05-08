@@ -1,3 +1,4 @@
+from data.roles import ROLES
 from flask import Blueprint, render_template, session, redirect, url_for
 from api.auth_utils import require_auth
 
@@ -14,5 +15,5 @@ def help_center():
     Returns:
         Template: help.html con contenido de ayuda por módulo
     """
-    role = session.get("role", "vendedor")
+    role = session.get("role", ROLES.VENDOR)
     return render_template('help.html', role=role, show_back=False)

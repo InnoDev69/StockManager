@@ -1,3 +1,4 @@
+from data.roles import ROLES
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from api.auth_utils import require_auth
 from bd.bdInstance import db
@@ -27,5 +28,5 @@ def settings():
     if user_data:
         user = {"username": user_data[0][0], "email": user_data[0][1]}
     
-    return render_template("settings.html", user=user, show_back=False)
+    return render_template("settings.html", user=user, role=session.get("role", ROLES.VENDOR), show_back=False)
 

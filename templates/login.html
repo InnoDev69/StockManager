@@ -528,8 +528,10 @@
                     <div class="field">
                         <label class="label" for="register-role">Rol</label>
                         <select id="register-role" name="role" required>
-                            <option value="Vendedor" selected>Vendedor</option>
-                            <option value="admin">Administrador</option>
+                            <option value="{{ ROLES.VENDOR }}" selected>Vendedor</option>
+                            {% if not IS_EXECUTABLE %}
+                              <option value="{{ ROLES.ADMIN }}">Administrador</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div class="form-actions">

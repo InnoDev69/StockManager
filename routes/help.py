@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, session
+from data.roles import ROLES
 
 help_bp = Blueprint('help', __name__)
 
@@ -12,5 +13,5 @@ def help_center():
     Returns:
         Template: help.html con contenido de ayuda por módulo
     """
-    role = session.get("role", "vendedor")
+    role = session.get("role", ROLES.VENDOR)
     return render_template('help.html', role=role, show_back=False)

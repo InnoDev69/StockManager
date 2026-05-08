@@ -50,7 +50,7 @@
         <label class="label">Stock mínimo <span style="color: var(--danger);">*</span></label>
         <input type="number" name="min_quantity" min="0" max="{{Limits.ITEM_MIN_QUANTITY_MAX}}"
                value="{{ form_data.min_quantity or 0 }}" required placeholder="0" />
-        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">⚠️ Alerta si baja de este nivel</small>
+        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;"> Alerta si baja de este nivel</small>
         <span class="field-error" data-field="Cantidad mínima"></span>
       </div>
     </div>

@@ -1,20 +1,15 @@
+from data.roles import ROLES
 from flask import Blueprint, request, jsonify, session
 from tools.logger import logger, get_current_log_file
+from api.auth_utils import require_auth, require_role
 import json
 
 debug_bp = Blueprint('debug', __name__, url_prefix='/debug')
 
-def require_admin():
-    if not session.get("user_id"):
-        return False
-
-    return True
-
 @debug_bp.route('/log', methods=['POST'])
+@require_role(ROLES.ROOT)
 def log_client_error():
     """Captura logs desde JavaScript del cliente."""
-    if not require_admin():
-        return jsonify({'error': 'Unauthorized'}), 401
     
     data = request.get_json()
     level = data.get('level', 'info').upper()
@@ -36,10 +31,9 @@ def log_client_error():
     return jsonify({'status': 'logged'}), 200
 
 @debug_bp.route('/logs', methods=['GET'])
+@require_role(ROLES.ROOT)
 def get_recent_logs():
     """Obtiene logs recientes para el panel de debug."""
-    if not require_admin():
-        return jsonify({'error': 'Unauthorized'}), 401
     
     log_file = get_current_log_file()
     try:
@@ -51,10 +45,10 @@ def get_recent_logs():
         return jsonify({'logs': [], 'error': 'No logs available'}), 200
     
 @debug_bp.route('/command', methods=['POST'])
+@require_auth
+@require_role(ROLES.ROOT)
 def execute_command():
     """Ejecuta código Python en el servidor (solo admin)."""
-    if not session.get("user_id"):
-        return jsonify({'error': 'Unauthorized'}), 401
     
     data = request.get_json()
     code = data.get('code', '')

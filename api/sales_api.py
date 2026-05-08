@@ -1,7 +1,8 @@
+from data.roles import ROLES
 from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
-from api.auth_utils import require_admin, require_auth 
+from api.auth_utils import require_admin, require_auth, require_role 
 from tools.logger import logger
 from api.error_handlers import handle_db_error
 from bd.bdErrors import DatabaseError
@@ -164,6 +165,9 @@ def create_sales_bulk():
         
         vendor_id = session.get("user_id", 0)
         payment_method = data.get("payment_method", "Efectivo")
+        
+        if not vendor_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
         
         try:
             sale_id = db.record_bulk_sale(validated_items, vendor_id, payment_method)
@@ -404,7 +408,7 @@ def get_sale_detail(sale_id):
     return jsonify(sale), 200, {'Content-Type': 'application/json'}
 
 @sales_api.route("/sales/<int:sale_id>/edit", methods=["GET"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_sale_for_edit(sale_id):
     """Obtiene detalles de una venta para editar (solo admins)"""
     try:
@@ -417,7 +421,7 @@ def get_sale_for_edit(sale_id):
         return jsonify({"error": "Error interno"}), 500
 
 @sales_api.route("/sales/<int:sale_id>", methods=["PUT"])
-@require_admin
+@require_role(ROLES.ADMIN, ROLES.ROOT)
 def update_sale(sale_id):
     """Actualiza una venta existente"""
     try:
