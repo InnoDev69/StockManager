@@ -55,7 +55,7 @@ def product_new():
     Returns:
         Template: product_form.html (vacío, se envía por AJAX)
     """
-    return render_template("product_form.html", form_data={}, role=session.get("role", ROLES.VENDOR))
+    return render_template("product_form.html", form_data={}, role=session.get("role", ROLES.VENDOR), show_back=False)
         
 #Compatibilidad
 def legacy_product_form():
@@ -336,22 +336,18 @@ def download_barcodes_pdf():
         if not product_ids:
             return jsonify({"error": "IDs inválidos"}), 400
         
-        # Obtener productos
         all_products = db.get_all_items()
         products = [p for p in all_products if p.get('id') in product_ids and p.get('barrs_code')]
         
         if not products:
             return jsonify({"error": "No hay productos con código de barras"}), 400
         
-        # Generar PDF
         pdf_io = io.BytesIO()
         
-        # Tamaño de página apaisada para optimizar espacio
         page_width, page_height = landscape(A4)
         
-        # Configuración grid
-        cols = 3  # 3 columnas
-        rows = 5  # 5 filas
+        cols = 3
+        rows = 5
         margin = 0.5 * cm
         cell_width = (page_width - 2 * margin) / cols
         cell_height = (page_height - 2 * margin) / rows
@@ -360,17 +356,14 @@ def download_barcodes_pdf():
         c = canvas.Canvas(pdf_io, pagesize=landscape(A4))
         c.setTitle("Códigos de Barras")
         
-        # Procesar productos
         idx = 0
         page_idx = 0
         
         for idx, product in enumerate(products):
-            # Página nueva si es necesario
             if idx > 0 and idx % (cols * rows) == 0:
                 c.showPage()
                 page_idx += 1
             
-            # Posición en la grid
             pos_in_page = idx % (cols * rows)
             row = pos_in_page // cols
             col = pos_in_page % cols
@@ -378,34 +371,28 @@ def download_barcodes_pdf():
             x = margin + col * cell_width
             y = page_height - margin - (row + 1) * cell_height
             
-            # Dibujar célula
             c.setLineWidth(0.5)
             c.setStrokeColor(gray)
             c.rect(x, y, cell_width, cell_height)
             
-            # Obtener imagen del código
             try:
                 img_io = db.generate_barcode_image(product['barrs_code'])
                 img_io.seek(0)
                 
-                # Calcular dimensiones para la imagen
                 img_width = cell_width * 0.8
                 img_height = cell_height * 0.55
                 img_x = x + (cell_width - img_width) / 2
                 img_y = y + cell_height * 0.35
                 
-                # Usar ImageReader de reportlab para acceder al BytesIO
                 c.drawImage(ImageReader(img_io), img_x, img_y, width=img_width, height=img_height, preserveAspectRatio=True)
             except Exception as e:
                 logger.error(f"Error dibujando barcode para {product.get('id')}: {e}")
             
-            # Dibujar código de texto debajo
             code_text = product['barrs_code']
             code_y = y + cell_height * 0.15
             c.setFont("Helvetica", 8)
             c.drawCentredString(x + cell_width / 2, code_y, code_text)
             
-            # Nombre del producto (pequeño)
             name_text = product.get('name', '')[:20]
             name_y = y + 5
             c.setFont("Helvetica", 7)

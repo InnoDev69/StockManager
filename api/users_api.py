@@ -214,32 +214,33 @@ def get_user_activity(user_id):
     limit  = min(100, max(1, request.args.get("limit", 10, type=int)))
     offset = (page - 1) * limit
 
+    # Verificar que el usuario existe
     user_rows = db.execute_query(
-        "SELECT username FROM users WHERE id = ?", (user_id,)
+        "SELECT id FROM users WHERE id = ?", (user_id,)
     )
     if not user_rows:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
-    username = user_rows[0][0]
-
+    # Contar total de ventas por vendor_id
     total = db.execute_query(
-        "SELECT COUNT(*) FROM sells WHERE vendedor = ?", (username,)
+        "SELECT COUNT(*) FROM sells WHERE vendor_id = ?", (user_id,)
     )[0][0]
     pages = max(1, -(-total // limit))
 
+    # Obtener ventas paginadas
     rows = db.execute_query(
         """
         SELECT s.id, s.date, s.payment_method,
                COUNT(d.id) AS items,
                SUM(d.quantity * d.price) AS total
         FROM sells s
-        JOIN details d ON s.id = d.sell_id
-        WHERE s.vendedor = ?
+        LEFT JOIN details d ON s.id = d.sell_id
+        WHERE s.vendor_id = ?
         GROUP BY s.id
         ORDER BY s.date DESC
         LIMIT ? OFFSET ?
         """,
-        (username, limit, offset)
+        (user_id, limit, offset)
     )
 
     activity = [
@@ -247,19 +248,19 @@ def get_user_activity(user_id):
             "sale_id":        r[0],
             "date":           r[1],
             "payment_method": r[2],
-            "items":          int(r[3]),
-            "total":          round(float(r[4]), 2),
+            "items":          int(r[3]) if r[3] else 0,
+            "total":          round(float(r[4]), 2) if r[4] else 0.0,
         }
         for r in rows
     ]
 
     return jsonify({
-        "username": username,
-        "data":     activity,
-        "total":    total,
-        "page":     page,
-        "pages":    pages,
-        "limit":    limit,
+        "user_id":   user_id,
+        "data":      activity,
+        "total":     total,
+        "page":      page,
+        "pages":     pages,
+        "limit":     limit,
     }), 200
     
 @users_api.route("/users/reset-password", methods=["POST"])

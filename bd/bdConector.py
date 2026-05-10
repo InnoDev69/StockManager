@@ -136,7 +136,8 @@ class BDConector(
             email TEXT NOT NULL,
             role TEXT NOT NULL,
             status INTEGER NOT NULL DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            history TEXT
         )
         """
         items_table_query = """
@@ -313,6 +314,7 @@ class BDConector(
             ("items", "updated_at", "TEXT"),
             ("sells",   "vendor_id",       "INTEGER DEFAULT NULL"),
             ("details", "vendor_id",       "INTEGER DEFAULT NULL"),
+            ("users",   "history",         "TEXT"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

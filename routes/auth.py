@@ -1,3 +1,4 @@
+from data.validators import UserValidator
 from flask import Blueprint, app, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
@@ -107,6 +108,11 @@ def register_post():
 
     if db.user_exists(user, email):
         return render_template("login.html", register=True, error="Usuario ya existe")
+    
+    try:
+        UserValidator.validate(user, password, email, role)
+    except ValueError as e:
+        return render_template("login.html", register=True, error=str(e))
 
     pw_hash = generate_password_hash(password)
     db.add_user(user, pw_hash, email, role)

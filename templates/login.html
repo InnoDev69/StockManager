@@ -408,6 +408,82 @@
           margin: 1.25rem 0;
         }
 
+        /* ── Modal de error ──────────────────────────── */
+        .password-error-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: linear-gradient(145deg, rgba(15,23,32,0.98) 0%, rgba(10,16,24,0.98) 100%);
+            border-radius: 12px;
+            box-shadow: 0 0 0 1px rgba(84, 78, 232, 0.2), 0 20px 60px rgba(0,0,0,0.7);
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text);
+            font-size: 1.1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color .15s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+            color: var(--text);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn {
+            min-width: 90px;
+        }
+
         @media (max-width: 600px) {
           .auth-container { padding: 12px; }
           header { padding: 0.8rem 1rem; }
@@ -555,6 +631,27 @@
         // Password visibility toggle and validation
         // ════════════════════════════════════════════════════
 
+        function showPasswordErrorModal() {
+            const modal = document.createElement('div');
+            modal.className = 'password-error-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Error de validación</h3>
+                        <button class="modal-close" onclick="this.closest('.password-error-modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Las contraseñas no coinciden</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="this.closest('.password-error-modal').remove()">Aceptar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
         function togglePasswordVisibility(fieldId) {
             const field = document.getElementById(fieldId);
             const button = event.target.closest('.password-toggle');
@@ -595,7 +692,7 @@
             if (password !== confirm) {
                 e.preventDefault();
                 validatePasswordMatch();
-                alert('Las contraseñas no coinciden');
+                showPasswordErrorModal();
             }
         });
     </script>

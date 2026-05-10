@@ -82,20 +82,7 @@ function renderTable(users) {
   tbody.innerHTML = users.map(u => {
     const initial = u.username.charAt(0).toUpperCase();
     const hue     = [...u.username].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
-
-    const roleBadge = u.role === window.ROLES.ADMIN
-      ? `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
-                      border-radius:99px; font-size:.75rem; font-weight:600;
-                      background:color-mix(in srgb,#f59e0b 18%,transparent);
-                      color:#f59e0b; border:1px solid color-mix(in srgb,#f59e0b 30%,transparent);">
-           Admin
-         </span>`
-      : `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
-                      border-radius:99px; font-size:.75rem; font-weight:600;
-                      background:color-mix(in srgb,var(--text-muted) 12%,transparent);
-                      color:var(--text-muted); border:1px solid var(--border);">
-           Usuario
-         </span>`;
+    const roleBadge = getRoleBadge(u.role);
 
     const statusBadge = u.status
       ? `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
@@ -271,7 +258,6 @@ async function saveUser() {
 
   if (!username || !email) { showToast("Completá los campos requeridos", "warning"); return; }
   if (!id && !password)    { showToast("La contraseña es obligatoria para nuevos usuarios", "warning"); return; }
-  // TOMAKE: cambiar el 6 hardcodeado por una constante o validación más robusta en el backend
   if (password && password.length < 6) { showToast("La contraseña debe tener al menos 6 caracteres", "warning"); return; }
   if (email === window.CURRENT_USER && status === "0") { showToast("No podés desactivar tu propio usuario", "warning"); return; }
 
@@ -435,6 +421,38 @@ function togglePassword() {
 }
 
 // ── Helpers ─────────────────────────────────────────────
+function getRoleBadge(role) {
+  const roleBadgeConfig = {
+    [window.ROLES.ROOT]: {
+      label: 'Root',
+      color: '#ef4444',
+      bgOpacity: '15%',
+      borderOpacity: '30%'
+    },
+    [window.ROLES.ADMIN]: {
+      label: 'Admin',
+      color: '#f59e0b',
+      bgOpacity: '18%',
+      borderOpacity: '30%'
+    },
+    [window.ROLES.VENDOR]: {
+      label: 'Vendedor',
+      color: '#3b82f6',
+      bgOpacity: '15%',
+      borderOpacity: '30%'
+    }
+  };
+
+  const config = roleBadgeConfig[role] || roleBadgeConfig[window.ROLES.VENDOR];
+
+  return `<span style="display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .6rem;
+                      border-radius:99px; font-size:.75rem; font-weight:600;
+                      background:color-mix(in srgb,${config.color} ${config.bgOpacity},transparent);
+                      color:${config.color}; border:1px solid color-mix(in srgb,${config.color} ${config.borderOpacity},transparent);">
+           ${config.label}
+         </span>`;
+}
+
 function escHtml(str) {
   return String(str)
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
