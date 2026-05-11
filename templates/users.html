@@ -159,6 +159,9 @@
           <select id="fieldRole">
             <option value="{{ ROLES.VENDOR }}">Vendedor</option>
             <option value="{{ ROLES.ADMIN }}">Administrador</option>
+            {% if role == ROLES.ROOT %}
+            <option value="{{ ROLES.ROOT }}">Root</option>
+            {% endif %}
           </select>
         </div>
         <div class="field" id="statusField" style="display:none;">

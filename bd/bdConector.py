@@ -279,7 +279,7 @@ class BDConector(
         acceder al sistema después de la inicialización.
         """
         try:
-            if self.user_exists("root", "root@root.com"):
+            if self.execute_query("SELECT id FROM users WHERE role = ?",(ROLES.ROOT,)):
                 logger.info("Usuario root ya existe, skip creación")
                 return
             self.add_user(

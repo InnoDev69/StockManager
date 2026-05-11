@@ -86,26 +86,54 @@ const NotificationManager = (function () {
     const icon = config.icon || icons[config.type];
 
     toastEl.innerHTML = `
-      <div class="notification-toast__icon">${icon}</div>
+      <div class="notification-toast__icon"></div>
       <div class="notification-toast__content">
-        ${config.title ? `<div class="notification-toast__title">${config.title}</div>` : ''}
-        <div class="notification-toast__message">${message}</div>
-        ${config.actions.length ? `
-          <div class="notification-toast__actions">
-            ${config.actions.map((action, i) => `
-              <button class="notification-toast__action ${action.style || ''}" data-action-index="${i}">
-                ${action.label}
-              </button>
-            `).join('')}
-          </div>
-        ` : ''}
+        <div class="notification-toast__title"></div>
+        <div class="notification-toast__message"></div>
+        <div class="notification-toast__actions"></div>
       </div>
-      ${config.dismissible ? '<button class="notification-toast__close" aria-label="Cerrar">✕</button>' : ''}
     `;
 
-    // Event listeners
+    // ✅ Agregar icono
+    toastEl.querySelector('.notification-toast__icon').textContent = icon;
+
+    // ✅ Agregar título si existe
+    const titleEl = toastEl.querySelector('.notification-toast__title');
+    if (config.title) {
+      titleEl.textContent = config.title;
+      titleEl.style.display = 'block';
+    } else {
+      titleEl.style.display = 'none';
+    }
+
+    // ✅ Agregar mensaje usando textContent (SEGURO)
+    toastEl.querySelector('.notification-toast__message').textContent = message;
+
+    // ✅ Agregar acciones de forma segura
+    const actionsContainer = toastEl.querySelector('.notification-toast__actions');
+    if (config.actions.length) {
+      config.actions.forEach((action, index) => {
+        const btn = document.createElement('button');
+        btn.className = `notification-toast__action ${action.style || ''}`;
+        btn.textContent = action.label;
+        btn.dataset.actionIndex = index;
+        actionsContainer.appendChild(btn);
+      });
+    }
+
+    // ✅ Botón cerrar si es dismissible
     if (config.dismissible) {
-      toastEl.querySelector('.notification-toast__close').addEventListener('click', (e) => {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'notification-toast__close';
+      closeBtn.setAttribute('aria-label', 'Cerrar');
+      closeBtn.textContent = '✕';
+      toastEl.appendChild(closeBtn);
+    }
+
+    // Event listeners para cerrar
+    const closeBtn = toastEl.querySelector('.notification-toast__close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         dismissToast(toastEl);
       });
@@ -116,6 +144,7 @@ const NotificationManager = (function () {
       toastEl.addEventListener('click', config.onClick);
     }
 
+    // Event listeners para acciones
     config.actions.forEach((action, index) => {
       const btn = toastEl.querySelector(`[data-action-index="${index}"]`);
       if (btn && action.onClick) {
@@ -208,24 +237,46 @@ const NotificationManager = (function () {
     modalEl.innerHTML = `
       <div class="notification-modal__overlay"></div>
       <div class="notification-modal__container">
-        <div class="notification-modal__icon notification-modal__icon--${config.type}">
-          ${config.icon || icons[config.type]}
-        </div>
-        ${config.title   ? `<h3 class="notification-modal__title" id="notification-modal-title">${config.title}</h3>` : ''}
-        ${config.message ? `<p class="notification-modal__message">${config.message}</p>` : ''}
-        ${config.content ? `<div class="notification-modal__content">${config.content}</div>` : ''}
+        <div class="notification-modal__icon notification-modal__icon--${config.type}"></div>
+        <h3 class="notification-modal__title" id="notification-modal-title"></h3>
+        <p class="notification-modal__message"></p>
+        <div class="notification-modal__content"></div>
         <div class="notification-modal__actions">
-          ${config.showCancel ? `
-            <button class="notification-modal__btn notification-modal__btn--cancel">${config.cancelText}</button>
-          ` : ''}
-          <button class="notification-modal__btn notification-modal__btn--confirm notification-modal__btn--${config.type}">${config.confirmText}</button>
+          <button class="notification-modal__btn notification-modal__btn--cancel"></button>
+          <button class="notification-modal__btn notification-modal__btn--confirm notification-modal__btn--${config.type}"></button>
         </div>
       </div>
     `;
 
+    // ✅ Llenar datos de forma segura
+    const iconEl = modalEl.querySelector('.notification-modal__icon');
+    iconEl.innerHTML = config.icon || icons[config.type]; // Icons son confiables
+
+    const titleEl = modalEl.querySelector('.notification-modal__title');
+    titleEl.textContent = config.title;
+    titleEl.style.display = config.title ? 'block' : 'none';
+
+    const messageEl = modalEl.querySelector('.notification-modal__message');
+    messageEl.textContent = config.message;
+    messageEl.style.display = config.message ? 'block' : 'none';
+
+    const contentEl = modalEl.querySelector('.notification-modal__content');
+    if (config.content) {
+      contentEl.innerHTML = config.content;
+      contentEl.style.display = 'block';
+    } else {
+      contentEl.style.display = 'none';
+    }
+
     const overlay    = modalEl.querySelector('.notification-modal__overlay');
     const confirmBtn = modalEl.querySelector('.notification-modal__btn--confirm');
     const cancelBtn  = modalEl.querySelector('.notification-modal__btn--cancel');
+
+    confirmBtn.textContent = config.confirmText;
+    cancelBtn.textContent = config.cancelText;
+    if (!config.showCancel) {
+      cancelBtn.style.display = 'none';
+    }
 
     const closeModal = (confirmed = false) => {
       modalEl.classList.add('notification-modal--leaving');
@@ -319,16 +370,23 @@ const NotificationManager = (function () {
     alertEl.setAttribute('role', 'alert');
 
     alertEl.innerHTML = `
-      <span class="notification-inline__icon">${config.icon || icons[config.type]}</span>
-      <span class="notification-inline__message">${message}</span>
-      ${config.dismissible ? '<button class="notification-inline__close" aria-label="Cerrar">✕</button>' : ''}
+      <span class="notification-inline__icon"></span>
+      <span class="notification-inline__message"></span>
     `;
 
+    alertEl.querySelector('.notification-inline__icon').textContent = config.icon || icons[config.type];
+    alertEl.querySelector('.notification-inline__message').textContent = message;
+
     if (config.dismissible) {
-      alertEl.querySelector('.notification-inline__close').addEventListener('click', () => {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'notification-inline__close';
+      closeBtn.setAttribute('aria-label', 'Cerrar');
+      closeBtn.textContent = '✕';
+      closeBtn.addEventListener('click', () => {
         alertEl.classList.add('notification-inline--leaving');
         setTimeout(() => alertEl.remove(), 200);
       });
+      alertEl.appendChild(closeBtn);
     }
 
     return alertEl;

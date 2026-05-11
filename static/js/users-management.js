@@ -80,7 +80,7 @@ function renderTable(users) {
   const ROW_BORDER = "border-bottom:1px solid var(--border);";
 
   tbody.innerHTML = users.map(u => {
-    const initial = u.username.charAt(0).toUpperCase();
+    const initial = escHtml(u.username.charAt(0).toUpperCase());
     const hue     = [...u.username].reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
     const roleBadge = getRoleBadge(u.role);
 
@@ -216,7 +216,7 @@ function openCreateModal() {
   document.getElementById("fieldUsername").value = "";
   document.getElementById("fieldEmail").value    = "";
   document.getElementById("fieldPassword").value = "";
-  document.getElementById("fieldRole").value     = "user";
+  document.getElementById("fieldRole").value     = window.ROLES.VENDOR;
   document.getElementById("editUserId").value    = "";
   document.getElementById("statusField").style.display   = "none";
   document.getElementById("passwordRequired").style.display = "inline";
@@ -241,8 +241,19 @@ async function openEditModal(userId) {
     document.getElementById("passwordRequired").style.display = "none";
     document.getElementById("passwordHint").textContent = "Dejá en blanco para no cambiar";
     document.getElementById("statusField").style.display = "grid";
+
+    if (user.email === window.CURRENT_USER) {
+      document.getElementById("fieldStatus").disabled = true;
+      document.getElementById("fieldRole").disabled = true;
+      // TOMAKE: tal vez un tooltip que diga "No podés cambiar tu propio rol o estado"?
+    } else {
+      document.getElementById("fieldStatus").disabled = false;
+      document.getElementById("fieldRole").disabled = false;
+    }
+
     openModal("userModal");
-  } catch {
+  } catch (err) {
+    console.error(err);
     showToast("No se pudo cargar el usuario", "danger");
   }
 }
@@ -462,7 +473,7 @@ function escHtml(str) {
 function formatDate(str) {
   if (!str) return `<span style="color:var(--text-muted)">—</span>`;
   const d = new Date(str);
-  if (isNaN(d)) return str;
+  if (isNaN(d)) return escHtml(str);
   return d.toLocaleString("es-AR", {
     day:"2-digit", month:"2-digit", year:"numeric",
     hour:"2-digit", minute:"2-digit"

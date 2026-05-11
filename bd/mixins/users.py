@@ -30,7 +30,7 @@ class UsersMixin:
             username (str): Nombre de usuario único
             password (str): Contraseña hasheada (NO texto plano)
             email (str): Correo electrónico
-            role (str): Rol del usuario ('admin' o 'vendedor' o 'root', default: 'user')
+            role (str): Rol del usuario ('admin' o 'vendedor' o 'root', default: ROLES.VENDOR)
 
         Raises:
             DatabaseError: Si el usuario ya existe o hay un error SQL
