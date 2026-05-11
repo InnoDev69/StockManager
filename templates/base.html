@@ -13,6 +13,7 @@
       ROOT:   "{{ ROLES.ROOT }}"
     };
     window.CURRENT_USER = "{{ session.get('username', '') }}";
+    window.CURRENT_ROLE = "{{ role or '' }}";
   </script>
 </head>
 

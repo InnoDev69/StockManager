@@ -4,6 +4,7 @@ import threading
 import contextlib
 from bd.bdErrors import *
 from data.roles import ROLES
+from data.variables import Var
 from tools.logger import logger
 from tools.timmer import measure_time
 from data.validators import ItemValidator, UserValidator, ValidationError
@@ -14,6 +15,7 @@ from bd.mixins.sales import SalesMixin
 from bd.mixins.metrics import MetricsMixin
 from bd.mixins.password_reset import PasswordResetMixin
 from bd.mixins.notifications import NotificationsMixin
+from bd.mixins.applications import ApplicationsMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 _thread_local = threading.local()
@@ -26,6 +28,7 @@ class BDConector(
     MetricsMixin,
     PasswordResetMixin,
     NotificationsMixin,
+    ApplicationsMixin,
 ):
     """
     Conector de base de datos SQLite con gestión automática de transacciones.
@@ -136,6 +139,7 @@ class BDConector(
             email TEXT NOT NULL,
             role TEXT NOT NULL,
             status INTEGER NOT NULL DEFAULT 1,
+            application TEXT NOT NULL DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             history TEXT
         )
@@ -286,7 +290,9 @@ class BDConector(
                 username="root",
                 password=generate_password_hash("root1234"),
                 email="root@root.com",
-                role=ROLES.ROOT
+                role=ROLES.ROOT,
+                status=1,
+                application=Var.USER_APPLICATION_ACCEPTED
             )
         except DatabaseError as e:
             logger.error(f"Error al crear usuario root: {e}")
@@ -315,6 +321,8 @@ class BDConector(
             ("sells",   "vendor_id",       "INTEGER DEFAULT NULL"),
             ("details", "vendor_id",       "INTEGER DEFAULT NULL"),
             ("users",   "history",         "TEXT"),
+            ("users",   "application",     "TEXT NOT NULL DEFAULT 'accepted'"),
+            ("users", "application", "TEXT NOT NULL DEFAULT 'accepted'"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

@@ -1,4 +1,5 @@
 from data.validators import UserValidator
+from data.variables import Var
 from flask import Blueprint, app, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
@@ -115,7 +116,8 @@ def register_post():
         return render_template("login.html", register=True, error=str(e))
 
     pw_hash = generate_password_hash(password)
-    db.add_user(user, pw_hash, email, role)
+    db.add_user(user, pw_hash, email, ROLES.VENDOR, status=0, application=Var.USER_APPLICATION_PENDING)
+    flash("Solicitud enviada. Espera aprobación del administrador.")
     flash("Cuenta creada. Inicia sesión.")
     return redirect(url_for("auth.login"))
 

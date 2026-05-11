@@ -9,6 +9,359 @@ let deleteUserId   = null;
 let activityUserId = null;
 let activityPage   = 1;
 
+// ── Solicitudes de Registro ──────────────────────────
+async function loadApplications() {
+  try {
+    const res = await fetch(`/api/applications?page=1&limit=100`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.warn('API Error al cargar solicitudes:', res.status, errorData);
+      return;
+    }
+    const data = await res.json();
+
+    const count = data.total;
+    document.getElementById('pendingCount').textContent = count;
+
+    const section = document.getElementById('applicationsSection');
+    section.style.display = count > 0 ? 'block' : 'none';
+
+    const list = document.getElementById('applicationsList');
+    if (!data.data.length) {
+      list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:1rem;">No hay solicitudes pendientes</div>';
+      return;
+    }
+
+    list.innerHTML = data.data.map(user => {
+      const initial = escHtml(user.username.charAt(0).toUpperCase());
+      const hue = [...user.username].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:1rem; border:1px solid var(--border); border-radius:8px; margin-bottom:.75rem;
+                    background:linear-gradient(135deg, color-mix(in srgb, var(--brand) 5%, transparent), var(--card));
+                    transition:all .2s ease;"
+             onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)'"
+             onmouseout="this.style.boxShadow=''; this.style.transform=''">
+          <div style="display:flex; align-items:center; gap:1rem; flex:1;">
+            <div style="width:40px; height:40px; border-radius:50%; flex-shrink:0;
+                        background:hsl(${hue},55%,45%); display:flex; align-items:center;
+                        justify-content:center; font-weight:700; font-size:.9rem; color:#fff;
+                        box-shadow:var(--shadow-md);">${initial}</div>
+            <div>
+              <p style="margin:0; font-weight:600; font-size:.95rem;">${escHtml(user.username)}</p>
+              <p style="margin:.2rem 0 0; font-size:.82rem; color:var(--text-muted);">${escHtml(user.email)}</p>
+              <p style="margin:.2rem 0 0; font-size:.75rem; color:var(--text-muted);">
+                Solicitado hace ${getTimeAgo(user.created_at)}
+              </p>
+            </div>
+          </div>
+          <div style="display:flex; gap:.5rem; flex-shrink:0;">
+            <button onclick="openApplicationModal(${user.id}, '${escHtml(user.username)}', '${escHtml(user.email)}', '${user.created_at}')"
+                    style="background:var(--brand); border:none; padding:.5rem 1.2rem; border-radius:8px; cursor:pointer; color:#fff; font-weight:600; font-size:.85rem; display:flex; align-items:center; gap:.3rem; transition:all .2s ease; box-shadow:var(--shadow-sm);"
+                    onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                    onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Revisar
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function getTimeAgo(dateStr) {
+  if (!dateStr) return "recientemente";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) return "hace unos segundos";
+  if (diffMins < 60) return `hace ${diffMins}m`;
+  if (diffHours < 24) return `hace ${diffHours}h`;
+  if (diffDays < 7) return `hace ${diffDays}d`;
+  return date.toLocaleDateString("es-AR");
+}
+
+function openApplicationModal(userId, username, email, createdAt) {
+  const modalHtml = `
+    <div id="appModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
+                             background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+                             z-index:1000; animation:fadeIn .2s ease;">
+      <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
+                  width:100%; max-width:400px; animation:slideDown .3s ease; border:1px solid var(--border);">
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:1.25rem; border-bottom:1px solid var(--border); background:var(--panel);">
+          <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text);">Revisar Solicitud</h3>
+          <button onclick="document.getElementById('appModal').remove()"
+                  style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted); opacity:.6; transition:opacity .2s ease;"
+                  onmouseover="this.style.opacity='.9'"
+                  onmouseout="this.style.opacity='.6'">×</button>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:1.5rem;">
+          <!-- User Info -->
+          <div style="display:flex; gap:1rem; margin-bottom:1.5rem; padding:1rem; 
+                      background:var(--panel-2); border-radius:8px; align-items:center; border:1px solid var(--border);">
+            <div style="width:48px; height:48px; border-radius:50%; flex-shrink:0;
+                        background:linear-gradient(135deg, hsl(${[...username].reduce((a,c)=>a+c.charCodeAt(0),0)%360},55%,45%), hsl(${[...username].reduce((a,c)=>a+c.charCodeAt(0),0)%360},55%,35%));
+                        display:flex; align-items:center; justify-content:center;
+                        font-weight:700; font-size:1.1rem; color:#fff; box-shadow:var(--shadow-md);">
+              ${username.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p style="margin:0; font-weight:700; font-size:.95rem; color:var(--text);">${username}</p>
+              <p style="margin:.3rem 0 0; font-size:.82rem; color:var(--text-muted);">${email}</p>
+            </div>
+          </div>
+
+          <!-- Solicitation Date -->
+          <div style="margin-bottom:1.5rem;">
+            <label style="display:block; font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:.5rem;">Fecha de Solicitud</label>
+            <div style="padding:.75rem; background:var(--panel-2); border-radius:6px; font-size:.9rem; border:1px solid var(--border); color:var(--text);">
+              ${formatDate(createdAt)} (hace ${getTimeAgo(createdAt)})
+            </div>
+          </div>
+
+          <!-- Role Assignment -->
+          <div style="margin-bottom:1.5rem;">
+            <label style="display:block; font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:.5rem;">Rol Asignado</label>
+            <div style="display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .8rem;
+                        border-radius:6px; background:color-mix(in srgb, var(--brand) 15%, transparent);
+                        color:var(--brand); border:1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+                        font-weight:600; font-size:.85rem;">
+              <span style="width:8px; height:8px; border-radius:50%;
+                           background:var(--brand); display:inline-block;"></span>
+              Vendedor
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex; gap:.75rem; padding:1.25rem; border-top:1px solid var(--border);
+                    background:var(--panel);">
+          <button onclick="document.getElementById('appModal').remove()"
+                  style="flex:1; padding:.65rem; border:1px solid var(--border); background:var(--panel-2);
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          transition:all .2s ease; color:var(--text);"
+                  onmouseover="this.style.background='color-mix(in srgb, var(--border) 50%, transparent)'"
+                  onmouseout="this.style.background='var(--panel-2)'">
+            Cancelar
+          </button>
+          <button onclick="confirmRejectApplication(${userId})"
+                  data-action="reject"
+                  style="flex:1; padding:.65rem; border:1px solid var(--danger); background:transparent;
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          color:var(--danger); transition:all .2s ease;"
+                  onmouseover="this.style.background='color-mix(in srgb, var(--danger) 10%, transparent)'"
+                  onmouseout="this.style.background='transparent'">
+            Rechazar
+          </button>
+          <button onclick="confirmApproveApplication(${userId})"
+                  data-action="approve"
+                  style="flex:1; padding:.65rem; border:none; background:var(--success);
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          color:#fff; transition:all .2s ease; box-shadow:var(--shadow-sm);"
+                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                  onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+            Aprobar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remove existing modal if any
+  const existing = document.getElementById('appModal');
+  if (existing) existing.remove();
+
+  // Create and insert modal
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+
+  // Close on overlay click
+  document.getElementById('appModal').addEventListener('click', (e) => {
+    if (e.target.id === 'appModal') e.target.remove();
+  });
+}
+
+async function confirmApproveApplication(userId) {
+  const modal = document.getElementById('appModal');
+  const btn = modal.querySelector('button[data-action="approve"]');
+  const origText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:.5rem; display:inline; vertical-align:middle; animation: spin .7s linear infinite;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Aprobando...';
+
+  try {
+    const res = await fetch(`/api/applications/${userId}/approve`, { method: 'POST' });
+    if (res.ok) {
+      modal.style.animation = 'fadeOut .2s ease forwards';
+      setTimeout(() => {
+        modal.remove();
+        showToast('Solicitud aprobada correctamente', 'success');
+        loadApplications();
+        loadUsers(currentPage);
+      }, 200);
+    } else {
+      const data = await res.json();
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.innerHTML = origText;
+      showToast(data.error || 'Error al aprobar', 'danger');
+    }
+  } catch {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = origText;
+    showToast('Error de conexión', 'danger');
+  }
+}
+
+function showConfirmModal(title, message, confirmFn) {
+  const confirmHtml = `
+    <div id="confirmModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
+                                  background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+                                  z-index:1002; animation:fadeIn .2s ease;">
+      <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
+                  width:100%; max-width:380px; animation:slideDown .3s ease; border:1px solid var(--border);">
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:1.25rem; border-bottom:1px solid var(--border); background:var(--panel);">
+          <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text);">${title}</h3>
+          <button onclick="document.getElementById('confirmModal').remove()"
+                  style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted); opacity:.6; transition:opacity .2s ease;"
+                  onmouseover="this.style.opacity='.9'"
+                  onmouseout="this.style.opacity='.6'">×</button>
+        </div>
+
+        <!-- Message -->
+        <div style="padding:1.5rem; color:var(--text); font-size:.95rem; line-height:1.6;">
+          ${message}
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex; gap:.75rem; padding:1.25rem; border-top:1px solid var(--border);
+                    background:var(--panel);">
+          <button onclick="document.getElementById('confirmModal').remove()"
+                  style="flex:1; padding:.65rem; border:1px solid var(--border); background:var(--panel-2);
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          transition:all .2s ease; color:var(--text);"
+                  onmouseover="this.style.background='color-mix(in srgb, var(--border) 50%, transparent)'"
+                  onmouseout="this.style.background='var(--panel-2)'">
+            Cancelar
+          </button>
+          <button id="confirmBtn"
+                  style="flex:1; padding:.65rem; border:none; background:var(--danger);
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          color:#fff; transition:all .2s ease; box-shadow:var(--shadow-sm);"
+                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                  onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remove existing confirm modal if any
+  const existing = document.getElementById('confirmModal');
+  if (existing) existing.remove();
+
+  // Create and insert modal
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = confirmHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+
+  // Attach confirm handler
+  document.getElementById('confirmBtn').addEventListener('click', () => {
+    document.getElementById('confirmModal').remove();
+    confirmFn();
+  });
+
+  // Close on overlay click
+  document.getElementById('confirmModal').addEventListener('click', (e) => {
+    if (e.target.id === 'confirmModal') e.target.remove();
+  });
+}
+
+function proceedRejectApplication(userId) {
+  const modal = document.getElementById('appModal');
+  const btn = modal.querySelector('button[data-action="reject"]');
+  const origText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:.5rem; display:inline; vertical-align:middle; animation: spin .7s linear infinite;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Rechazando...';
+
+  fetch(`/api/applications/${userId}/reject`, { method: 'POST' })
+    .then(res => {
+      if (res.ok) {
+        modal.style.animation = 'fadeOut .2s ease forwards';
+        setTimeout(() => {
+          modal.remove();
+          showToast('✓ Solicitud rechazada correctamente', 'warning');
+          loadApplications();
+          loadUsers(currentPage);
+        }, 200);
+      } else {
+        return res.json().then(data => {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.innerHTML = origText;
+          showToast(data.error || 'Error al rechazar', 'danger');
+        });
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.innerHTML = origText;
+      showToast('Error de conexión', 'danger');
+    });
+}
+
+function confirmRejectApplication(userId) {
+  showConfirmModal(
+    '¿Rechazar solicitud?',
+    '¿Estás seguro de que deseas rechazar esta solicitud de registro? Esta acción no se puede deshacer.',
+    () => proceedRejectApplication(userId)
+  );
+}
+
+// Agregar keyframes para animaciones
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);
+
 // ── Modal helpers ───────────────────────────────────────
 function openModal(id) {
   const el = document.getElementById(id);
@@ -131,8 +484,8 @@ function renderTable(users) {
             <div style="width:34px; height:34px; border-radius:50%; flex-shrink:0;
                         background:hsl(${hue},55%,45%); display:flex; align-items:center;
                         justify-content:center; font-weight:700; font-size:.85rem; color:#fff;
-                        box-shadow:0 2px 6px rgba(0,0,0,.25);">${initial}</div>
-            <span style="font-weight:600;">${escHtml(u.username)}</span>
+                        box-shadow:var(--shadow-sm);">${initial}</div>
+            <span style="font-weight:600; color:var(--text);">${escHtml(u.username)}</span>
           </div>
         </td>
         <td style="padding:.75rem .75rem; color:var(--text-muted); font-size:.875rem;">
@@ -377,7 +730,7 @@ async function loadActivity(page = 1) {
         <td style="padding:.65rem .75rem; font-size:.875rem;">${formatDate(r.date)}</td>
         <td style="padding:.65rem .75rem;">
           <span style="padding:.2rem .55rem; border-radius:6px; font-size:.78rem;
-                       background:var(--panel-2); border:1px solid var(--border);">
+                       background:var(--panel-2); border:1px solid var(--border); color:var(--text);">
             ${escHtml(r.payment_method)}
           </span>
         </td>
@@ -388,7 +741,7 @@ async function loadActivity(page = 1) {
             ${r.items}
           </span>
         </td>
-        <td style="padding:.65rem 1rem; text-align:right; font-weight:600;">
+        <td style="padding:.65rem 1rem; text-align:right; font-weight:600; color:var(--text);">
           $${r.total.toFixed(2)}</td>
       </tr>`).join("");
 
@@ -481,15 +834,91 @@ function formatDate(str) {
 }
 
 function showToast(msg, type = "success") {
-  if (type === "success"){
-    NotificationManager.success(msg);
-  }
-  else if (type === "danger"){
-    NotificationManager.error(msg);
-  }
-  else if (type === "warning"){
-    NotificationManager.warning(msg);
-  }
+  const typeConfig = {
+    success: {
+      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+      color: 'var(--success)',
+      bgColor: 'color-mix(in srgb, var(--success) 12%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--success) 30%, transparent)'
+    },
+    danger: {
+      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+      color: 'var(--danger)',
+      bgColor: 'color-mix(in srgb, var(--danger) 12%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--danger) 30%, transparent)'
+    },
+    warning: {
+      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05l-8.47-14.14a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      color: 'var(--warning)',
+      bgColor: 'color-mix(in srgb, var(--warning) 12%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)'
+    }
+  };
+
+  const config = typeConfig[type] || typeConfig.success;
+
+  const modalHtml = `
+    <div id="toastModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
+                              background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+                              z-index:1001; animation:fadeIn .2s ease;">
+      <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
+                  width:100%; max-width:420px; animation:slideDown .3s ease; border:1px solid var(--border);
+                  padding:0;">
+        <!-- Header with color -->
+        <div style="display:flex; align-items:center; gap:1rem; padding:1.5rem;
+                    background:${config.bgColor}; border-bottom:2px solid ${config.borderColor};
+                    border-radius:12px 12px 0 0;">
+          <div style="width:48px; height:48px; border-radius:50%; flex-shrink:0;
+                      background:${config.bgColor}; border:2px solid ${config.color};
+                      display:flex; align-items:center; justify-content:center;
+                      color:${config.color};">
+            ${config.icon}
+          </div>
+          <div style="flex:1;">
+            <h3 style="margin:0; font-size:1rem; font-weight:700; color:var(--text);">
+              ${type === 'success' ? 'Éxito' : type === 'danger' ? 'Error' : 'Atención'}
+            </h3>
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div style="padding:1.5rem; color:var(--text); font-size:.95rem; line-height:1.5;">
+          ${msg}
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex; gap:.75rem; padding:1rem 1.5rem; border-top:1px solid var(--border);
+                    background:var(--panel); border-radius:0 0 12px 12px;">
+          <button onclick="document.getElementById('toastModal').remove()"
+                  style="flex:1; padding:.65rem; border:none; background:${config.color};
+                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
+                          color:#fff; transition:all .2s ease; box-shadow:var(--shadow-sm);"
+                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                  onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remove existing modal if any
+  const existing = document.getElementById('toastModal');
+  if (existing) existing.remove();
+
+  // Create and insert modal
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = modalHtml;
+  document.body.appendChild(wrapper.firstElementChild);
+
+  // Close on overlay click
+  document.getElementById('toastModal').addEventListener('click', (e) => {
+    if (e.target.id === 'toastModal') e.target.remove();
+  });
 }
+
+// Cargar solicitudes si el usuario es ADMIN o ROOT
+// Nota: La API validará los permisos, así que es seguro llamar siempre
+loadApplications();
 
 loadUsers();

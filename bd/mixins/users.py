@@ -1,6 +1,7 @@
 from bd.bdErrors import DatabaseError
 from data.roles import ROLES
 from tools.logger import logger
+from data.variables import Var
 
 class UsersMixin:
     """Métodos de gestión de usuarios. Requiere que la clase base tenga execute_query()."""
@@ -22,7 +23,7 @@ class UsersMixin:
         )
         return bool(rows)
 
-    def add_user(self, username, password, email, role=ROLES.VENDOR):
+    def add_user(self, username, password, email, role=ROLES.VENDOR, status=0, application=Var.USER_APPLICATION_PENDING):
         """
         Registra un nuevo usuario en el sistema.
 
@@ -31,6 +32,8 @@ class UsersMixin:
             password (str): Contraseña hasheada (NO texto plano)
             email (str): Correo electrónico
             role (str): Rol del usuario ('admin' o 'vendedor' o 'root', default: ROLES.VENDOR)
+            status (int): Estado del usuario
+            application (str): Estado de la aplicación
 
         Raises:
             DatabaseError: Si el usuario ya existe o hay un error SQL
@@ -43,8 +46,8 @@ class UsersMixin:
                 logger.info("Usuario o email ya existe")
                 return
             self.execute_query(
-                "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
-                (username, password, email, role),
+                "INSERT INTO users (username, password, email, role, status, application) VALUES (?, ?, ?, ?, ?, ?)",
+                (username, password, email, role, status, application),
                 fetch=False,
             )
         except Exception as e:
