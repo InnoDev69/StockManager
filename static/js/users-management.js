@@ -707,64 +707,77 @@ async function openActivity(userId, username) {
 
 async function loadActivity(page = 1) {
   activityPage = page;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+  
   try {
-    const res  = await fetch(`/api/users/${activityUserId}/activity?page=${page}&limit=10`);
+    const res = await fetch(`/api/user/${activityUserId}?limit=${limit}&offset=${offset}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
 
     document.getElementById("activityLoading").style.display = "none";
 
-    if (!data.data.length) {
+    // La API de auditoría devuelve: { records: [...], total: N }
+    const records = Array.isArray(data) ? data : (data.records || data.changes || data.data || []);
+    
+    if (!records.length) {
       document.getElementById("activityEmpty").style.display = "block";
-      document.getElementById("activityPageInfo").textContent = "Sin ventas registradas";
+      document.getElementById("activityPageInfo").textContent = "Sin registros de actividad";
       return;
     }
 
     document.getElementById("activityTable").style.display = "table";
-    document.getElementById("activityTableBody").innerHTML = data.data.map(r => `
+    document.getElementById("activityTableBody").innerHTML = records.map(r => `
       <tr style="border-bottom:1px solid var(--border);"
           onmouseover="this.style.background='var(--panel-2)'"
           onmouseout="this.style.background=''">
         <td style="padding:.65rem 1rem; color:var(--text-muted); font-size:.82rem;">
-          #${r.sale_id}</td>
-        <td style="padding:.65rem .75rem; font-size:.875rem;">${formatDate(r.date)}</td>
+          ${r.id || r.action || '—'}</td>
+        <td style="padding:.65rem .75rem; font-size:.875rem;">${formatDate(r.timestamp || r.date || r.created_at)}</td>
         <td style="padding:.65rem .75rem;">
           <span style="padding:.2rem .55rem; border-radius:6px; font-size:.78rem;
                        background:var(--panel-2); border:1px solid var(--border); color:var(--text);">
-            ${escHtml(r.payment_method)}
+            ${escHtml(r.action || r.type || '—')}
           </span>
         </td>
         <td style="padding:.65rem .75rem; text-align:center;">
           <span style="padding:.2rem .55rem; border-radius:6px; font-size:.78rem;
                        background:color-mix(in srgb,var(--brand) 12%,transparent);
                        color:var(--brand); border:1px solid color-mix(in srgb,var(--brand) 25%,transparent);">
-            ${r.items}
+            ${r.entity_type || r.details || '—'}
           </span>
         </td>
         <td style="padding:.65rem 1rem; text-align:right; font-weight:600; color:var(--text);">
-          $${r.total.toFixed(2)}</td>
+          ${escHtml(r.description || r.status || '—')}</td>
       </tr>`).join("");
 
-    document.getElementById("activityPageInfo").textContent =
-      `Página ${data.page} de ${data.pages} · ${data.total} venta${data.total !== 1 ? "s" : ""}`;
+    // Renderizar paginación si aplica
+    const totalRecords = data.total || records.length;
+    const totalPages = Math.ceil(totalRecords / limit) || 1;
+    const pageInfo = totalRecords ? 
+      `Página ${page} · ${totalRecords} registro${totalRecords !== 1 ? "s" : ""}` :
+      `Página ${page}`;
+    
+    document.getElementById("activityPageInfo").textContent = pageInfo;
 
     const pag = document.getElementById("activityPagination");
     pag.innerHTML = "";
-    if (data.pages > 1) {
-      for (let i = 1; i <= data.pages; i++) {
+    if (totalPages > 1) {
+      for (let i = 1; i <= totalPages; i++) {
         const b = document.createElement("button");
         b.textContent = i;
         b.style.cssText = `
           padding:.3rem .6rem; border-radius:7px; border:1px solid var(--border);
-          background:${i === data.page ? "var(--brand)" : "var(--panel-2)"};
-          color:${i === data.page ? "#fff" : "var(--text)"}; cursor:pointer; font-size:.8rem;`;
+          background:${i === page ? "var(--brand)" : "var(--panel-2)"};
+          color:${i === page ? "#fff" : "var(--text)"}; cursor:pointer; font-size:.8rem;`;
         b.onclick = () => loadActivity(i);
         pag.appendChild(b);
       }
     }
-  } catch {
+  } catch (err) {
+    console.error('Error cargando actividad:', err);
     document.getElementById("activityLoading").style.display = "none";
-    document.getElementById("activityEmpty").style.display   = "block";
+    document.getElementById("activityEmpty").style.display = "block";
     document.getElementById("activityEmpty").innerHTML =
       '<svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="display:block;margin:0 auto .75rem;color:var(--danger);opacity:.7;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
       '<span style="color:var(--danger)">Error al cargar actividad</span>';

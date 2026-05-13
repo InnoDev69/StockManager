@@ -1,4 +1,4 @@
-from data.validators import UserValidator
+from data.validators import UserValidator, ValidationError
 from data.variables import Var
 from flask import Blueprint, app, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -111,8 +111,13 @@ def register_post():
         return render_template("login.html", register=True, error="Usuario ya existe")
     
     try:
+        UserValidator.validate_email(email)
+    except ValidationError:
+        return render_template("login.html", register=True, error="Email no válido")
+    
+    try:
         UserValidator.validate(user, password, email, role)
-    except ValueError as e:
+    except ValidationError as e:
         return render_template("login.html", register=True, error=str(e))
 
     pw_hash = generate_password_hash(password)

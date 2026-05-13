@@ -187,9 +187,8 @@
           <label class="label">Rol <span style="color:var(--danger)">*</span></label>
           <select id="fieldRole">
             <option value="{{ ROLES.VENDOR }}">Vendedor</option>
-            <option value="{{ ROLES.ADMIN }}">Administrador</option>
             {% if role == ROLES.ROOT %}
-            <option value="{{ ROLES.ROOT }}">Root</option>
+            <option value="{{ ROLES.ADMIN }}">Administrador</option>
             {% endif %}
           </select>
         </div>

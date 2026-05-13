@@ -1,5 +1,6 @@
 import secrets
 import sqlite3
+from data.variables import Var
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from api.error_handlers import handle_db_error
@@ -125,9 +126,22 @@ def create_user():
         data["role"] = RoleValidator.validate_name(data["role"])
     except ValidationError as e:
         return jsonify({"error": e.message}), 400
-    
     try:
-        db.execute_query("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)", (data["username"].strip(), data["email"].strip(), hashed, data["role"]), fetch=False)
+        db.log_audit(
+            actor_id=session.get("user_id"),
+            action="create",
+            entity_type="user",
+            entity_id=None,
+            description=f"Creación de usuario {data['username']}"
+        )
+        db.add_user(
+            username=data["username"].strip(),
+            email=data["email"].strip(),
+            password=hashed,
+            role=data["role"],
+            status=1,
+            application=Var.USER_APPLICATION_ACCEPTED
+        )
         logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
     
@@ -141,9 +155,9 @@ def create_user():
     except Exception as e:
         return handle_db_error(e, "create_user")
 
-@users_api.route("/users/<int:user_id>", methods=["PUT"])
+@users_api.route("/users/<int:target_user_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
-def update_user(user_id):
+def update_user(target_user_id):
     """Actualiza un usuario existente."""
 
     data = request.get_json()
@@ -178,90 +192,58 @@ def update_user(user_id):
     if not updates:
         return jsonify({"error": "No hay datos para actualizar"}), 400
 
-    params.append(user_id)
+    params.append(target_user_id)
     db.execute_query(
         f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
         tuple(params),
         fetch=False
     )
-    logger.info(f"Usuario ID {user_id} actualizado por admin ID {session.get('user_id')}")
+    
+    db.log_audit(
+        actor_id=session.get("user_id"),
+        action="update",
+        entity_type="user",
+        entity_id=target_user_id,
+        description=f"Actualización de usuario ID {target_user_id}")
+    
+    logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario actualizado"}), 200
 
 
-@users_api.route("/users/<int:user_id>", methods=["DELETE"])
+@users_api.route("/users/<int:target_user_id>", methods=["DELETE"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
-def delete_user(user_id):
+def delete_user(target_user_id):
     """Deshabilita un usuario (baja lógica)."""
 
-    if user_id == session.get("user_id"):
+    if target_user_id == session.get("user_id"):
         return jsonify({"error": "No puedes darte de baja a ti mismo"}), 400
 
     db.execute_query(
         "UPDATE users SET status = 0 WHERE id = ?",
-        (user_id,),
+        (target_user_id,),
         fetch=False
     )
-    logger.info(f"Usuario ID {user_id} dado de baja por admin ID {session.get('user_id')}")
+    
+    db.log_audit(
+        actor_id=session.get("user_id"),
+        action="delete",
+        entity_type="user",
+        entity_id=target_user_id,
+        description=f"Eliminación de usuario ID {target_user_id}"
+    )
+    
+    logger.info(f"Usuario ID {target_user_id} dado de baja por admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario dado de baja"}), 200
 
 
 @users_api.route("/users/<int:user_id>/activity", methods=["GET"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_user_activity(user_id):
-    """Obtiene los movimientos/ventas de un usuario."""
+    """Obtiene la actividad de un usuario."""
 
-    page   = max(1, request.args.get("page", 1, type=int))
-    limit  = min(100, max(1, request.args.get("limit", 10, type=int)))
-    offset = (page - 1) * limit
-
-    # Verificar que el usuario existe
-    user_rows = db.execute_query(
-        "SELECT id FROM users WHERE id = ?", (user_id,)
-    )
-    if not user_rows:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-
-    # Contar total de ventas por vendor_id
-    total = db.execute_query(
-        "SELECT COUNT(*) FROM sells WHERE vendor_id = ?", (user_id,)
-    )[0][0]
-    pages = max(1, -(-total // limit))
-
-    # Obtener ventas paginadas
-    rows = db.execute_query(
-        """
-        SELECT s.id, s.date, s.payment_method,
-               COUNT(d.id) AS items,
-               SUM(d.quantity * d.price) AS total
-        FROM sells s
-        LEFT JOIN details d ON s.id = d.sell_id
-        WHERE s.vendor_id = ?
-        GROUP BY s.id
-        ORDER BY s.date DESC
-        LIMIT ? OFFSET ?
-        """,
-        (user_id, limit, offset)
-    )
-
-    activity = [
-        {
-            "sale_id":        r[0],
-            "date":           r[1],
-            "payment_method": r[2],
-            "items":          int(r[3]) if r[3] else 0,
-            "total":          round(float(r[4]), 2) if r[4] else 0.0,
-        }
-        for r in rows
-    ]
-
-    return jsonify({
-        "user_id":   user_id,
-        "data":      activity,
-        "total":     total,
-        "page":      page,
-        "pages":     pages,
-        "limit":     limit,
-    }), 200
+    db.get_audit_log(user_id=user_id)
+    
+    
     
 @users_api.route("/users/reset-password", methods=["POST"])
 def restore_password():

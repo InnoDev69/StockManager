@@ -16,6 +16,7 @@ from bd.mixins.metrics import MetricsMixin
 from bd.mixins.password_reset import PasswordResetMixin
 from bd.mixins.notifications import NotificationsMixin
 from bd.mixins.applications import ApplicationsMixin
+from bd.mixins.audit import AuditMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 _thread_local = threading.local()
@@ -29,6 +30,7 @@ class BDConector(
     PasswordResetMixin,
     NotificationsMixin,
     ApplicationsMixin,
+    AuditMixin,
 ):
     """
     Conector de base de datos SQLite con gestión automática de transacciones.
@@ -227,6 +229,23 @@ class BDConector(
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """
+        
+        audit_log_table_query = """
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL,
+                action      TEXT    NOT NULL,
+                entity_type TEXT    NOT NULL,
+                entity_id   INTEGER,
+                old_value   TEXT,
+                new_value   TEXT,
+                description TEXT,
+                ip_address  TEXT,
+                timestamp   TEXT    DEFAULT CURRENT_TIMESTAMP,
+                status      TEXT    DEFAULT 'success',
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """
 
         with self._cursor() as cur:
             cur.execute(users_table_query)
@@ -237,7 +256,7 @@ class BDConector(
             cur.execute(item_attributes_table_query)
             cur.execute(item_attribute_values_table_query)
             cur.execute(notifications_table_query)
-    
+            cur.execute(audit_log_table_query)
             logger.info("[DB] Creando índices para optimizar consultas...")
 
             # Índice compuesto para las queries de ventas filtradas por fecha y vendedor
