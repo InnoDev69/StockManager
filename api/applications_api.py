@@ -2,6 +2,7 @@ from flask import Blueprint, request, session, jsonify
 from bd.bdInstance import db
 from data.roles import ROLES
 from api.auth_utils import require_auth, require_role
+from tools.audit_decorator import audit_action
 
 applications_api = Blueprint('applications_api', __name__, url_prefix='')
 
@@ -29,6 +30,7 @@ def get_applications():
 @applications_api.route('/applications/<int:user_id>/approve', methods=['POST'])
 @require_auth
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("application", "approve", "user_id")
 def approve_application(user_id):
     """
     Aprueba una solicitud de registro.
@@ -46,6 +48,7 @@ def approve_application(user_id):
 @applications_api.route('/applications/<int:user_id>/reject', methods=['POST'])
 @require_auth
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("application", "reject", "user_id")
 def reject_application(user_id):
     """
     Rechaza una solicitud de registro.

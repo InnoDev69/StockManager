@@ -10,6 +10,7 @@ from data.validators import RoleValidator, UserValidator, ValidationError
 from tools.logger import logger
 from tools.email import email_sender
 from data.roles import ROLES
+from tools.audit_decorator import audit_action
 
 users_api = Blueprint("users_api", __name__)
 
@@ -99,6 +100,7 @@ def get_user(user_id):
 
 @users_api.route("/users", methods=["POST"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("user", "create")
 def create_user():
     """Crea un nuevo usuario."""
 
@@ -127,13 +129,6 @@ def create_user():
     except ValidationError as e:
         return jsonify({"error": e.message}), 400
     try:
-        db.log_audit(
-            actor_id=session.get("user_id"),
-            action="create",
-            entity_type="user",
-            entity_id=None,
-            description=f"Creación de usuario {data['username']}"
-        )
         db.add_user(
             username=data["username"].strip(),
             email=data["email"].strip(),
@@ -157,6 +152,7 @@ def create_user():
 
 @users_api.route("/users/<int:target_user_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("user", "update", "target_user_id")
 def update_user(target_user_id):
     """Actualiza un usuario existente."""
 
@@ -199,19 +195,13 @@ def update_user(target_user_id):
         fetch=False
     )
     
-    db.log_audit(
-        actor_id=session.get("user_id"),
-        action="update",
-        entity_type="user",
-        entity_id=target_user_id,
-        description=f"Actualización de usuario ID {target_user_id}")
-    
     logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario actualizado"}), 200
 
 
 @users_api.route("/users/<int:target_user_id>", methods=["DELETE"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("user", "delete", "target_user_id")
 def delete_user(target_user_id):
     """Deshabilita un usuario (baja lógica)."""
 
@@ -222,14 +212,6 @@ def delete_user(target_user_id):
         "UPDATE users SET status = 0 WHERE id = ?",
         (target_user_id,),
         fetch=False
-    )
-    
-    db.log_audit(
-        actor_id=session.get("user_id"),
-        action="delete",
-        entity_type="user",
-        entity_id=target_user_id,
-        description=f"Eliminación de usuario ID {target_user_id}"
     )
     
     logger.info(f"Usuario ID {target_user_id} dado de baja por admin ID {session.get('user_id')}")
@@ -246,6 +228,7 @@ def get_user_activity(user_id):
     
     
 @users_api.route("/users/reset-password", methods=["POST"])
+@audit_action("user", "reset_password")
 def restore_password():
     """
     Endpoint para restaurar la contraseña de un usuario.
@@ -338,6 +321,7 @@ def verify_code():
     return jsonify({"message": "Código verificado, puedes restablecer tu contraseña"}), 200
 
 @users_api.route("/users/reset-password/change-password", methods=["POST"])
+@audit_action("user", "change_password")
 def change_password():
     """
     Endpoint para cambiar la contraseña después de verificar el código de recuperación.
@@ -392,6 +376,7 @@ def change_password():
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200
 
 @users_api.route("/login", methods=["POST"])
+@audit_action("user", "login")
 def api_login():
     """
     Login vía API (JSON) para Thunder Client, Postman, etc.

@@ -221,7 +221,7 @@
      MODAL: Actividad del Usuario
 ════════════════════════════════════════════════════ -->
 <div id="activityModal" class="modal-overlay" onclick="overlayClose(event,'activityModal')">
-  <div class="modal-box" style="width:min(700px,95vw);">
+  <div class="modal-box" style="width:min(800px,95vw);">
     <div class="modal-header">
       <h2 class="modal-title">
         Actividad de
@@ -240,26 +240,29 @@
         Cargando actividad...
       </div>
       <!-- Tabla -->
-      <table id="activityTable" style="width:100%; border-collapse:collapse;
-                                        font-size:.875rem; display:none;">
+      <table id="activityTable" style="width:100%; border-collapse:collapse; font-size:.875rem; display:none;">
         <thead>
-          <tr style="background:var(--panel-2); border-bottom:1px solid var(--border);
-                     position:sticky; top:0;">
+          <tr style="background:var(--panel-2); border-bottom:1px solid var(--border); position:sticky; top:0;">
             <th style="padding:.65rem 1rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              ID Venta</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              ID
+            </th>
             <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Fecha</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Fecha
+            </th>
             <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Método pago</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Acción
+            </th>
             <th style="padding:.65rem .75rem; text-align:center; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Artículos</th>
-            <th style="padding:.65rem 1rem; text-align:right; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Total</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Entidad
+            </th>
+            <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Descripción
+            </th>
           </tr>
         </thead>
         <tbody id="activityTableBody"></tbody>

@@ -3,6 +3,7 @@ from api.notifications_api import notify_user
 from bd.bdInstance import db
 from api.auth_utils import require_auth, require_admin, require_role
 from data.validators import ItemValidator, ValidationError
+from tools.audit_decorator import audit_action
 from tools.logger import logger
 from tools.local_time import localDate
 from bd.bdErrors import DatabaseError
@@ -271,6 +272,7 @@ def get_product(product_id):
 
 @products_api.route("/products", methods=["POST"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "create")
 def create_product():
     """
     Crea un nuevo producto en el inventario.
@@ -336,6 +338,7 @@ def create_product():
 
 @products_api.route("/products/<int:product_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "update", "product_id")
 def update_product(product_id):
     """
     Actualiza un producto existente.
@@ -420,6 +423,7 @@ def update_product(product_id):
 
 @products_api.route("/products/<int:product_id>", methods=["DELETE"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "delete", "product_id")
 def delete_product(product_id):
     """
     Deshabilita un producto del inventario.
@@ -839,6 +843,7 @@ def update_product_attributes(item_id):
         
 @products_api.route("/products/<int:product_id>/activate", methods=["POST"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "activate", "product_id")
 def activate_product(product_id):
     """
     Activa un producto previamente deshabilitado.

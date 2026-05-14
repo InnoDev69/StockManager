@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
 from api.auth_utils import require_admin, require_auth, require_role 
+from tools.audit_decorator import audit_action
 from tools.logger import logger
 from api.error_handlers import handle_db_error
 from bd.bdErrors import DatabaseError
@@ -12,6 +13,7 @@ sales_api = Blueprint("sales_api", __name__)
 
 @sales_api.route("/sales", methods=["POST"])
 @require_auth
+@audit_action("sale", "create")
 def create_sale():
     """
     Registra una nueva venta de un producto.
@@ -422,6 +424,7 @@ def get_sale_for_edit(sale_id):
 
 @sales_api.route("/sales/<int:sale_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("sale", "update", "sale_id")
 def update_sale(sale_id):
     """Actualiza una venta existente"""
     try:
