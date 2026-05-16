@@ -77,6 +77,7 @@ def create_sale():
     
 @sales_api.route("/sales/bulk", methods=["POST"])
 @require_auth
+@audit_action("sale", "create")
 def create_sales_bulk():
     """
     Registra una venta con múltiples productos.
@@ -108,7 +109,15 @@ def create_sales_bulk():
     
     if not isinstance(items, list) or not items:
         return jsonify({"error": "Formato inválido: items[] requerido"}), 400
-
+    
+    for idx, it in enumerate(items):
+        _no_avalable_items = []
+        item = db.get_item_by_id(it.get("item_id"))
+        if item.get("status") == 0:
+            _no_avalable_items.append(item.get("name"))
+        if _no_avalable_items:
+            return jsonify({"error": f"Los siguientes productos no están disponibles: {', '.join(_no_avalable_items)}"}), 400
+        
     try:
         item_data = []
         item_ids = []

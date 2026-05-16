@@ -478,7 +478,7 @@ def search_items():
         return jsonify([]), 200
     
     rows = db.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code LIKE ? OR name LIKE ? LIMIT 10",
+        "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code LIKE ? AND status = 1 OR name LIKE ? AND status = 1 LIMIT 10",
         (f"%{query_param}%", f"%{query_param}%")
     )
     

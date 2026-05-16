@@ -424,6 +424,67 @@ def api_login():
         "username": username,
         "role": role
     }), 200
+
+@users_api.route("/register", methods=["POST"])
+@audit_action("user", "register")
+def api_register():
+    """
+    Registro de nuevo usuario vía API (JSON).
+    
+    Body:
+        {
+            "username": "usuario",
+            "email": "correo@ejemplo.com",
+            "password": "contraseña"
+        }
+    """
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+    
+    # Validaciones
+    if not username or not email or not password:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    
+    if len(password) < 6:
+        return jsonify({"error": "Contraseña debe tener mínimo 6 caracteres"}), 400
+    
+    try:
+        UserValidator.validate_email(email)
+    except ValidationError as e:
+        return jsonify({"error": f"Email inválido: {e.message}"}), 400
+    
+    try:
+        UserValidator.validate(username, password, email, ROLES.VENDOR)
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
+    
+    # Verificar si el usuario ya existe
+    if db.user_exists(username, email):
+        return jsonify({"error": "Usuario o correo ya existe"}), 409
+    
+    try:
+        pw_hash = generate_password_hash(password)
+        db.add_user(
+            username=username,
+            password=pw_hash,
+            email=email,
+            role=ROLES.VENDOR,
+            status=0,
+            application=Var.USER_APPLICATION_PENDING
+        )
+        logger.info(f"Nuevo usuario registrado: {username} ({email})")
+        return jsonify({
+            "success": True,
+            "message": "Cuenta creada. Espera la aprobación del administrador."
+        }), 201
+    
+    except sqlite3.IntegrityError as e:
+        return jsonify({"error": "Error al crear la cuenta"}), 409
+    except Exception as e:
+        logger.error(f"Error en registro de usuario: {str(e)}")
+        return jsonify({"error": "Error interno del servidor"}), 500
     
 @users_api.route("/suggest/vendors", methods=["GET"])
 @require_auth
