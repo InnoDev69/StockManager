@@ -18,6 +18,7 @@ def generate_reset_code():
     return f"{secrets.randbelow(10**6):06d}"
 
 @users_api.route("/users", methods=["GET"])
+@require_auth
 @require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_users():
     """Lista todos los usuarios con paginación."""

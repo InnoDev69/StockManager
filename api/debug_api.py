@@ -2,6 +2,7 @@ from data.roles import ROLES
 from flask import Blueprint, request, jsonify, session
 from tools.logger import logger, get_current_log_file
 from api.auth_utils import require_auth, require_role
+from bd.bdInstance import db
 import json
 
 debug_bp = Blueprint('debug', __name__, url_prefix='/debug')
