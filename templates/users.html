@@ -30,6 +30,35 @@
   </button>
 </div>
 
+<!-- ── Solicitudes Pendientes ─────────────────────────── -->
+<div id="applicationsSection" class="card" style="margin-bottom:1.5rem; padding:1.25rem; border-left:4px solid var(--warning); display:none; background:linear-gradient(135deg, color-mix(in srgb, var(--warning) 8%, transparent), var(--card));">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+    <div>
+      <h3 style="margin:0; font-size:1.05rem; font-weight:700; display:flex; align-items:center; gap:.5rem;">
+        <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; background:var(--warning); border-radius:50%; color:#fff; font-weight:800; font-size:.85rem;" id="pendingCount">0</span>
+        Solicitudes Pendientes
+      </h3>
+      <p style="margin:.25rem 0 0; color:var(--text-muted); font-size:.85rem;">
+        Usuarios que esperan aprobación para activar sus cuentas
+      </p>
+    </div>
+    <button class="btn-ghost" onclick="loadApplications()" style="padding:.5rem 1rem; border:1px solid color-mix(in srgb, var(--warning) 30%, transparent); border-radius:8px; cursor:pointer; background:color-mix(in srgb, var(--warning) 8%, transparent); color:var(--text); font-weight:600; transition:all .15s ease; font-size:.85rem;" onmouseover="this.style.background='color-mix(in srgb, var(--warning) 15%, transparent)'; this.style.borderColor='color-mix(in srgb, var(--warning) 50%, transparent)';" onmouseout="this.style.background='color-mix(in srgb, var(--warning) 8%, transparent)'; this.style.borderColor='color-mix(in srgb, var(--warning) 30%, transparent)';">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:.3rem; display:inline; vertical-align:middle;">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <polyline points="23 20 23 14 17 14"></polyline>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64M3.51 15A9 9 0 0 0 18.36 18.36"></path>
+      </svg>
+      Recargar
+    </button>
+  </div>
+
+  <div id="applicationsList" style="margin-top:1rem;">
+    <div style="text-align:center; color:var(--text-muted); padding:1rem;">
+      No hay solicitudes pendientes
+    </div>
+  </div>
+</div>
+
 <!-- ── Filtros ────────────────────────────────────────── -->
 <div class="card" style="margin-bottom:1rem; padding:1rem;">
   <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
@@ -158,7 +187,9 @@
           <label class="label">Rol <span style="color:var(--danger)">*</span></label>
           <select id="fieldRole">
             <option value="{{ ROLES.VENDOR }}">Vendedor</option>
+            {% if role == ROLES.ROOT %}
             <option value="{{ ROLES.ADMIN }}">Administrador</option>
+            {% endif %}
           </select>
         </div>
         <div class="field" id="statusField" style="display:none;">
@@ -190,7 +221,7 @@
      MODAL: Actividad del Usuario
 ════════════════════════════════════════════════════ -->
 <div id="activityModal" class="modal-overlay" onclick="overlayClose(event,'activityModal')">
-  <div class="modal-box" style="width:min(700px,95vw);">
+  <div class="modal-box" style="width:min(800px,95vw);">
     <div class="modal-header">
       <h2 class="modal-title">
         Actividad de
@@ -209,26 +240,29 @@
         Cargando actividad...
       </div>
       <!-- Tabla -->
-      <table id="activityTable" style="width:100%; border-collapse:collapse;
-                                        font-size:.875rem; display:none;">
+      <table id="activityTable" style="width:100%; border-collapse:collapse; font-size:.875rem; display:none;">
         <thead>
-          <tr style="background:var(--panel-2); border-bottom:1px solid var(--border);
-                     position:sticky; top:0;">
+          <tr style="background:var(--panel-2); border-bottom:1px solid var(--border); position:sticky; top:0;">
             <th style="padding:.65rem 1rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              ID Venta</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              ID
+            </th>
             <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Fecha</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Fecha
+            </th>
             <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Método pago</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Acción
+            </th>
             <th style="padding:.65rem .75rem; text-align:center; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Artículos</th>
-            <th style="padding:.65rem 1rem; text-align:right; color:var(--text-muted);
-                       font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
-              Total</th>
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Entidad
+            </th>
+            <th style="padding:.65rem .75rem; text-align:left; color:var(--text-muted);
+                      font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;">
+              Descripción
+            </th>
           </tr>
         </thead>
         <tbody id="activityTableBody"></tbody>
@@ -310,7 +344,7 @@
 .modal-overlay {
   display: none;
   position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.5);
   align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
   opacity: 0; transition: opacity .2s ease;
@@ -334,7 +368,7 @@
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
-.modal-title { margin:0; font-size:1rem; font-weight:700; }
+.modal-title { margin:0; font-size:1rem; font-weight:700; color: var(--text); }
 .modal-close {
   background: none; border: none; cursor: pointer;
   color: var(--text-muted); padding: .25rem;
@@ -360,7 +394,7 @@
 }
 .icon-btn:hover          { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb,var(--brand) 10%,transparent); }
 .icon-btn.primary:hover  { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb,var(--brand) 10%,transparent); }
-.icon-btn.info:hover     { border-color: #38bdf8; color: #38bdf8; background: color-mix(in srgb,#38bdf8 10%,transparent); }
+.icon-btn.info:hover     { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb,var(--brand) 10%,transparent); }
 .icon-btn.danger:hover   { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb,var(--danger) 10%,transparent); }
 .icon-btn.success:hover  { border-color: var(--success); color: var(--success); background: color-mix(in srgb,var(--success) 10%,transparent); }
 

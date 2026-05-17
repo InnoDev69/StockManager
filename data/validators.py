@@ -1,5 +1,6 @@
 from data.limits import Limits
 from data.roles import ROLES
+import re
 
 class ValidationError(Exception):
     """Excepción para errores de validación."""
@@ -180,8 +181,10 @@ class UserValidator:
     def validate_email(email) -> str:
         """Valida el formato de un email."""
         email = Validator.validate_string("Email", email, Limits.USER_EMAIL_MAX)
+        regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         if "@" not in email or "." not in email.split("@")[-1]:
-            raise ValidationError("Email", "Formato de email inválido")
+            if re.match(regex, email) is None:
+                raise ValidationError("Email", "Formato de email inválido")
         return email
     
     @staticmethod

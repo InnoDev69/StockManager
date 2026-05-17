@@ -1,5 +1,6 @@
 import secrets
 import sqlite3
+from data.variables import Var
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from api.error_handlers import handle_db_error
@@ -9,6 +10,7 @@ from data.validators import RoleValidator, UserValidator, ValidationError
 from tools.logger import logger
 from tools.email import email_sender
 from data.roles import ROLES
+from tools.audit_decorator import audit_action
 
 users_api = Blueprint("users_api", __name__)
 
@@ -99,6 +101,7 @@ def get_user(user_id):
 
 @users_api.route("/users", methods=["POST"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("user", "create")
 def create_user():
     """Crea un nuevo usuario."""
 
@@ -126,9 +129,15 @@ def create_user():
         data["role"] = RoleValidator.validate_name(data["role"])
     except ValidationError as e:
         return jsonify({"error": e.message}), 400
-    
     try:
-        db.execute_query("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)", (data["username"].strip(), data["email"].strip(), hashed, data["role"]), fetch=False)
+        db.add_user(
+            username=data["username"].strip(),
+            email=data["email"].strip(),
+            password=hashed,
+            role=data["role"],
+            status=1,
+            application=Var.USER_APPLICATION_ACCEPTED
+        )
         logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
     
@@ -142,9 +151,10 @@ def create_user():
     except Exception as e:
         return handle_db_error(e, "create_user")
 
-@users_api.route("/users/<int:user_id>", methods=["PUT"])
+@users_api.route("/users/<int:target_user_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
-def update_user(user_id):
+@audit_action("user", "update", "target_user_id")
+def update_user(target_user_id):
     """Actualiza un usuario existente."""
 
     data = request.get_json()
@@ -179,91 +189,47 @@ def update_user(user_id):
     if not updates:
         return jsonify({"error": "No hay datos para actualizar"}), 400
 
-    params.append(user_id)
+    params.append(target_user_id)
     db.execute_query(
         f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
         tuple(params),
         fetch=False
     )
-    logger.info(f"Usuario ID {user_id} actualizado por admin ID {session.get('user_id')}")
+    
+    logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario actualizado"}), 200
 
 
-@users_api.route("/users/<int:user_id>", methods=["DELETE"])
+@users_api.route("/users/<int:target_user_id>", methods=["DELETE"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
-def delete_user(user_id):
+@audit_action("user", "delete", "target_user_id")
+def delete_user(target_user_id):
     """Deshabilita un usuario (baja lógica)."""
 
-    if user_id == session.get("user_id"):
+    if target_user_id == session.get("user_id"):
         return jsonify({"error": "No puedes darte de baja a ti mismo"}), 400
 
     db.execute_query(
         "UPDATE users SET status = 0 WHERE id = ?",
-        (user_id,),
+        (target_user_id,),
         fetch=False
     )
-    logger.info(f"Usuario ID {user_id} dado de baja por admin ID {session.get('user_id')}")
+    
+    logger.info(f"Usuario ID {target_user_id} dado de baja por admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario dado de baja"}), 200
 
 
 @users_api.route("/users/<int:user_id>/activity", methods=["GET"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_user_activity(user_id):
-    """Obtiene los movimientos/ventas de un usuario."""
+    """Obtiene la actividad de un usuario."""
 
-    page   = max(1, request.args.get("page", 1, type=int))
-    limit  = min(100, max(1, request.args.get("limit", 10, type=int)))
-    offset = (page - 1) * limit
-
-    user_rows = db.execute_query(
-        "SELECT username FROM users WHERE id = ?", (user_id,)
-    )
-    if not user_rows:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-
-    username = user_rows[0][0]
-
-    total = db.execute_query(
-        "SELECT COUNT(*) FROM sells WHERE vendedor = ?", (username,)
-    )[0][0]
-    pages = max(1, -(-total // limit))
-
-    rows = db.execute_query(
-        """
-        SELECT s.id, s.date, s.payment_method,
-               COUNT(d.id) AS items,
-               SUM(d.quantity * d.price) AS total
-        FROM sells s
-        JOIN details d ON s.id = d.sell_id
-        WHERE s.vendedor = ?
-        GROUP BY s.id
-        ORDER BY s.date DESC
-        LIMIT ? OFFSET ?
-        """,
-        (username, limit, offset)
-    )
-
-    activity = [
-        {
-            "sale_id":        r[0],
-            "date":           r[1],
-            "payment_method": r[2],
-            "items":          int(r[3]),
-            "total":          round(float(r[4]), 2),
-        }
-        for r in rows
-    ]
-
-    return jsonify({
-        "username": username,
-        "data":     activity,
-        "total":    total,
-        "page":     page,
-        "pages":    pages,
-        "limit":    limit,
-    }), 200
+    db.get_audit_log(user_id=user_id)
+    
+    
     
 @users_api.route("/users/reset-password", methods=["POST"])
+@audit_action("user", "reset_password")
 def restore_password():
     """
     Endpoint para restaurar la contraseña de un usuario.
@@ -356,6 +322,7 @@ def verify_code():
     return jsonify({"message": "Código verificado, puedes restablecer tu contraseña"}), 200
 
 @users_api.route("/users/reset-password/change-password", methods=["POST"])
+@audit_action("user", "change_password")
 def change_password():
     """
     Endpoint para cambiar la contraseña después de verificar el código de recuperación.
@@ -410,6 +377,7 @@ def change_password():
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200
 
 @users_api.route("/login", methods=["POST"])
+@audit_action("user", "login")
 def api_login():
     """
     Login vía API (JSON) para Thunder Client, Postman, etc.
@@ -457,6 +425,67 @@ def api_login():
         "username": username,
         "role": role
     }), 200
+
+@users_api.route("/register", methods=["POST"])
+@audit_action("user", "register")
+def api_register():
+    """
+    Registro de nuevo usuario vía API (JSON).
+    
+    Body:
+        {
+            "username": "usuario",
+            "email": "correo@ejemplo.com",
+            "password": "contraseña"
+        }
+    """
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+    
+    # Validaciones
+    if not username or not email or not password:
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    
+    if len(password) < 6:
+        return jsonify({"error": "Contraseña debe tener mínimo 6 caracteres"}), 400
+    
+    try:
+        UserValidator.validate_email(email)
+    except ValidationError as e:
+        return jsonify({"error": f"Email inválido: {e.message}"}), 400
+    
+    try:
+        UserValidator.validate(username, password, email, ROLES.VENDOR)
+    except ValidationError as e:
+        return jsonify({"error": str(e)}), 400
+    
+    # Verificar si el usuario ya existe
+    if db.user_exists(username, email):
+        return jsonify({"error": "Usuario o correo ya existe"}), 409
+    
+    try:
+        pw_hash = generate_password_hash(password)
+        db.add_user(
+            username=username,
+            password=pw_hash,
+            email=email,
+            role=ROLES.VENDOR,
+            status=0,
+            application=Var.USER_APPLICATION_PENDING
+        )
+        logger.info(f"Nuevo usuario registrado: {username} ({email})")
+        return jsonify({
+            "success": True,
+            "message": "Cuenta creada. Espera la aprobación del administrador."
+        }), 201
+    
+    except sqlite3.IntegrityError as e:
+        return jsonify({"error": "Error al crear la cuenta"}), 409
+    except Exception as e:
+        logger.error(f"Error en registro de usuario: {str(e)}")
+        return jsonify({"error": "Error interno del servidor"}), 500
     
 @users_api.route("/suggest/vendors", methods=["GET"])
 @require_auth
