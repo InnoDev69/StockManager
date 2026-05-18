@@ -44,7 +44,7 @@ class ItemsMixin:
             tuple|None: (id, barrs_code, name, description, quantity, expiration_date, price) o None
         """
         rows = self.execute_query(
-            "SELECT id, barrs_code, name, description, quantity, expiration_date, price FROM items WHERE barrs_code = ?",
+            "SELECT id, barrs_code, name, description, quantity, expiration_date, price FROM items WHERE barrs_code = ? AND status = 1",
             (barcode,),
         )
         return rows[0] if rows else None

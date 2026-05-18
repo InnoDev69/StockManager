@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
 from api.auth_utils import require_admin, require_auth, require_role 
+from tools.audit_decorator import audit_action
 from tools.logger import logger
 from api.error_handlers import handle_db_error
 from bd.bdErrors import DatabaseError
@@ -12,6 +13,7 @@ sales_api = Blueprint("sales_api", __name__)
 
 @sales_api.route("/sales", methods=["POST"])
 @require_auth
+@audit_action("sale", "create")
 def create_sale():
     """
     Registra una nueva venta de un producto.
@@ -75,6 +77,7 @@ def create_sale():
     
 @sales_api.route("/sales/bulk", methods=["POST"])
 @require_auth
+@audit_action("sale", "create")
 def create_sales_bulk():
     """
     Registra una venta con múltiples productos.
@@ -106,7 +109,15 @@ def create_sales_bulk():
     
     if not isinstance(items, list) or not items:
         return jsonify({"error": "Formato inválido: items[] requerido"}), 400
-
+    
+    for idx, it in enumerate(items):
+        _no_avalable_items = []
+        item = db.get_item_by_id(it.get("item_id"))
+        if item.get("status") == 0:
+            _no_avalable_items.append(item.get("name"))
+        if _no_avalable_items:
+            return jsonify({"error": f"Los siguientes productos no están disponibles: {', '.join(_no_avalable_items)}"}), 400
+        
     try:
         item_data = []
         item_ids = []
@@ -422,6 +433,7 @@ def get_sale_for_edit(sale_id):
 
 @sales_api.route("/sales/<int:sale_id>", methods=["PUT"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("sale", "update", "sale_id")
 def update_sale(sale_id):
     """Actualiza una venta existente"""
     try:

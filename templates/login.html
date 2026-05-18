@@ -408,6 +408,86 @@
           margin: 1.25rem 0;
         }
 
+        /* ── Modal de error ──────────────────────────── */
+        .password-error-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: linear-gradient(145deg, rgba(15,23,32,0.98) 0%, rgba(10,16,24,0.98) 100%);
+            border-radius: 12px;
+            box-shadow: 0 0 0 1px rgba(84, 78, 232, 0.2), 0 20px 60px rgba(0,0,0,0.7);
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--text);
+            font-size: 1.1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color .15s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+            color: var(--text);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn {
+            min-width: 90px;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 600px) {
           .auth-container { padding: 12px; }
           header { padding: 0.8rem 1rem; }
@@ -418,22 +498,17 @@
 </head>
 <body>
 
-    <!-- ── Abstract background scene ──────────────── -->
     <div class="bg-scene" aria-hidden="true">
-        <!-- Orbs -->
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
-        <!-- Glass panels -->
         <div class="panel panel-1"></div>
         <div class="panel panel-2"></div>
         <div class="panel panel-3"></div>
         <div class="panel panel-4"></div>
-        <!-- Line accents -->
         <div class="line line-1"></div>
         <div class="line line-2"></div>
         <div class="line line-3"></div>
-        <!-- Dots -->
         <div class="dot dot-1"></div>
         <div class="dot dot-2"></div>
         <div class="dot dot-3"></div>
@@ -442,11 +517,9 @@
     </div>
 
 
-    <!-- ── Auth forms ───────────────────────────────── -->
     <div class="auth-container">
         <div class="auth-card">
 
-            <!-- Login -->
             <div id="loginForm" class="card">
                 <div class="card-brand">Stockly</div>
                 <h2>Bienvenido</h2>
@@ -484,66 +557,68 @@
                 </div>
             </div>
 
-            <!-- Register -->
             <div id="registerForm" class="card hidden">
-                <div class="card-brand">Stockly</div>
-                <h2>Crear cuenta</h2>
-                <p>Regístrate para gestionar tu inventario</p>
+              <div style="margin-bottom:1.5rem;">
+                  <h2>Crear cuenta</h2>
+                  <p style="color:var(--muted); font-size:.9rem; margin-top:.5rem;">
+                      Completa el formulario. Tu solicitud será revisada por un administrador.
+                  </p>
+              </div>
 
-                {% if error %}
-                <div class="alert alert-error">{{ error }}</div>
-                {% endif %}
-
-                <form method="POST" action="/register">
-                    <div class="field">
-                        <label class="label" for="register-name">Nombre completo</label>
-                        <input type="text" id="register-name" name="user" required placeholder="Juan Pérez" max="{{Limits.USER_NAME_MAX}}">
-                    </div>
-                    <div class="field">
-                        <label class="label" for="register-email">Email</label>
-                        <input type="email" id="register-email" name="email" required placeholder="tu@email.com" max="{{Limits.USER_EMAIL_MAX}}">
-                    </div>
-
-                    <div class="fields-divider"></div>
-
-                    <div class="field">
-                        <label class="label" for="register-password">Contraseña</label>
-                        <div class="password-field">
-                            <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}" oninput="validatePasswordMatch()">
-                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-password')">
-                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label" for="register-confirm">Confirmar contraseña</label>
-                        <div class="password-field">
-                            <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}" oninput="validatePasswordMatch()">
-                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-confirm')">
-                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            </button>
-                        </div>
-                        <div class="field-error" id="password-error">Las contraseñas no coinciden</div>
-                    </div>
-                    <div class="field">
-                        <label class="label" for="register-role">Rol</label>
-                        <select id="register-role" name="role" required>
-                            <option value="{{ ROLES.VENDOR }}" selected>Vendedor</option>
-                            {% if not IS_EXECUTABLE %}
-                              <option value="{{ ROLES.ADMIN }}">Administrador</option>
-                            {% endif %}
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Crear cuenta</button>
-                    </div>
-                </form>
-
-                <div class="toggle-text">
-                    <span>¿Ya tienes cuenta? </span>
-                    <a onclick="toggleForms()">Inicia sesión aquí</a>
+              <!-- Info banner -->
+              <div style="background:linear-gradient(135deg, rgba(84,78,232,0.12) 0%, rgba(84,78,232,0.05) 100%); border:1px solid rgba(84,78,232,0.25); border-radius:10px; padding:1rem; margin-bottom:1.5rem; display:flex; gap:.75rem;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0; color:#7c77f0; margin-top:.1rem;">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div style="font-size:.85rem; color:var(--text);">
+                  <p style="margin:0 0 .3rem 0; font-weight:600; color:#7c77f0;">Solicitud de Registro</p>
+                  <p style="margin:0; color:var(--muted);">Tu cuenta se creará con estado inactivo. Necesita aprobación del administrador para activarse.</p>
                 </div>
-            </div>
+              </div>
+
+              <form method="POST" action="/register">
+                  <div class="field">
+                      <label class="label" for="register-name">Nombre de usuario</label>
+                      <input type="text" id="register-name" name="user" required placeholder="juan_perez" max="{{Limits.USER_NAME_MAX}}">
+                  </div>
+
+                  <div class="field">
+                      <label class="label" for="register-email">Correo electrónico</label>
+                      <input type="email" id="register-email" name="email" required placeholder="tu@email.com" max="{{Limits.USER_EMAIL_MAX}}">
+                  </div>
+
+                  <div class="field">
+                      <label class="label" for="register-password">Contraseña</label>
+                      <div class="password-field">
+                          <input type="password" id="register-password" name="password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}" oninput="validatePasswordMatch()">
+                          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-password')">
+                              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                      </div>
+                  </div>
+
+                  <div class="field">
+                      <label class="label" for="register-confirm">Confirmar contraseña</label>
+                      <div class="password-field">
+                          <input type="password" id="register-confirm" name="confirm_password" required placeholder="••••••••" minlength="6" max="{{Limits.USER_PASSWORD_MAX}}" oninput="validatePasswordMatch()">
+                          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('register-confirm')">
+                              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                      </div>
+                      <p id="passwordHint" style="color:var(--muted); font-size:.8rem; margin-top:.5rem;"></p>
+                      <div id="password-error" class="field-error">Las contraseñas no coinciden</div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Registrarse</button>
+              </form>
+
+              <div style="text-align:center; margin-top:1rem; font-size:.85rem;">
+                  ¿Ya tienes cuenta?
+                  <button type="button" class="link" onclick="toggleForms('login')" style="color:var(--accent); cursor:pointer; border:none; background:none; padding:0;">Inicia sesión</button>
+              </div>
+          </div>
 
         </div>
     </div>
@@ -554,6 +629,27 @@
         // ════════════════════════════════════════════════════
         // Password visibility toggle and validation
         // ════════════════════════════════════════════════════
+
+        function showPasswordErrorModal() {
+            const modal = document.createElement('div');
+            modal.className = 'password-error-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Error de validación</h3>
+                        <button class="modal-close" onclick="this.closest('.password-error-modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Las contraseñas no coinciden</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="this.closest('.password-error-modal').remove()">Aceptar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
 
         function togglePasswordVisibility(fieldId) {
             const field = document.getElementById(fieldId);
@@ -582,7 +678,7 @@
                     confirm.style.borderColor = 'rgba(255,107,107,0.5)';
                 }
             } else {
-                error.classList.remove('show');
+                if(error) error.classList.remove('show');
                 confirm.style.borderColor = 'rgba(255,255,255,0.07)';
             }
         }
@@ -595,7 +691,7 @@
             if (password !== confirm) {
                 e.preventDefault();
                 validatePasswordMatch();
-                alert('Las contraseñas no coinciden');
+                showPasswordErrorModal();
             }
         });
     </script>

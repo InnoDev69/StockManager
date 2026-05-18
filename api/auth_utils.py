@@ -1,78 +1,58 @@
 # api/auth_utils.py
 from functools import wraps
-from tempfile import template
+from flask import jsonify, render_template, request, session
 from data.roles import ROLES
-from flask import jsonify, render_template, render_template, session
 
-def require_auth(f):
+def _is_api_request() -> bool:
     """
-    Decorador: Verifica que usuario esté autenticado.
-    
-    Uso:
-        @require_auth
-        def get_products():
-            # user_id ya está disponible en session
-            username = session.get("username")
+    Determina si la petición espera JSON en lugar de HTML.
+    Se considera API si cumple cualquiera de estas condiciones:
+      - La ruta empieza con /api/
+      - El cliente envía el header X-Requested-With: XMLHttpRequest
+      - El cliente acepta JSON mejor que HTML (fetch sin Accept explícito no cumple esto,
+        por eso las dos condiciones anteriores son más confiables)
     """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_id = session.get("user_id")
-        if not user_id:
-            return render_template("login.html")
-        return f(*args, **kwargs)
-    return decorated_function
+    if request.path.startswith("/api/"):
+        return True
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+    best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+    return best == "application/json"
 
-def require_admin(f):
-    """
-    Decorador: Verifica autenticación + rol admin.
-    
-    Uso:
-        @require_admin
-        def create_product():
-            # Solo llega acá si está autenticado Y es admin
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_id = session.get("user_id")
-        if not user_id:
-            return render_template("login.html")
-        
-        if session.get("role") != ROLES.ADMIN:
-            return render_template("403.html"), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
+def _unauthorized():
+    if _is_api_request():
+        return jsonify({"error": "No autenticado"}), 401
+    return render_template("login.html")
 
-def require_root(f):
-    """
-    Decorador: Verifica autenticación + rol root.
-    
-    Uso:
-        @require_root
-        def delete_user():
-            # Solo llega acá si está autenticado Y es root
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_id = session.get("user_id")
-        if not user_id:
-            return render_template("login.html")
-        
-        if session.get("role") != ROLES.ROOT:
-            return render_template("403.html"), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
+def _forbidden():
+    if _is_api_request():
+        return jsonify({"error": "Permiso denegado"}), 403
+    return render_template("403.html"), 403
 
 def require_role(*roles):
+    """
+    Decorador unificado de autenticación y autorización.
+
+    Sin argumentos válidos actúa como require_auth (solo verifica sesión).
+    Con roles, verifica que el rol del usuario esté en la lista.
+
+    Uso:
+        @require_role()                        # solo autenticado
+        @require_role(ROLES.ADMIN)             # admin
+        @require_role(ROLES.ROOT, ROLES.ADMIN) # root o admin
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not session.get("user_id"):
-                return render_template("login.html")
-
-            if session.get("role") not in roles:
-                return render_template("403.html"), 403
+                return _unauthorized()
+            if roles and session.get("role") not in roles:
+                return _forbidden()
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+# Aliases de conveniencia (opcionales, para no romper código existente)
+require_auth  = require_role()
+require_admin = require_role(ROLES.ADMIN)
+require_root  = require_role(ROLES.ROOT)
