@@ -162,17 +162,6 @@ async function deleteProduct(id) {
   }
 }
 
-function showToast(message, isError = false) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  
-  toast.textContent = message;
-  toast.style.background = isError ? 'var(--danger)' : 'var(--success, #10b981)';
-  toast.classList.remove('hidden');
-  
-  setTimeout(() => toast.classList.add('hidden'), 3000);
-}
-
 // Event listeners para filtros
 document.getElementById('search')?.addEventListener('input', debounce(applyFilters, 300));
 document.getElementById('filter-category')?.addEventListener('change', applyFilters);
@@ -184,13 +173,4 @@ function applyFilters() {
     view_mode: document.getElementById('view-mode')?.value || 'all',
   };
   loadProducts(filters);
-}
-
-// Utility: debounce
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
 }

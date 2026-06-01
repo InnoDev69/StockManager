@@ -37,6 +37,7 @@ def get_recent_logs():
     """Obtiene logs recientes para el panel de debug."""
     
     log_file = get_current_log_file()
+    assert log_file is not None, "Log file path should not be None"
     try:
         with open(log_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()

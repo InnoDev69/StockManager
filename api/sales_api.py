@@ -110,8 +110,8 @@ def create_sales_bulk():
     if not isinstance(items, list) or not items:
         return jsonify({"error": "Formato inválido: items[] requerido"}), 400
     
+    _no_avalable_items = []
     for idx, it in enumerate(items):
-        _no_avalable_items = []
         item = db.get_item_by_id(it.get("item_id"))
         if item.get("status") == 0:
             _no_avalable_items.append(item.get("name"))

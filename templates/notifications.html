@@ -605,7 +605,7 @@
     loadNotifications();
     setupFilters();
     setupMarkAll();
-    connectSSEStream();
+    connectSSE();
   });
 
   // ── Fetch initial state ──────────────────────────────
@@ -680,82 +680,7 @@
   // ── Server-Sent Events (push real, sin polling) ─────
   let eventSource = null;
 
-  function connectSSEStream() {
-    console.log('[SSE notifications.html] Conectando al stream...');
-    
-    eventSource = new EventSource('/api/notifications/stream');
-
-    // Evento init — estado inicial
-    eventSource.addEventListener('init', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('[SSE] Init event recibido');
-      setLive(true);
-    });
-
-    // Evento notification — nueva notificación en tiempo real
-    eventSource.addEventListener('notification', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        const newNotif = data.notification;
-        
-        if (newNotif && !lastKnownIds.has(newNotif.id)) {
-          console.log('[SSE] Nueva notificación:', newNotif.title);
-          
-          // Agregar a la lista
-          allNotifications.unshift(newNotif);
-          lastKnownIds.add(newNotif.id);
-          
-          // Mostrar toast y animar
-          showNewNotifToast(1);
-          setTimeout(() => {
-            const el = document.querySelector(`.notif-card[data-id="${newNotif.id}"]`);
-            if (el) el.classList.add('is-new');
-          }, 50);
-          
-          // Actualizar header y re-renderizar
-          updateHeader();
-          applyFilters();
-        }
-      } catch (err) {
-        console.error('[SSE notification parse error]:', err);
-      }
-    });
-
-    // Evento update — actualización de estado (cuando se marcan como leídas, etc)
-    eventSource.addEventListener('update', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        console.log('[SSE] Actualización recibida:', data);
-        // Recargar notificaciones si hay cambios
-        loadNotifications(true);
-      } catch (err) {
-        console.error('[SSE update parse error]:', err);
-      }
-    });
-
-    // Heartbeat — solo para mantener la conexión
-    eventSource.addEventListener('message', (e) => {
-      console.log('[SSE] Mensaje recibido:', e.data.substring(0, 50));
-    });
-
-    // Error — reconectar automáticamente
-    eventSource.addEventListener('error', (e) => {
-      console.error('[SSE] Error en stream:', e);
-      setLive(false);
-      eventSource.close();
-      
-      // Reconectar después de 3 segundos
-      setTimeout(connectSSEStream, 3000);
-    });
-
-    // Limpiar al navegar
-    window.addEventListener('beforeunload', () => {
-      if (eventSource) {
-        eventSource.close();
-        console.log('[SSE] Stream cerrado');
-      }
-    });
-  }
+  
 
   // ── Render ──────────────────────────────────────────
   function applyFilters(silent = false) {

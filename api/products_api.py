@@ -1,3 +1,5 @@
+from unittest import result
+
 from flask import Blueprint, jsonify, request, session
 from api.notifications_api import notify_user
 from bd.bdInstance import db
@@ -177,12 +179,12 @@ def get_products():
 
     where_clause = " AND ".join(where)
 
-    total = db.execute_query(
-        f"SELECT COUNT(*) FROM items WHERE {where_clause}", tuple(params)
-    )[0][0]
+    total = total = db.get_count(
+    f"SELECT COUNT(*) FROM items WHERE {where_clause}", tuple(params)
+    )
     pages = max(1, -(-total // limit))
 
-    rows = db.execute_query(
+    rows = db.get_all_rows(
         f"""
         SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at
         FROM items
@@ -190,7 +192,7 @@ def get_products():
         ORDER BY {sort_column} {order}
         LIMIT ? OFFSET ?
         """,
-        tuple(params) + (limit, offset),
+        tuple(params) + (limit, offset)
     )
 
     products = [
