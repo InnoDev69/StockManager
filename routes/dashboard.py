@@ -1,6 +1,5 @@
 import os
-from flask import Blueprint, render_template, session, redirect, url_for
-from api.auth_utils import require_auth, require_admin
+from flask import Blueprint, render_template, session, redirect
 from bd.bdInstance import db
 from data.roles import ROLES
 

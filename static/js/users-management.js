@@ -312,7 +312,7 @@ function proceedRejectApplication(userId) {
         modal.style.animation = 'fadeOut .2s ease forwards';
         setTimeout(() => {
           modal.remove();
-          showToast('✓ Solicitud rechazada correctamente', 'warning');
+          showToast(' Solicitud rechazada correctamente', 'warning');
           loadApplications();
           loadUsers(currentPage);
         }, 200);
@@ -599,6 +599,7 @@ async function openEditModal(userId) {
       document.getElementById("fieldStatus").disabled = true;
       document.getElementById("fieldRole").disabled = true;
       // TOMAKE: tal vez un tooltip que diga "No podés cambiar tu propio rol o estado"?
+      showToastModal("No podés cambiar tu propio rol o estado", "warning");
     } else {
       document.getElementById("fieldStatus").disabled = false;
       document.getElementById("fieldRole").disabled = false;
@@ -607,7 +608,7 @@ async function openEditModal(userId) {
     openModal("userModal");
   } catch (err) {
     console.error(err);
-    showToast("No se pudo cargar el usuario", "danger");
+    showToastModal("No se pudo cargar el usuario", "danger");
   }
 }
 
@@ -642,13 +643,13 @@ async function saveUser() {
     const data = await res.json();
     if (res.ok) {
       closeModal("userModal");
-      showToast(data.message, "success");
+      showToastModal(data.message, "success");
       loadUsers(currentPage);
     } else {
-      showToast(data.error || "Error al guardar", "danger");
+      showToastModal(data.error || "Error al guardar", "danger");
     }
   } catch {
-    showToast("Error de conexión", "danger");
+    showToastModal("Error de conexión", "danger");
   } finally {
     btn.disabled    = false;
     btn.textContent = "Guardar";
@@ -667,10 +668,10 @@ async function confirmDelete() {
     const res  = await fetch(`/api/users/${deleteUserId}`, { method: "DELETE" });
     const data = await res.json();
     closeModal("deleteModal");
-    showToast(res.ok ? data.message : data.error, res.ok ? "success" : "danger");
+    showToastModal(res.ok ? data.message : data.error, res.ok ? "success" : "danger");
     if (res.ok) loadUsers(currentPage);
   } catch {
-    showToast("Error de conexión", "danger");
+    showToastModal("Error de conexión", "danger");
   }
 }
 
@@ -683,10 +684,10 @@ async function reactivateUser(id) {
       body:    JSON.stringify({ status: 1 })
     });
     const data = await res.json();
-    showToast(res.ok ? "Usuario reactivado" : data.error, res.ok ? "success" : "danger");
+    showToastModal(res.ok ? "Usuario reactivado" : data.error, res.ok ? "success" : "danger");
     if (res.ok) loadUsers(currentPage);
   } catch {
-    showToast("Error de conexión", "danger");
+    showToastModal("Error de conexión", "danger");
   }
 }
 
@@ -828,106 +829,6 @@ function getRoleBadge(role) {
                       color:${config.color}; border:1px solid color-mix(in srgb,${config.color} ${config.borderOpacity},transparent);">
            ${config.label}
          </span>`;
-}
-
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
-function formatDate(str) {
-  if (!str) return `<span style="color:var(--text-muted)">—</span>`;
-  const d = new Date(str);
-  if (isNaN(d)) return escHtml(str);
-  return d.toLocaleString("es-AR", {
-    day:"2-digit", month:"2-digit", year:"numeric",
-    hour:"2-digit", minute:"2-digit"
-  });
-}
-
-function showToast(msg, type = "success") {
-  const typeConfig = {
-    success: {
-      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
-      color: 'var(--success)',
-      bgColor: 'color-mix(in srgb, var(--success) 12%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--success) 30%, transparent)'
-    },
-    danger: {
-      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-      color: 'var(--danger)',
-      bgColor: 'color-mix(in srgb, var(--danger) 12%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--danger) 30%, transparent)'
-    },
-    warning: {
-      icon: `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05l-8.47-14.14a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-      color: 'var(--warning)',
-      bgColor: 'color-mix(in srgb, var(--warning) 12%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)'
-    }
-  };
-
-  const config = typeConfig[type] || typeConfig.success;
-
-  const modalHtml = `
-    <div id="toastModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
-                              background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
-                              z-index:1001; animation:fadeIn .2s ease;">
-      <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
-                  width:100%; max-width:420px; animation:slideDown .3s ease; border:1px solid var(--border);
-                  padding:0;">
-        <!-- Header with color -->
-        <div style="display:flex; align-items:center; gap:1rem; padding:1.5rem;
-                    background:${config.bgColor}; border-bottom:2px solid ${config.borderColor};
-                    border-radius:12px 12px 0 0;">
-          <div style="width:48px; height:48px; border-radius:50%; flex-shrink:0;
-                      background:${config.bgColor}; border:2px solid ${config.color};
-                      display:flex; align-items:center; justify-content:center;
-                      color:${config.color};">
-            ${config.icon}
-          </div>
-          <div style="flex:1;">
-            <h3 style="margin:0; font-size:1rem; font-weight:700; color:var(--text);">
-              ${type === 'success' ? 'Éxito' : type === 'danger' ? 'Error' : 'Atención'}
-            </h3>
-          </div>
-        </div>
-
-        <!-- Message -->
-        <div style="padding:1.5rem; color:var(--text); font-size:.95rem; line-height:1.5;">
-          ${msg}
-        </div>
-
-        <!-- Footer -->
-        <div style="display:flex; gap:.75rem; padding:1rem 1.5rem; border-top:1px solid var(--border);
-                    background:var(--panel); border-radius:0 0 12px 12px;">
-          <button onclick="document.getElementById('toastModal').remove()"
-                  style="flex:1; padding:.65rem; border:none; background:${config.color};
-                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem;
-                          color:#fff; transition:all .2s ease; box-shadow:var(--shadow-sm);"
-                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
-                  onmouseout="this.style.boxShadow='var(--shadow-sm)'">
-            Aceptar
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Remove existing modal if any
-  const existing = document.getElementById('toastModal');
-  if (existing) existing.remove();
-
-  // Create and insert modal
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = modalHtml;
-  document.body.appendChild(wrapper.firstElementChild);
-
-  // Close on overlay click
-  document.getElementById('toastModal').addEventListener('click', (e) => {
-    if (e.target.id === 'toastModal') e.target.remove();
-  });
 }
 
 // Cargar solicitudes si el usuario es ADMIN o ROOT

@@ -1,5 +1,4 @@
 from main import app
-from tools.email import email_sender
 import os
 
 if __name__ == "__main__":

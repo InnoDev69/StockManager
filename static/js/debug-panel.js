@@ -273,14 +273,6 @@
     return String(value);
   }
 
-  function escapeHtml(str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function injectStyles() {
     if (document.getElementById('dbg-styles')) return;
     const style = document.createElement('style');

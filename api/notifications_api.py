@@ -129,6 +129,8 @@ def stream_notifications():
     user_id = session.get('user_id')
 
     my_stop = threading.Event()
+    
+    assert user_id is not None, "User ID should be in session for authenticated user"
 
     with _stop_lock:
         old_stop = _user_stop_events.get(user_id)

@@ -135,10 +135,10 @@ class BDConector(
         """
         users_table_query = """
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
+            id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+            username TEXT NOT NULL,
             password TEXT NOT NULL,
-            email TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
             role TEXT NOT NULL,
             status INTEGER NOT NULL DEFAULT 1,
             application TEXT NOT NULL DEFAULT 'pending',
@@ -290,7 +290,7 @@ class BDConector(
             "SELECT COUNT(*) FROM users WHERE role = ?",
             (ROLES.ROOT,),
         )
-        if rows and rows[0][0] > 1:
+        if rows and rows[0][0] > 1: # type: ignore
             logger.critical("Múltiples usuarios con rol ROOT detectados")
             raise DatabaseError("Multiple ROOT users detected, database integrity compromised")
         
@@ -342,6 +342,9 @@ class BDConector(
             ("users",   "history",         "TEXT"),
             ("users",   "application",     "TEXT NOT NULL DEFAULT 'accepted'"),
             ("users", "application", "TEXT NOT NULL DEFAULT 'accepted'"),
+            ("users", "username", "TEXT NOT NULL"),
+            ("users", "id", "INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE"),
+            ("users", "email", "TEXT NOT NULL UNIQUE"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()
@@ -433,6 +436,20 @@ class BDConector(
         query = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_with_types})"
         with self._cursor() as cur:
             cur.execute(query)
+            
+    def get_count(self, query: str, params: tuple = ()) -> int:
+        """Extrae el COUNT de una query de forma segura."""
+        result = self.execute_query(query, params)
+        return result[0][0] if result else 0
+
+    def get_single_row(self, query: str, params: tuple = ()):
+        """Obtiene una sola fila o retorna None."""
+        result = self.execute_query(query, params)
+        return result[0] if result else None
+
+    def get_all_rows(self, query: str, params: tuple = ()):
+        """Obtiene todas las filas (alias para clarity)."""
+        return self.execute_query(query, params)
 
     @measure_time
     def execute_query(self, query, params=(), fetch=True):
@@ -445,7 +462,8 @@ class BDConector(
             fetch (bool): Si True retorna resultados, si False retorna filas afectadas
 
         Returns:
-            list[tuple] | int: Resultados o filas afectadas
+            list[tuple]: Resultados como lista de tuplas (si fetch=True)
+            int: Número de filas afectadas (si fetch=False)
         """
         with self._cursor() as cur:
             cur.execute(query, params)

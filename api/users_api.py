@@ -1,11 +1,10 @@
-import secrets
 import sqlite3
 from data.variables import Var
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from api.error_handlers import handle_db_error
 from bd.bdInstance import db
-from api.auth_utils import require_auth, require_admin, require_role
+from api.auth_utils import require_auth, require_role
 from data.validators import RoleValidator, UserValidator, ValidationError
 from tools.logger import logger
 from tools.email import email_sender
@@ -20,6 +19,7 @@ def generate_reset_code():
     return f"{secrets.randbelow(10**6):06d}"
 
 @users_api.route("/users", methods=["GET"])
+@require_auth
 @require_role(ROLES.ADMIN, ROLES.ROOT)
 def get_users():
     """Lista todos los usuarios con paginación."""
@@ -109,11 +109,6 @@ def create_user():
     if not all(f in data for f in required):
         return jsonify({"error": "Faltan campos requeridos"}), 400
 
-    try:
-        UserValidator.validate_email(data["email"])
-    except Exception:
-        return jsonify({"error": "Formato de correo inválido"}), 400
-
     existing = db.get_user_by_email(data["email"].strip())
     if existing:
         return jsonify({"error": "El correo ya está registrado"}), 409
@@ -154,50 +149,77 @@ def create_user():
 @require_role(ROLES.ADMIN, ROLES.ROOT)
 @audit_action("user", "update", "target_user_id")
 def update_user(target_user_id):
-    """Actualiza un usuario existente."""
+    """Actualiza un usuario existente (solo si hay cambios reales)."""
 
+    current_user = db.execute_query(
+        "SELECT username, email, role, status FROM users WHERE id = ?",
+        (target_user_id,)
+    )
+    if not current_user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    current_username, current_email, current_role, current_status = current_user[0]
+    
     data = request.get_json()
     updates = []
     params  = []
 
     if "username" in data:
-        updates.append("username = ?")
-        params.append(data["username"].strip())
+        new_username = data["username"].strip()
+        if new_username != current_username:
+            updates.append("username = ?")
+            params.append(new_username)
+    
     if "email" in data:
-        updates.append("email = ?")
-        params.append(data["email"].strip())
+        new_email = data["email"].strip()
+        if new_email != current_email:
+            updates.append("email = ?")
+            params.append(new_email)
+    
     if "role" in data:
-        updates.append("role = ?")
-        params.append(data["role"])
+        new_role = data["role"]
+        if new_role != current_role:
+            updates.append("role = ?")
+            params.append(new_role)
+    
     if "status" in data:
-        updates.append("status = ?")
-        params.append(int(data["status"]))
+        new_status = int(data["status"])
+        if new_status != current_status:
+            updates.append("status = ?")
+            params.append(new_status)
+    
     if "password" in data and data["password"]:
         updates.append("password = ?")
         params.append(generate_password_hash(data["password"]))
     
-    # Validar los datos borrando el status para no interferir con la validación personalizada
-    try:
-        dataCleared = dict(data) 
-        dataCleared.pop("status", None)
-        
-        UserValidator.validate_custom(**dict(dataCleared))
-    except ValidationError as e:
-        return jsonify({"error": f"{e.field}: {e.message}"}), 400
-
     if not updates:
-        return jsonify({"error": "No hay datos para actualizar"}), 400
+        return jsonify({"message": "No hay cambios que aplicar"}), 200
 
-    params.append(target_user_id)
-    db.execute_query(
-        f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
-        tuple(params),
-        fetch=False
-    )
+    try:
+        params.append(target_user_id)
+        db.execute_query(
+            f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+            tuple(params),
+            fetch=False
+        )
+        
+        db.create_notification(
+            user_id=target_user_id,
+            title="Tu cuenta ha sido actualizada",
+            message="Un administrador ha realizado cambios en tu cuenta. Si no reconoces esta actividad, contacta al soporte.",
+            notification_type="info"
+        )
+        logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}: {', '.join(updates)}")
+        return jsonify({"message": "Usuario actualizado exitosamente"}), 200
     
-    logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}")
-    return jsonify({"message": "Usuario actualizado"}), 200
-
+    except sqlite3.IntegrityError as e:
+        if "email" in str(e):
+            return jsonify({"error": "Este correo ya está registrado"}), 409
+        return jsonify({"error": "Error de integridad de datos"}), 400
+    
+    except Exception as e:
+        logger.error(f"Error actualizando usuario {target_user_id}: {str(e)}")
+        return jsonify({"error": "Error al actualizar el usuario"}), 500
 
 @users_api.route("/users/<int:target_user_id>", methods=["DELETE"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
@@ -216,16 +238,6 @@ def delete_user(target_user_id):
     
     logger.info(f"Usuario ID {target_user_id} dado de baja por admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario dado de baja"}), 200
-
-
-@users_api.route("/users/<int:user_id>/activity", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
-def get_user_activity(user_id):
-    """Obtiene la actividad de un usuario."""
-
-    db.get_audit_log(user_id=user_id)
-    
-    
     
 @users_api.route("/users/reset-password", methods=["POST"])
 @audit_action("user", "reset_password")

@@ -1,6 +1,6 @@
 from data.validators import UserValidator, ValidationError
 from data.variables import Var
-from flask import Blueprint, app, render_template, request, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
 from data.roles import ROLES

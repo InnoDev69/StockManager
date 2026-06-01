@@ -1,6 +1,6 @@
 class Var:
     #Beta feature toggles
-    ATTRIBUTE_CARACTERISTICS_ENABLED = False
+    #ATTRIBUTE_CARACTERISTICS_ENABLED = False
     
     #User application status
     USER_APPLICATION_REJECTED = "rejected"

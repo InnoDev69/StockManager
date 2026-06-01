@@ -3,7 +3,6 @@ Werkzeug==3.0.1
 python-dotenv==1.0.0
 waitress==2.1.2
 requests
-pywebview
 pytz
 python-barcode
 Pillow

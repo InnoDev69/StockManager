@@ -206,7 +206,7 @@ def product_detail(product_id):
     
     """
     product = db.get_item_by_id(product_id)
-    return render_template("product_detail.html", product=product, role=session.get("role", ROLES.VENDOR))
+    return render_template("product_detail.html", product=product, role=session.get("role", ROLES.VENDOR),show_back=False)
 
 @products_bp.route("/products/<int:product_id>/edit")
 @require_role(ROLES.ADMIN, ROLES.ROOT)
@@ -232,7 +232,7 @@ def product_edit(product_id):
         flash("Producto no encontrado", "error")
         return redirect(url_for("products.product_management", show_back='0'),)
     
-    return render_template("product_edit.html", product=product, role=session.get("role", ROLES.VENDOR))
+    return render_template("product_edit.html", product=product, role=session.get("role", ROLES.VENDOR), show_back=False)
 
 @products_bp.route("/products/barcodes", methods=["GET"])
 @require_role(ROLES.ADMIN, ROLES.ROOT)
