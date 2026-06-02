@@ -55,7 +55,7 @@ jobs:
       # --- Dependencias Python comunes ---
       - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install pyinstaller==6.19.0 pyinstaller-hooks-contrib
           pip install -r requirements.txt
         shell: bash
