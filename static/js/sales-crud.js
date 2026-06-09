@@ -208,6 +208,12 @@ function renderCart() {
       }
     });
     div.querySelector('.cart-remove-btn').addEventListener('click', function() {
+      const contentSpanName = document.getElementById('lastAdded').textContent;
+      const productName = contentSpanName.substring(0, contentSpanName.lastIndexOf(" x")).trim();
+
+      if (productName === row.name.trim()){
+        document.getElementById('lastAdded').style.display = 'none';
+      }
       cart.delete(row.id);
       renderCart();
       focusSearch();
@@ -359,6 +365,23 @@ function initSalesForm() {
   // Búsqueda
   const searchEl = document.getElementById('search');
   if (searchEl) {
+
+    // ── SCANNER: Anti-doble-disparo (CR+LF) ──────────────────────────────
+    // Algunos lectores emiten \r\n; el browser lo convierte en dos keydown
+    // 'Enter' consecutivos. Bloqueamos el segundo si llega en < 50 ms.
+    // capture:true para correr antes que el listener de keydown de abajo.
+    let lastEnterTime = 0;
+    searchEl.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      const now = Date.now();
+      if (now - lastEnterTime < 50) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+      lastEnterTime = now;
+    }, true);
+
     searchEl.addEventListener('keydown', async function(e) {
       if (e.key !== 'Enter') return;
       e.preventDefault();
@@ -408,6 +431,28 @@ function initSalesForm() {
       }, 180);
     });
   }
+
+  // ── SCANNER: Focus trap global ────────────────────────────────────────
+  // Si el foco no está en un input editable y llega un carácter imprimible
+  // (típicamente el primer char del código escaneado), redirigir al #search.
+  // El carácter no se cancela: se escribe solo en el input al reenfocar.
+  document.addEventListener('keydown', function(e) {
+    // Ignorar si hay un input/textarea activo
+    const tag = document.activeElement && document.activeElement.tagName;
+    const isEditable = (
+      tag === 'INPUT' || tag === 'TEXTAREA' ||
+      (document.activeElement && document.activeElement.isContentEditable)
+    );
+    // No redirigir si el modal de confirmación está abierto
+    const modalOpen = document.getElementById('confirmModal').style.display !== 'none';
+    if (isEditable || modalOpen) return;
+
+    // Solo caracteres imprimibles, sin modificadores
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      searchEl.focus();
+      // No preventDefault: el char se escribe en el input normalmente
+    }
+  });
 
   // Vaciar carrito
   const clearCartBtn = document.getElementById('clearCart');
@@ -539,11 +584,34 @@ function initSalesForm() {
   });
 
   // Atajos de teclado
+  // Usos de Alt+letra: seguros en navegador (evito las combinaciones Alt+F4, Alt+D, Alt+flecha)
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'F2') {
+    const modalOpen = document.getElementById('confirmModal').style.display !== 'none';
+
+    // ── Alt+F: foco al buscador ──────────────────────────────────────────
+    if (e.altKey && e.key === 'f') {
       e.preventDefault();
       focusSearch();
     }
+
+    // ── Alt+V: abre modal de confirmación (si hay items) ────────────────
+    if (e.altKey && e.key === 'v') {
+      e.preventDefault();
+      if (!modalOpen && cart.size) showConfirmModal();
+    }
+
+    // ── Alt+C: toggle calculadora de cambio ──────────────────────────────
+    if (e.altKey && e.key === 'c') {
+      e.preventDefault();
+      document.getElementById('toggleChangeCalc').click();
+      if (changeCalcOpen) {
+        setTimeout(function() {
+          document.getElementById('cashReceived').focus();
+        }, 100);
+      }
+    }
+
+    // ── Ctrl+Supr: vacia el carrito ────────────────────────────────────────
     if (e.ctrlKey && e.key === 'Delete') {
       e.preventDefault();
       if (cart.size && confirm('Vaciar todo el carrito?')) {
@@ -554,17 +622,46 @@ function initSalesForm() {
         focusSearch();
       }
     }
+
+    // ── Escape: cierra modal / sugerencias ───────────────────────────────
     if (e.key === 'Escape') {
-      document.getElementById('confirmModal').style.display = 'none';
-      hideSuggestions();
+      if (modalOpen) {
+        document.getElementById('confirmModal').style.display = 'none';
+        focusSearch();
+      } else {
+        hideSuggestions();
+      }
     }
-    if (e.key === 'F4') {
-      e.preventDefault();
-      document.getElementById('toggleChangeCalc').click();
-      if (changeCalcOpen) {
-        setTimeout(function() {
-          document.getElementById('cashReceived').focus();
-        }, 100);
+
+    // ── Atajos exclusivos del modal de confirmación ──────────────────────
+    if (modalOpen) {
+
+      // Enter: procesa venta (salvo foco en Cancelar)
+      if (e.key === 'Enter' && document.activeElement !== document.getElementById('modalCancel')) {
+        e.preventDefault();
+        const confirmBtn = document.getElementById('modalConfirm');
+        if (confirmBtn && !confirmBtn.disabled) confirmBtn.click();
+      }
+
+      // Alt+E / Alt+T / Alt+R: Efectivo / Tarjeta / Transferencia
+      if (e.altKey && (e.key === 'e' || e.key === 't' || e.key === 'r')) {
+        e.preventDefault();
+        const map = { e: 'Efectivo', t: 'Tarjeta', r: 'Transferencia' };
+        const btn = document.querySelector('.payment-method-btn[data-method="' + map[e.key] + '"]');
+        if (btn) btn.click();
+      }
+
+      // Tab / Shift+Tab: cicla los métodos de pago
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+        const methods = Array.from(document.querySelectorAll('.payment-method-btn'));
+        const activeIdx = methods.findIndex(function(b) { return b.classList.contains('active'); });
+        if (activeIdx !== -1) {
+          e.preventDefault();
+          const next = e.shiftKey
+            ? (activeIdx - 1 + methods.length) % methods.length
+            : (activeIdx + 1) % methods.length;
+          methods[next].click();
+        }
       }
     }
   });

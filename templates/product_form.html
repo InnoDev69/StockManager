@@ -82,4 +82,43 @@ function generateProposedBarcode() {
   document.getElementById('barrs_code').value = proposed;
 }
 </script>
+<script>
+function generateProposedBarcode() {
+  const timestamp = Date.now().toString().slice(-6);
+  const proposed = `PRD${timestamp.padStart(6, '0')}`;
+  document.getElementById('barrs_code').value = proposed;
+}
+
+(function () {
+  const barcodeInput = document.getElementById('barrs_code');
+  const nextField = document.querySelector('input[name="name"]');
+
+  const SCANNER_THRESHOLD_MS = 100;
+  let inputStartTime = null;
+
+  barcodeInput.addEventListener('input', function () {
+    if (inputStartTime === null) {
+      inputStartTime = Date.now();
+    }
+  });
+
+  barcodeInput.addEventListener('blur', function () {
+    inputStartTime = null;
+  });
+
+  barcodeInput.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+
+    e.preventDefault();
+
+    const elapsed = inputStartTime !== null ? Date.now() - inputStartTime : Infinity;
+    inputStartTime = null;
+
+    if (elapsed < SCANNER_THRESHOLD_MS || barcodeInput.value.trim() !== '') {
+      nextField.focus();
+      nextField.select();
+    }
+  });
+})();
+</script>
 {% endblock %}
