@@ -139,6 +139,56 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 atexit.register(cleanup)
 
+def show_message_box(title, message, type="error"):
+    import tkinter as tk
+    from tkinter import messagebox
+    
+    root = tk.Tk()
+    root.withdraw()  # Oculta la ventana principal
+    
+    if type == "error":
+        messagebox.showerror(title, message)
+    else:
+        messagebox.showinfo(title, message)
+    root.destroy()
+
+def handle_dll_exception():
+    import subprocess
+    
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)  # Compilado con PyInstaller
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))  # Script normal
+
+    internal_dir = os.path.join(base_dir, "_internal")
+
+    if not os.path.exists(internal_dir):
+        logger.error(f"Directorio no encontrado: {internal_dir}")
+        return
+
+    ps_command = (
+        f'Get-ChildItem "{internal_dir}" -Recurse | '
+        'Unblock-File -ErrorAction SilentlyContinue'
+    )
+    
+    try:
+        resultado = subprocess.run(
+            ["powershell", "-Command", ps_command],
+            capture_output=True,
+            text=True,
+            # creationflags=subprocess.CREATE_NO_WINDOW  # Descomenta para ocultar la ventana
+        )
+
+        if resultado.returncode == 0:
+            logger.info("Archivos desbloqueados correctamente.")
+            show_message_box("Corrección aplicada", "Se ha aplicado una corrección para resolver el error de DLL. Por favor, reinicia la aplicación.", type="info")
+        else:
+            show_message_box("Error al aplicar corrección", "No se pudo aplicar la corrección automática. Por favor, desbloquea manualmente los archivos en el directorio '_internal' y reinicia la aplicación.", type="error")
+            logger.error(f"El comando terminó con errores: {resultado.stderr}")
+
+    except Exception as e:
+        logger.error(f"Error al ejecutar PowerShell: {e}")
+
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 
 SCHEDULER.add_task(86400, logger._cleanup_old_logs)
@@ -198,8 +248,12 @@ if __name__ == "__main__":
         else:
             logger.info("Aplicación iniciada")
             webview.start()
-
+    except RuntimeError as e:
+        if "Failed to resolve Python.Runtime.Loader.Initialize" in str(e):
+            logger.warning("Falta Python.Runtime.Loader.Initialize, intentando resolver...")
+            handle_dll_exception()
     except Exception as e:
         logger.exception(f"Error al iniciar el servidor: {e}")
+        show_message_box("Error al iniciar el servidor", f"Error al iniciar el servidor: {e}", type="error")
     finally:
         cleanup()
