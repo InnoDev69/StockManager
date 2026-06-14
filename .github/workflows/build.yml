@@ -177,6 +177,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -184,6 +189,18 @@ jobs:
 
       - name: Display structure
         run: ls -R artifacts/
+
+      - name: Generate changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="${{ github.ref_name }}"
+          else
+            RANGE="$PREV_TAG..${{ github.ref_name }}"
+          fi
+          echo "## Changelog" > changelog.md
+          git log $RANGE --pretty=format:"- %s" >> changelog.md
+          echo "" >> changelog.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -193,54 +210,8 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
-          generate_release_notes: true
+          body_path: changelog.md
           draft: false
           prerelease: false
-          body: |
-            ## Descargas
-            ### Windows
-            - **Stockly-windows-x64.zip** — Windows 10/11 (x64)
-
-            ### Linux
-            - **Stockly-ubuntu-x64.tar.gz** — Ubuntu/Debian y derivados
-            - **Stockly-arch-x64.tar.gz** — Arch Linux/Manjaro y derivados
-
-            ## Instalación
-
-            **Windows:**
-            ```
-            1. Descomprimí Stockly-windows-x64.zip
-            2. Entrá a la carpeta stockly\
-            3. Ejecutá stockly.exe
-            ```
-
-            **Ubuntu/Debian:**
-            ```bash
-            sudo apt-get install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1
-            tar -xzf Stockly-ubuntu-x64.tar.gz
-            chmod +x stockly/stockly
-            ./stockly/stockly
-            ```
-
-            **Arch Linux/Manjaro:**
-            ```bash
-            sudo pacman -S python-gobject gtk3 webkit2gtk-4.1
-            tar -xzf Stockly-arch-x64.tar.gz
-            chmod +x stockly/stockly
-            ./stockly/stockly
-            ```
-
-            **Fedora/RHEL:**
-            ```bash
-            sudo dnf install python3-gobject gtk3 webkit2gtk4.1
-            tar -xzf Stockly-ubuntu-x64.tar.gz
-            chmod +x stockly/stockly
-            ./stockly/stockly
-            ```
-
-            ## Notas
-            - Windows: el exe está dentro de la carpeta extraída en `stockly\stockly.exe`
-            - Linux: el ejecutable está en `stockly/stockly`
-            - Si tu distro Linux no está listada, probá primero con el build de Ubuntu
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
