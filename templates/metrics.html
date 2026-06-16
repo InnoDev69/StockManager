@@ -551,6 +551,8 @@ const chartColors = {
   border: 'rgba(255, 255, 255, 0.08)'
 };
 
+let _rawRevenue = 0;
+
 Chart.defaults.color = chartColors.textMuted;
 Chart.defaults.borderColor = chartColors.border;
 Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, sans-serif';
@@ -562,6 +564,13 @@ let _topProductsData = [];
 let _neverSoldData = [];
 let _vendorsData = [];
 let _currentChartMode = 'revenue';
+
+const ICONS = {
+    'trending-down': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17l-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>',
+    'warning': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
+    'success': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>',
+    'info': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>'
+};
 
 // ============================================
 // INICIALIZACIÓN
@@ -660,7 +669,8 @@ async function loadNeverSoldData() {
 
 function updateKPIs(kpis, vendors = []) {
   if (!kpis) return;
-  document.getElementById('kpi-revenue').textContent    = formatCurrency(kpis.revenue || 0);
+  _rawRevenue = kpis.revenue || 0;
+  document.getElementById('kpi-revenue').textContent    = formatCurrency(_rawRevenue);
   document.getElementById('kpi-sales').textContent      = formatNumber(kpis.totalSales || 0);
   document.getElementById('kpi-avg-ticket').textContent = formatCurrency(kpis.avgTicket || 0);
   document.getElementById('kpi-units').textContent      = formatNumber(kpis.unitsSold || 0);
@@ -669,13 +679,11 @@ function updateKPIs(kpis, vendors = []) {
   updateChangeIndicator('kpi-ticket-change',  kpis.ticketChange);
   updateChangeIndicator('kpi-units-change',   kpis.unitsChange);
 
-  // Top vendor
   if (vendors && vendors.length > 0) {
-    const topVendor = vendors[0];
-    document.getElementById('kpi-top-vendor').textContent = topVendor.name;
-    document.getElementById('kpi-vendor-revenue').textContent = formatCurrency(topVendor.revenue);
+    document.getElementById('kpi-top-vendor').textContent    = vendors[0].name;
+    document.getElementById('kpi-vendor-revenue').textContent = formatCurrency(vendors[0].revenue);
   } else {
-    document.getElementById('kpi-top-vendor').textContent = '—';
+    document.getElementById('kpi-top-vendor').textContent    = '—';
     document.getElementById('kpi-vendor-revenue').textContent = '$0.00';
   }
 }
@@ -691,26 +699,24 @@ function updateChangeIndicator(elementId, change) {
 }
 
 function updateProjection(projection) {
-  const now          = new Date();
-  const daysInMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysElapsed  = now.getDate(); 
+  const now         = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysElapsed = now.getDate();
   let revenueThisMonth, projected;
 
   if (projection) {
     revenueThisMonth = projection.revenueThisMonth;
     projected        = projection.projectedRevenue || (revenueThisMonth / daysElapsed) * daysInMonth;
   } else {
-    const kpiStr = document.getElementById('kpi-revenue').textContent;
-    const kpiRevenue = parseFloat(kpiStr.replace(/[^0-9.]/g, '')) || 0; 
-    revenueThisMonth = kpiRevenue;
-    projected        = daysElapsed > 0 ? (revenueThisMonth / daysElapsed) * daysInMonth : 0;
+    revenueThisMonth = _rawRevenue;
+    projected        = daysElapsed > 0 ? (_rawRevenue / daysElapsed) * daysInMonth : 0;
   }
 
   const progressPct = Math.min(100, (daysElapsed / daysInMonth) * 100).toFixed(1);
 
-  document.getElementById('kpi-projection').textContent   = formatCurrency(projected);
-  document.getElementById('kpi-days-elapsed').textContent = daysElapsed;
-  document.getElementById('kpi-days-total').textContent   = daysInMonth;
+  document.getElementById('kpi-projection').textContent    = formatCurrency(projected);
+  document.getElementById('kpi-days-elapsed').textContent  = daysElapsed;
+  document.getElementById('kpi-days-total').textContent    = daysInMonth;
   document.getElementById('kpi-month-progress').style.width = progressPct + '%';
 
   const label = document.getElementById('kpi-projection-label');
@@ -961,7 +967,7 @@ function renderSmartAlerts(data) {
     const last3 = rev.slice(-3), avg3 = last3.reduce((a, b) => a + b, 0) / last3.length;
     if (avg7 > 0) {
       const drop = ((avg7 - avg3) / avg7) * 100;
-      if (drop >= 10) alerts.push({ type: 'warning', icon: '📉', title: `Caída del ${drop.toFixed(1)}% (últimos 3 días)`, text: `Promedio diario de ${formatCurrency(avg3)} vs ${formatCurrency(avg7)} semanal.` });
+      if (drop >= 10) alerts.push({ type: 'warning', icon: 'trending-down', title: `Caída del ${drop.toFixed(1)}% (últimos 3 días)`, text: `Promedio diario de ${formatCurrency(avg3)} vs ${formatCurrency(avg7)} semanal.` });
     }
   }
 
@@ -970,7 +976,7 @@ function renderSmartAlerts(data) {
     const prevAvg = rev.slice(0, -1).reduce((a, b) => a + b, 0) / (rev.length - 1);
     if (prevAvg > 0 && todayVal < prevAvg * 0.85) {
       const pctBelow = (((prevAvg - todayVal) / prevAvg) * 100).toFixed(1);
-      alerts.push({ type: 'info', icon: '⚠️', title: `Día lento: ${pctBelow}% bajo el promedio`, text: `Llevas ${formatCurrency(todayVal)}, el promedio es ${formatCurrency(prevAvg)}.` });
+      alerts.push({ type: 'info', icon: 'info', title: `Día lento: ${pctBelow}% bajo el promedio`, text: `Llevas ${formatCurrency(todayVal)}, el promedio es ${formatCurrency(prevAvg)}.` });
     }
   }
 
@@ -978,7 +984,7 @@ function renderSmartAlerts(data) {
     const { projectedRevenue, previousMonthRevenue } = data.projection;
     if (projectedRevenue > previousMonthRevenue * 1.1) {
       const growth = (((projectedRevenue - previousMonthRevenue) / previousMonthRevenue) * 100).toFixed(1);
-      alerts.push({ type: 'success', icon: '🚀', title: `¡Mes récord! +${growth}%`, text: `Proyección de ${formatCurrency(projectedRevenue)} vs ${formatCurrency(previousMonthRevenue)} anterior.` });
+      alerts.push({ type: 'success', icon: 'success', title: `¡Mes récord! +${growth}%`, text: `Proyección de ${formatCurrency(projectedRevenue)} vs ${formatCurrency(previousMonthRevenue)} anterior.` });
     }
   }
 
@@ -993,7 +999,9 @@ function renderSmartAlerts(data) {
   container.innerHTML = alerts.map(a => {
     const c = colorMap[a.type] || colorMap.info;
     return `<div style="display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem 1rem; background: ${c.bg}; border: 1px solid ${c.border}; border-radius: 8px; animation: fadeIn 0.3s ease;">
-      <span style="font-size: 1.1rem; flex-shrink: 0;">${a.icon}</span>
+      <span style="flex-shrink: 0; display:flex; align-items:center; width:20px; height:20px; color: ${c.color};">
+          ${ICONS[a.icon] || ICONS['info']}
+      </span>
       <div><p style="margin: 0 0 0.2rem 0; font-weight: 600; font-size: 0.9rem; color: ${c.color};">${a.title}</p><p style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">${a.text}</p></div>
     </div>`;
   }).join('');
@@ -1047,7 +1055,7 @@ function initExportButtons() {
     if (!_topProductsData || _topProductsData.length === 0) return typeof Notify !== 'undefined' && Notify.warning('No hay datos');
     const totalRevenue = _topProductsData.reduce((s, p) => s + (p.revenue || 0), 0);
     downloadCSV([
-      ['#', 'Producto', 'SKU', 'Unidades Vendidas', 'Ingresos (MXN)', '% del Total'],
+      ['#', 'Producto', 'SKU', 'Unidades Vendidas', 'Ingresos (ARS)', '% del Total'],
       ..._topProductsData.slice(0, 10).map((p, i) => [ i + 1, `"${(p.name || '').replace(/"/g, '""')}"`, `"${(p.sku || '').replace(/"/g, '""')}"`, p.units || 0, (p.revenue || 0).toFixed(2), totalRevenue > 0 ? (((p.revenue / totalRevenue) * 100).toFixed(2) + '%') : '0%' ])
     ], `productos_rentables_${new Date().toISOString().slice(0, 10)}.csv`);
   });
@@ -1055,7 +1063,7 @@ function initExportButtons() {
   document.getElementById('export-never-sold')?.addEventListener('click', () => {
     if (!_neverSoldData || _neverSoldData.length === 0) return typeof Notify !== 'undefined' && Notify.info('No hay datos');
     downloadCSV([
-      ['Producto', 'SKU', 'Categoría', 'Stock', 'Precio Unitario (MXN)', 'Capital Inmovilizado (MXN)'],
+      ['Producto', 'SKU', 'Categoría', 'Stock', 'Precio Unitario (ARS)', 'Capital Inmovilizado (ARS)'],
       ..._neverSoldData.map(p => [ `"${(p.name || '').replace(/"/g, '""')}"`, `"${(p.sku || '').replace(/"/g, '""')}"`, `"${(p.category || '').replace(/"/g, '""')}"`, p.stock || 0, (p.price || 0).toFixed(2), ((p.stock || 0) * (p.price || 0)).toFixed(2) ])
     ], `productos_sin_ventas_${new Date().toISOString().slice(0, 10)}.csv`);
   });
@@ -1080,20 +1088,32 @@ function computeTrendLine(values) {
   return values.map((_, i) => parseFloat((slope * i + intercept).toFixed(2)));
 }
 
-// ✨ Funciones formateadoras seguras y amigables
 function formatCurrency(value, short = false) {
-  const useCompact = short || Math.abs(value) >= 1000000;
-  return new Intl.NumberFormat('es-MX', { 
+  if (short || Math.abs(value) >= 1000) {
+    return '$\u00A0' + formatCompactNumber(value);
+  }
+  return new Intl.NumberFormat('es-AR', { 
     style: 'currency', 
-    currency: 'MXN',
-    notation: useCompact ? "compact" : "standard",
-    maximumFractionDigits: useCompact ? 1 : 2
+    currency: 'ARS',
+    maximumFractionDigits: 2
   }).format(value);
+}
+
+function formatCompactNumber(value) {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + trimTrailingZero(abs / 1000000) + 'M';
+  if (abs >= 1000) return sign + trimTrailingZero(abs / 1000) + 'k';
+  return sign + abs.toFixed(2);
+}
+
+function trimTrailingZero(num) {
+  return num % 1 === 0 ? num.toFixed(0) : num.toFixed(1);
 }
 
 function formatNumber(value) {
   const useCompact = Math.abs(value) >= 1000000;
-  return new Intl.NumberFormat('es-MX', {
+  return new Intl.NumberFormat('es-AR', {
     notation: useCompact ? "compact" : "standard",
     maximumFractionDigits: useCompact ? 1 : 0
   }).format(value);

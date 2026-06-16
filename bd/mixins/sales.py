@@ -6,35 +6,57 @@ class SalesMixin:
     """Métodos de registro y consulta de ventas."""
 
     def get_dashboard_stats(self):
-        """
-        Obtiene estadísticas agregadas para el dashboard principal.
+        today = localDate()
 
-        Returns:
-            dict: {products, low_stock, sales_today, low_stock_list}
-        """
         with self._cursor() as cur:
+
             cur.execute("""
                 SELECT
-                    (SELECT COUNT(*) FROM items WHERE status = 1),
-                    (SELECT COUNT(*) FROM items WHERE quantity <= min_quantity AND quantity > 0 AND status = 1),
-                    (SELECT COUNT(*) FROM sells WHERE DATE(date) = ?)
-            """, (localDate(),))
-            total, low, today = cur.fetchone()
+                    (SELECT COUNT(*)
+                    FROM items
+                    WHERE status = 1),
 
-            cur.execute(
-                "SELECT id, name, barrs_code, quantity FROM items "
-                "WHERE status = 1 AND quantity <= min_quantity ORDER BY quantity ASC LIMIT 10"
-            )
-            low_list = [
-                {"id": r[0], "name": r[1], "sku": r[2], "stock": r[3]}
-                for r in cur.fetchall()
+                    (SELECT COUNT(*)
+                    FROM items
+                    WHERE quantity <= min_quantity
+                        AND quantity > 0
+                        AND status = 1),
+
+                    (SELECT COUNT(*)
+                    FROM sells
+                    WHERE DATE(date) = ?)
+            """, (today,))
+
+            products, low_stock, sales_today = cur.fetchone()
+
+            cur.execute("""
+                SELECT
+                    id,
+                    name,
+                    barrs_code,
+                    quantity
+                FROM items
+                WHERE status = 1
+                AND quantity <= min_quantity
+                ORDER BY quantity ASC
+                LIMIT 10
+            """)
+
+            low_stock_list = [
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "sku": row[2],
+                    "stock": row[3]
+                }
+                for row in cur
             ]
 
         return {
-            "products": total,
-            "low_stock": low,
-            "sales_today": today,
-            "low_stock_list": low_list,
+            "products": products,
+            "low_stock": low_stock,
+            "sales_today": sales_today,
+            "low_stock_list": low_stock_list
         }
 
     def record_product_sale(self, item_id, quantity, vendor_id, payment_method="Efectivo"):

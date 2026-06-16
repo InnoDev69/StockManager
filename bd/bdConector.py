@@ -97,7 +97,7 @@ class BDConector(
             conn.close()
             _thread_local.conn = None
             logger.debug("[DB] Conexión del hilo cerrada")
-            
+
     @contextlib.contextmanager
     def _cursor(self):
         """
@@ -215,21 +215,21 @@ class BDConector(
             FOREIGN KEY (attribute_id) REFERENCES item_attributes(id)
         )
         """
-        
+
         notifications_table_query = """
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             message TEXT,
-            type TEXT DEFAULT 'info',  -- info, warning, success, error
+            type TEXT DEFAULT 'info' CHECK(type IN ('info', 'warning', 'success', 'error')),
             action_url TEXT,
             is_read INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """
-        
+
         audit_log_table_query = """
             CREATE TABLE IF NOT EXISTS audit_log (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -266,18 +266,29 @@ class BDConector(
             """)
             # Índice individual de fecha para queries sin filtro de vendedor
             cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_date ON sells(date)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendor_id ON sells(vendor_id)")
+            # Índice para consultas de ventas filtradas por producto
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_item_id ON sells(item_id)")
+
             cur.execute("CREATE INDEX IF NOT EXISTS idx_details_sell_id ON details(sell_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_details_item_id ON details(item_id)")
+
             cur.execute("CREATE INDEX IF NOT EXISTS idx_items_name ON items(name)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendor_id ON sells(vendor_id)")
-            
+            # Índice para listados de inventario filtrados por status y ordenados por nombre
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_items_status_name ON items(status, name)")
+
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)")
+
+            # Índices para la página de auditoría: filtros por usuario, entidad y orden por fecha
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC)")
 
         self.__create_default_root_user()
         self.__run_migrations()
         self._check_unique_root_user()
-        
+
     def _check_unique_root_user(self):
         """
         Verifica que solo exista un usuario con rol ROOT.
@@ -293,7 +304,7 @@ class BDConector(
         if rows and rows[0][0] > 1: # type: ignore
             logger.critical("Múltiples usuarios con rol ROOT detectados")
             raise DatabaseError("Multiple ROOT users detected, database integrity compromised")
-        
+
     def __create_default_root_user(self):
         """
         Crea un usuario root por defecto si no existe ninguno.
@@ -436,7 +447,7 @@ class BDConector(
         query = f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_with_types})"
         with self._cursor() as cur:
             cur.execute(query)
-            
+
     def get_count(self, query: str, params: tuple = ()) -> int:
         """Extrae el COUNT de una query de forma segura."""
         result = self.execute_query(query, params)

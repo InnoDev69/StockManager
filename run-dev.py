@@ -1,8 +1,12 @@
 from main import app
 import os
+from flask_debugtoolbar import DebugToolbarExtension
 
 if __name__ == "__main__":
     os.environ["DEBUG"] = "1"
+    app.config["SECRET_KEY"] = "dev"
+    app.config["DEBUG_TB_ENABLED"] = True
+    toolbar = DebugToolbarExtension(app)
     app.run(
         host="127.0.0.1",
         port=5000,
