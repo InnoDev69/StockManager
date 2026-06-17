@@ -836,6 +836,7 @@
   };
 
   // ── Actions ─────────────────────────────────────────
+  // Es markAsReadN porque sino se sobrescribe con el markAsRead global del header del base.html
   window.markAsReadN = async function (id) {
     try {
       const res = await fetch(`/api/notifications/${id}/read`, { method: 'POST' });

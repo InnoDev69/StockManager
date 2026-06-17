@@ -1,3 +1,5 @@
+from datetime import datetime
+from bd.bdInstance import db
 from functools import wraps
 from flask import session, request
 from bd.bdInstance import db
@@ -85,6 +87,37 @@ def _build_create_description(entity_type: str, data: dict) -> str:
     ]
     detail = ", ".join(parts) if parts else "sin detalle"
     return f"Nuevo {entity_label} creado — {detail}"
+
+def _build_sale_create_description(data):
+    items = data.get("items", [])
+    payment_method = data.get("payment_method", "No especificado")
+
+    lines = ["Nueva venta registrada"]
+
+    if items:
+        lines.append("")
+        lines.append("Productos:")
+
+        for item in items:
+            product_id = item.get("item_id")
+            quantity = item.get("quantity", 0)
+
+            product = db.get_item_by_id(product_id)
+
+            product_name = (
+                product["name"]
+                if product
+                else f"Producto #{product_id}"
+            )
+
+            lines.append(
+                f"• {product_name} × {quantity}"
+            )
+
+    lines.append("|")
+    lines.append(f"Método de pago: {payment_method}")
+
+    return "\n".join(lines)
 
 
 def _build_delete_description(entity_type: str, entity_id, old_value: dict | None) -> str:
@@ -182,11 +215,22 @@ def audit_action(entity_type, action_name=None, id_param=None):
 
                 if action == "create":
                     data = request.get_json() or {}
-                    new_value = {k: v for k, v in data.items() if k not in ['password']}
-                    changes_description = _build_create_description(entity_type, new_value)
+
+                    if entity_type == "sale":
+                        changes_description = _build_sale_create_description(data)
+                    else:
+                        changes_description = _build_create_description(entity_type, data)
 
                 if action == "delete":
                     changes_description = _build_delete_description(entity_type, entity_id, old_value)
+                    
+                if action == "login":
+                    actor_id = session.get('user_id')
+                    
+                    if not actor_id:
+                        return response
+                        
+                    changes_description = f"Usuario {db.get_username_by_id(actor_id)} inició sesión a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
                 status = 'success' if status_code < 400 else 'error'
 
