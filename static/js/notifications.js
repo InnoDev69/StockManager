@@ -94,10 +94,10 @@ const NotificationManager = (function () {
       </div>
     `;
 
-    // ✅ Agregar icono
+    //  Agregar icono
     toastEl.querySelector('.notification-toast__icon').textContent = icon;
 
-    // ✅ Agregar título si existe
+    //  Agregar título si existe
     const titleEl = toastEl.querySelector('.notification-toast__title');
     if (config.title) {
       titleEl.textContent = config.title;
@@ -106,10 +106,8 @@ const NotificationManager = (function () {
       titleEl.style.display = 'none';
     }
 
-    // ✅ Agregar mensaje usando textContent (SEGURO)
     toastEl.querySelector('.notification-toast__message').textContent = message;
 
-    // ✅ Agregar acciones de forma segura
     const actionsContainer = toastEl.querySelector('.notification-toast__actions');
     if (config.actions.length) {
       config.actions.forEach((action, index) => {
@@ -121,7 +119,6 @@ const NotificationManager = (function () {
       });
     }
 
-    // ✅ Botón cerrar si es dismissible
     if (config.dismissible) {
       const closeBtn = document.createElement('button');
       closeBtn.className = 'notification-toast__close';
@@ -248,7 +245,7 @@ const NotificationManager = (function () {
       </div>
     `;
 
-    // ✅ Llenar datos de forma segura
+    // Llenar datos de forma segura
     const iconEl = modalEl.querySelector('.notification-modal__icon');
     iconEl.innerHTML = config.icon || icons[config.type]; // Icons son confiables
 

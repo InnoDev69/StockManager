@@ -601,7 +601,6 @@
 
   // ── Init ────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    console.log('[init] Inicializando página de notificaciones...');
     loadNotifications();
     setupFilters();
     setupMarkAll();
@@ -743,7 +742,7 @@
 
           <div class="notif-card__actions">
             ${isUnread
-              ? `<button class="notif-action-btn" onclick="markAsRead(${n.id})">Marcar leída</button>`
+              ? `<button class="notif-action-btn" onclick="markAsReadN(${n.id})">Marcar leída</button>`
               : `<span class="notif-read-check">✓ Leída</span>`
             }
             ${n.action_url
@@ -837,7 +836,7 @@
   };
 
   // ── Actions ─────────────────────────────────────────
-  window.markAsRead = async function (id) {
+  window.markAsReadN = async function (id) {
     try {
       const res = await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -846,10 +845,10 @@
         n.is_read = 1;
         updateHeader();
         applyFilters();
-        console.log('[markAsRead] Notificación ' + id + ' marcada como leída');
+        console.log('[markAsReadN] Notificación ' + id + ' marcada como leída');
       }
     } catch (e) {
-      console.error('[markAsRead] Error:', e);
+      console.error('[markAsReadN] Error:', e);
       alert('Error al marcar notificación como leída');
     }
   };
