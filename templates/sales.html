@@ -1085,120 +1085,155 @@
        Esto evita que el sidebar/navbar del base.html
        aparezca en la impresión.
        ══════════════════════════════════════════════ */
+    /* ══════════════════════════════════════════════
+       PRINT — MODO TICKET TÉRMICO (80mm)
+       ══════════════════════════════════════════════ */
     @media print {
+        @page {
+            size: 80mm auto; /* Ancho estándar de ticket, largo dinámico */
+            margin: 0;       /* Elimina los márgenes y textos por defecto del navegador */
+        }
 
-        /* 1. Ocultar absolutamente todo sin dejar espacio */
         body * {
             visibility: hidden !important;
         }
 
-        /* 2. Restaurar solo el modal abierto y su contenido */
+        body {
+            background-color: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
         .sh-modal--open,
         .sh-modal--open * {
             visibility: visible !important;
         }
 
-        /* 3. Anclar el modal en el origen de la página */
         .sh-modal--open {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
+            max-width: 80mm !important; /* Forzar el ancho del ticket */
+            padding: 4mm !important;    /* Un pequeño margen interno para que no corte letras */
             display: block !important;
-            padding: 0 !important;
             background: #fff !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
+            color: #000 !important;
+            font-family: 'Courier New', Courier, monospace !important; /* Fuente clásica de ticket */
         }
 
-        /* 4. Eliminar el backdrop oscuro */
-        .sh-modal__backdrop {
-            display: none !important;
-        }
-
-        /* 5. Panel ocupa toda la hoja */
         .sh-modal__panel {
             position: relative !important;
-            max-width: 100% !important;
             width: 100% !important;
-            max-height: none !important;
-            overflow: visible !important;
             box-shadow: none !important;
             border: none !important;
             border-radius: 0 !important;
             transform: none !important;
-            background: #fff !important;
-        }
-
-        /* 6. Márgenes de página */
-        @page {
-            margin: 10mm;
-        }
-
-        /* 7. Colores para impresión en blanco y negro */
-        .sh-modal__header {
-            padding: 0 0 10px 0 !important;
-            border-bottom: 2px solid #000 !important;
             background: transparent !important;
+            padding: 0 !important;
         }
+
+        .sh-modal__backdrop {
+            display: none !important;
+        }
+
+        .sh-modal__header {
+            padding: 0 0 5mm 0 !important;
+            border-bottom: 1px dashed #000 !important; /* Línea punteada típica */
+            background: transparent !important;
+            text-align: center !important;
+            display: block !important;
+        }
+        
         .sh-modal__eyebrow {
-            color: #555 !important;
+            color: #000 !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            margin-bottom: 5px !important;
+            display: block !important;
         }
+        
         .sh-modal__title {
             color: #000 !important;
+            font-size: 12px !important;
+            font-weight: normal !important;
         }
 
         .sh-modal__body {
-            padding: 15px 0 !important;
+            padding: 5mm 0 0 0 !important;
         }
 
         .sh-modal__meta {
             background: transparent !important;
             border: none !important;
-            border-bottom: 1px solid #ddd !important;
+            border-bottom: 1px dashed #000 !important;
             border-radius: 0 !important;
-            padding: 0 0 12px 0 !important;
-            margin-bottom: 16px !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 8px 16px !important;
+            padding: 0 0 5mm 0 !important;
+            margin-bottom: 5mm !important;
+            display: block !important; /* Quitamos el grid para alinearlos en lista */
         }
-        .sh-meta-label { color: #555 !important; }
-        .sh-meta-value { color: #000 !important; }
+        
+        .sh-meta-item { 
+            display: flex !important; 
+            justify-content: space-between !important;
+            flex-direction: row !important;
+            margin-bottom: 3px !important;
+        }
+        
+        .sh-meta-label { 
+            color: #000 !important; 
+            font-size: 10px !important; 
+            font-weight: normal !important;
+        }
+        
+        .sh-meta-value { 
+            color: #000 !important; 
+            font-size: 10px !important; 
+        }
 
-        /* 8. Tabla de productos */
+        .sh-table--modal { margin-bottom: 5mm !important; }
+        
         .sh-table--modal th {
             background: transparent !important;
-            border-bottom: 1px solid #000 !important;
+            border-bottom: 1px dashed #000 !important;
             color: #000 !important;
-            padding: 5px 0 !important;
+            padding: 2px 0 !important;
+            font-size: 10px !important;
         }
+        
         .sh-table--modal td {
-            border-bottom: 1px dashed #ccc !important;
+            border-bottom: none !important; /* Sin líneas entre productos para ahorrar espacio */
             color: #000 !important;
-            padding: 8px 0 !important;
+            padding: 4px 0 !important;
+            font-size: 10px !important;
         }
-        /* Evitar que una fila se corte entre páginas */
+
+        .sh-table--modal th:nth-child(2), .sh-table--modal td:nth-child(2),
+        .sh-table--modal th:nth-child(3), .sh-table--modal td:nth-child(3),
+        .sh-table--modal th:nth-child(4), .sh-table--modal td:nth-child(4) {
+            text-align: right !important;
+        }
+
         .sh-table--modal tr {
             page-break-inside: avoid;
             break-inside: avoid;
         }
 
-        /* 9. Totalizador */
         .sh-modal__total {
             background: transparent !important;
             border: none !important;
-            border-top: 2px solid #000 !important;
+            border-top: 1px dashed #000 !important;
             border-radius: 0 !important;
-            padding: 10px 0 0 0 !important;
-            margin-top: 15px !important;
+            padding: 5mm 0 0 0 !important;
+            margin-top: 0 !important;
+            display: flex !important;
         }
-        .sh-modal__total-label { color: #555 !important; }
-        .sh-modal__total-value { color: #000 !important; }
+        .sh-modal__total-label { color: #000 !important; font-size: 14px !important; }
+        .sh-modal__total-value { color: #000 !important; font-size: 14px !important; }
 
-        /* 10. Ocultar elementos de UI que no van en el ticket */
         .sh-modal__close,
         .sh-modal__footer,
-        .sh-modal__section-controls,
+        .sh-modal__section-header, /* Oculta el título "Productos" y el selector de paginación */
         #detail-pagination {
             display: none !important;
         }

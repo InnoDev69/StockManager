@@ -1,114 +1,255 @@
 {% extends "base.html" %}
+{% import "components.html" as comp %}
 {% block title %}Ajustes{% endblock %}
+
 {% block content %}
+<style>
+  /* ── Tab nav ────────────────────────────────────────────────── */
+  .s-nav {
+    display: flex;
+    gap: 0.125rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 2rem;
+  }
+  .s-nav__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .s-nav__tab:hover { color: var(--text); background: color-mix(in srgb, var(--brand) 6%, transparent); }
+  .s-nav__tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .s-nav__tab svg { opacity: 0.75; }
+  .s-nav__tab.active svg { opacity: 1; }
+
+  /* ── Tab panels ─────────────────────────────────────────────── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.18s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ── Config cards ───────────────────────────────────────────── */
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+    gap: 1.25rem;
+  }
+  .config-card__header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+  .config-card__title { margin: 0; font-size: 0.9375rem; font-weight: 600; }
+  .config-card__icon {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--brand) 14%, transparent);
+    color: var(--brand);
+    flex-shrink: 0;
+  }
+  .config-card__body { padding: 1.125rem 1.25rem; display: grid; gap: 0.875rem; }
+
+  /* ── Config fields ──────────────────────────────────────────── */
+  .config-field__label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 0.375rem;
+    text-transform: capitalize;
+  }
+  .config-field__row { display: flex; gap: 0.5rem; align-items: center; }
+  .config-field__row input { flex: 1; }
+  .config-field__toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .config-field__toggle-label { font-size: 0.875rem; font-weight: 500; }
+
+  /* ── Toggle switch ──────────────────────────────────────────── */
+  .toggle { position: relative; display: inline-block; width: 42px; height: 23px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle__rail {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--border);
+    border-radius: 23px;
+    transition: background 0.2s;
+  }
+  .toggle__rail::before {
+    content: '';
+    position: absolute;
+    height: 17px; width: 17px;
+    left: 3px; bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  .toggle input:checked + .toggle__rail { background: var(--brand); }
+  .toggle input:checked + .toggle__rail::before { transform: translateX(19px); }
+  .toggle input:focus-visible + .toggle__rail { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* ── Save button ────────────────────────────────────────────── */
+  .btn-xs {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Loading skeleton ───────────────────────────────────────── */
+  .config-loading {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 3rem 1.5rem; color: var(--text-muted);
+    justify-content: center;
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: spin .65s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Saved badge ────────────────────────────────────────────── */
+  .saved-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--success);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .saved-badge.visible { opacity: 1; }
+
+  /* ── User forms cap width ───────────────────────────────────── */
+  .user-card { max-width: 500px; }
+</style>
 
 <main class="container">
-  <!-- Header mejorado -->
-  <header style="margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-        <span style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: color-mix(in srgb, var(--brand) 15%, transparent); color: var(--brand);">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        </span>
-        <h1 style="margin: 0; font-size: 2rem; font-weight: 700;">Ajustes</h1>
-      </div>
-      <p class="text-muted" style="margin: 0; margin-left: 3rem; font-size: 0.95rem;">Gestiona tu perfil, seguridad y preferencias</p>
-    </div>
-  </header>
 
-  <!-- Grid de secciones -->
-  <div style="display: grid; gap: 1.5rem;">
-    
-    <!-- ROW 1: PERFIL Y SEGURIDAD -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); gap: 1.5rem;">
-      
-      <!-- Perfil -->
-      <div class="card" style="border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--panel) 100%, transparent), color-mix(in srgb, var(--brand) 2%, transparent));">
-        <div style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
-          <h2 style="margin: 0; font-size: 1.125rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; color: var(--brand);">
-            <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, var(--brand) 20%, transparent);">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </span>
-            Tu Perfil
-          </h2>
+  {{ comp.page_header('Ajustes', 'Gestiona tu perfil, seguridad y configuración del sistema') }}
+
+  <!-- Tab navigation -->
+  <nav class="s-nav" role="tablist" aria-label="Secciones de ajustes">
+    <!--<button class="s-nav__tab" data-tab="profile" role="tab" aria-selected="false" aria-controls="tab-profile">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      Perfil
+    </button>
+    <button class="s-nav__tab" data-tab="security" role="tab" aria-selected="false" aria-controls="tab-security">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      Seguridad
+    </button> -->
+    <button class="s-nav__tab active" data-tab="config" role="tab" aria-selected="true" aria-controls="tab-config">
+      {{ comp.icon('settings', size='15') }}
+      Sistema
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TAB: PERFIL
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="tab-profile" class="tab-panel" role="tabpanel">
+    <div class="card user-card">
+      <div style="padding: 1.125rem 1.375rem; border-bottom: 1px solid var(--border);">
+        <h2 style="margin: 0; font-size: 1.0625rem; font-weight: 700;">Tu cuenta</h2>
+        <p class="text-muted" style="margin: 0.25rem 0 0; font-size: 0.875rem;">Información básica de tu perfil</p>
+      </div>
+      <form id="profileForm" novalidate style="padding: 1.375rem; display: grid; gap: 1.125rem;">
+        <div class="field">
+          <label class="label">Usuario</label>
+          <input type="text" value="{{ session.get('username', '') }}" disabled>
+          <small class="text-muted">El usuario no puede modificarse</small>
         </div>
-        <form id="profileForm" style="padding: 1.5rem; display: grid; gap: 1rem;">
-          <div class="field">
-            <label class="label" style="font-weight: 600;">Usuario</label>
-            <input type="text" value="{{ session.get('username','') }}" disabled style="background: var(--panel-2); cursor: not-allowed; opacity: 0.6; border-color: var(--border);">
-            <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 0.5rem;">No se puede cambiar</small>
-          </div>
-          <div class="field">
-            <label class="label" style="font-weight: 600;">Correo electrónico</label>
-            <input type="email" name="email" maxlength="{{Limits.USER_EMAIL_MAX}}" id="profileEmail" value="{{ user.email if user else '' }}" required placeholder="tu@email.com">
-            <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 0.5rem;">Usaremos este email para contactarte</small>
-          </div>
-          <button type="submit" class="btn" style="margin-top: 0.5rem; width: 100%;">
-            Guardar cambios
-          </button>
-        </form>
-      </div>
-
-      <!-- Seguridad / Contraseña -->
-      <div class="card" style="border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--panel) 100%, transparent), color-mix(in srgb, var(--warning) 2%, transparent));">
-        <div style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
-          <h2 style="margin: 0; font-size: 1.125rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; color: var(--warning);">
-            <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, var(--warning) 20%, transparent);">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </span>
-            Seguridad
-          </h2>
+        <div class="field">
+          <label class="label" for="profileEmail">Correo electrónico</label>
+          <input
+            type="email"
+            id="profileEmail"
+            name="email"
+            value="{{ user.email if user else '' }}"
+            maxlength="{{ Limits.USER_EMAIL_MAX }}"
+            required
+            placeholder="tu@email.com"
+            autocomplete="email">
+          <small class="text-muted">Para notificaciones y recuperación de cuenta</small>
         </div>
-        <form id="passwordForm" style="padding: 1.5rem; display: grid; gap: 1rem;">
-          <div class="field">
-            <label class="label" style="font-weight: 600;">Contraseña actual</label>
-            <input type="password" name="current_password" id="currentPass" required minlength="6" autocomplete="current-password">
-          </div>
-          <div class="field">
-            <label class="label" style="font-weight: 600;">Nueva contraseña</label>
-            <input type="password" name="new_password" id="newPass" maxlength="{{Limits.USER_PASSWORD_MAX}}" required minlength="6" autocomplete="new-password">
-            <small class="text-muted" style="font-size: 0.8rem; display: block; margin-top: 0.5rem;">Mínimo 6 caracteres. Usa mayúsculas, números para mayor seguridad</small>
-          </div>
-          <div class="field">
-            <label class="label" style="font-weight: 600;">Confirmar contraseña</label>
-            <input type="password" name="confirm_password" id="confirmPass" maxlength="{{Limits.USER_PASSWORD_MAX}}" required minlength="6" autocomplete="new-password">
-            <small id="passMatchMsg" style="font-size: 0.8rem; display: none; margin-top: 0.5rem; font-weight: 500;"></small>
-          </div>
-          <button type="submit" class="btn" style="margin-top: 0.5rem; width: 100%;">
-            Actualizar contraseña
-          </button>
-        </form>
-      </div>
+        <div style="display: flex; align-items: center; gap: 0.875rem;">
+          {{ comp.btn('Guardar cambios', type='submit', variant='primary') }}
+          <span class="saved-badge" id="profileSavedBadge">✓ Guardado</span>
+        </div>
+      </form>
     </div>
-
   </div>
 
-  <!-- Footer con acciones principales -->
-  <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-    <a href="{{ url_for('dashboard.index') }}" class="btn btn-ghost" style="display: inline-flex; align-items: center; gap: 0.6rem; min-width: 140px;">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-      </svg>
-      Volver
-    </a>
-    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost" style="display: inline-flex; align-items: center; gap: 0.6rem; min-width: 140px;">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
-      </svg>
-      Cerrar sesión
-    </a>
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TAB: SEGURIDAD
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="tab-security" class="tab-panel" role="tabpanel">
+    <div class="card user-card">
+      <div style="padding: 1.125rem 1.375rem; border-bottom: 1px solid var(--border);">
+        <h2 style="margin: 0; font-size: 1.0625rem; font-weight: 700;">Cambiar contraseña</h2>
+        <p class="text-muted" style="margin: 0.25rem 0 0; font-size: 0.875rem;">Actualiza tus credenciales de acceso</p>
+      </div>
+      <form id="passwordForm" novalidate style="padding: 1.375rem; display: grid; gap: 1.125rem;">
+        <div class="field">
+          <label class="label" for="currentPass">Contraseña actual</label>
+          <input type="password" id="currentPass" name="current_password"
+                 required minlength="6" autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label class="label" for="newPass">Nueva contraseña</label>
+          <input type="password" id="newPass" name="new_password"
+                 maxlength="{{ Limits.USER_PASSWORD_MAX }}"
+                 required minlength="6" autocomplete="new-password">
+          <small class="text-muted">Mínimo 6 caracteres. Usá mayúsculas y números para mayor seguridad</small>
+        </div>
+        <div class="field">
+          <label class="label" for="confirmPass">Confirmar nueva contraseña</label>
+          <input type="password" id="confirmPass" name="confirm_password"
+                 maxlength="{{ Limits.USER_PASSWORD_MAX }}"
+                 required minlength="6" autocomplete="new-password">
+          <small id="passMatchMsg" style="display: none; font-size: 0.8125rem; font-weight: 500; margin-top: 0.2rem;"></small>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.875rem;">
+          {{ comp.btn('Actualizar contraseña', type='submit', variant='primary') }}
+          <span class="saved-badge" id="passwordSavedBadge">✓ Actualizada</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TAB: SISTEMA (config dinámica vía API)
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div id="tab-config" class="tab-panel active" role="tabpanel">
+    <div id="configSettingsContainer">
+      <!-- Populated by ConfigSection.init() -->
+    </div>
+  </div>
+
+  <!-- Footer de navegación -->
+  <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 0.875rem; justify-content: center; flex-wrap: wrap;">
+    {{ comp.btn('← Volver', href=url_for('dashboard.index'), variant='ghost') }}
+    {{ comp.btn('Cerrar sesión', href=url_for('auth.logout'), variant='ghost') }}
   </div>
 
 </main>
 
-<!-- Toast de notificación -->
+<!-- Toast global -->
 <div id="toast" class="toast hidden">
   <span id="toastMsg"></span>
 </div>

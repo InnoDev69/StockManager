@@ -2,8 +2,9 @@ from flask import Blueprint, request, session, jsonify
 from api.auth_utils import require_auth
 from werkzeug.security import generate_password_hash, check_password_hash
 from bd.bdInstance import db
+from config import config
 
-settings_api = Blueprint('settings_api', __name__, url_prefix='/api')
+settings_api = Blueprint('settings_api', __name__)
 
 # ════════════════════════════════════════════════════
 # Settings API Endpoints
@@ -101,3 +102,46 @@ def change_password():
     
     except Exception as e:
         return {"error": str(e)}, 500
+
+
+@settings_api.route("/settings/actual", methods=["GET"])
+@require_auth
+def get_all_settings():
+    """Obtener todas las configuraciones actuales."""
+    try:
+        config_data = config.get_all()  
+        return jsonify(config_data), 200
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
+
+@settings_api.route("/settings/actual/<string:key>", methods=["GET"])
+@require_auth
+def get_setting(key):
+    """Obtener una configuración específica por clave."""
+    try:
+        value = config.get(key)
+        if value is None:
+            return jsonify({"success": False, "error": f"Configuración '{key}' no encontrada"}), 404
+        return jsonify({key: value}), 200
+    except Exception as e:
+        return {"success": False, "error": str(e)}, 500
+
+@settings_api.route("/settings/actual/<string:key>", methods=["PUT"])
+@require_auth
+def update_setting(key):
+    """Actualizar una configuración específica por clave."""
+    try:
+        data = request.get_json() or {}
+        value = data.get("value")
+        
+        if value is None:
+            return jsonify({"success": False, "error": "El valor es requerido"}), 400
+        
+        config.set(key, value)
+        return jsonify({
+            "success": True,
+            "message": f"Configuración '{key}' actualizada correctamente",
+            "data": {key: value}
+        }), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
