@@ -208,7 +208,7 @@ Combina todos los elementos en una implementación completa y moderna:
 
 ---
 
-## 🔍 V. Guía de Migración (De HTML Antigo a Stockly)
+## 🔍 V. Guía de Migración (De HTML Antiguo a Stockly)
 
 ### Antes (Incorrecto – Estilos Inline + HTML Repetitivo):
 ```html
