@@ -20,6 +20,8 @@ from bd.bdInstance import db
 from waitress import create_server
 from data.roles import ROLES
 
+from config import config  # Asegura que se carguen los módulos de configuración
+
 t0 = perf_counter()
 logger.info("boot:start")
 
@@ -69,6 +71,8 @@ for bp in all_blueprints:
 @app.errorhandler(404)
 def page_not_found(e):
     logger.warning(f"404 - Ruta no encontrada: {request.path}")
+    if request.path.startswith("/api"):
+        return {"error": "Ruta no encontrada"}, 404
     return render_template("404.html"), 404
 
 @app.errorhandler(500)

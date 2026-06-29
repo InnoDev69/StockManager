@@ -1,255 +1,242 @@
-{% extends "base.html" %}
-
-{% block title %}Error 500 - Error Interno del Servidor{% endblock %}
-
-{% block content %}
-<div class="error-container">
-    <div class="error-content">
-        <div class="error-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-        </div>
-
-        <h1>500</h1>
-        <h2>Error Interno del Servidor</h2>
-
-        <p class="error-description">
-            Lo sentimos, algo salio mal en el servidor. Nuestro equipo tecnico ya ha sido notificado y esta trabajando 
-            para resolver el problema.
-        </p>
-
-        <div class="error-details">
-            <p class="error-code">
-                <strong>Codigo de error:</strong> <code>INTERNAL_SERVER_ERROR</code>
-            </p>
-            {% if error_id %}
-            <p class="error-reference">
-                <strong>ID de referencia:</strong> <code>{{ error_id }}</code>
-            </p>
-            <p class="error-code">
-                <strong>Detalles:</strong> <code>{{ error }}</code>
-            </p>
-            {% endif %}
-        </div>
-
-        <div class="error-actions">
-            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
-                <span>Volver al Inicio</span>
-            </a>
-            <a href="javascript:history.back()" class="btn btn-secondary">
-                <span>Pagina Anterior</span>
-            </a>
-        </div>
-
-        <div class="error-suggestions">
-            <h3>Lo que puede hacer:</h3>
-            <ul>
-                <li>Intente recargar la pagina (F5 o Ctrl+R)</li>
-                <li>Vacie la cache del navegador</li>
-                <li>Cierre completamente el navegador y vuelva a abrirlo</li>
-                <li>Intente nuevamente en unos minutos</li>
-                <li>Contacte al equipo de soporte si el problema persiste</li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-<style>
-    body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0;
-    }
-
-    .error-container {
-        width: 100%;
-        max-width: 600px;
-        padding: 20px;
-    }
-
-    .error-content {
-        background: white;
-        border-radius: 12px;
-        padding: 60px 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        text-align: center;
-    }
-
-    .error-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 30px;
-        color: #dc3545;
-    }
-
-    .error-icon svg {
-        width: 100%;
-        height: 100%;
-        animation: pulse-error 2s infinite;
-    }
-
-    @keyframes pulse-error {
-        0%, 100% {
-            opacity: 1;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error 500 - Error Interno del Servidor</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 20vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        50% {
-            opacity: 0.6;
+        
+        .error-container {
+            width: 100%;
+            max-width: 70rem;
+            padding: 20px;
         }
-    }
 
-    .error-content h1 {
-        font-size: 64px;
-        font-weight: 700;
-        color: #dc3545;
-        margin: 0 0 10px 0;
-        line-height: 1;
-    }
-
-    .error-content h2 {
-        font-size: 24px;
-        color: #333;
-        margin: 0 0 20px 0;
-        font-weight: 600;
-    }
-
-    .error-description {
-        font-size: 15px;
-        color: #666;
-        line-height: 1.6;
-        margin-bottom: 30px;
-    }
-
-    .error-details {
-        background: #f8f9fa;
-        border-left: 4px solid #dc3545;
-        padding: 20px;
-        margin: 30px 0;
-        border-radius: 6px;
-        text-align: left;
-    }
-
-    .error-details p {
-        margin: 10px 0;
-        font-size: 13px;
-        color: #555;
-    }
-
-    .error-details code {
-        background: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        color: #d63031;
-    }
-
-    .error-actions {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        margin: 40px 0;
-        flex-wrap: wrap;
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        padding: 12px 28px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-secondary {
-        background: #e9ecef;
-        color: #333;
-        border: 1px solid #dee2e6;
-    }
-
-    .btn-secondary:hover {
-        background: #dee2e6;
-        transform: translateY(-2px);
-    }
-
-    .error-suggestions {
-        text-align: left;
-        background: #fffbea;
-        border: 1px solid #ffeaa7;
-        border-radius: 6px;
-        padding: 25px;
-        margin-top: 30px;
-    }
-
-    .error-suggestions h3 {
-        font-size: 14px;
-        font-weight: 600;
-        color: #d63031;
-        margin: 0 0 15px 0;
-    }
-
-    .error-suggestions ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .error-suggestions li {
-        padding: 8px 0;
-        padding-left: 24px;
-        position: relative;
-        font-size: 13px;
-        color: #555;
-        line-height: 1.5;
-    }
-
-    .error-suggestions li:before {
-        content: ">";
-        position: absolute;
-        left: 0;
-        color: #d63031;
-        font-weight: bold;
-    }
-
-    @media (max-width: 600px) {
         .error-content {
-            padding: 40px 25px;
+            background: white;
+            border-radius: 12px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            color: #dc3545;
+        }
+
+        .error-icon svg {
+            width: 100%;
+            height: 100%;
+            animation: pulse-error 2s infinite;
+        }
+
+        @keyframes pulse-error {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .error-content h1 {
-            font-size: 48px;
+            font-size: 64px;
+            font-weight: 700;
+            color: #dc3545;
+            margin: 0 0 10px 0;
+            line-height: 1;
         }
 
         .error-content h2 {
-            font-size: 20px;
+            font-size: 24px;
+            color: #333;
+            margin: 0 0 20px 0;
+            font-weight: 600;
+        }
+
+        .error-description {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .error-details {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 6px;
+            text-align: left;
+        }
+
+        .error-details p {
+            margin: 10px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .error-details code {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63031;
         }
 
         .error-actions {
-            flex-direction: column;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
         }
 
         .btn {
-            width: 100%;
-            justify-content: center;
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
         }
-    }
-</style>
-{% endblock %}
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .error-suggestions {
+            text-align: left;
+            background: #fffbea;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .error-suggestions h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #d63031;
+            margin: 0 0 15px 0;
+        }
+
+        .error-suggestions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .error-suggestions li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .error-suggestions li:before {
+            content: ">";
+            position: absolute;
+            left: 0;
+            color: #d63031;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .error-content { padding: 40px 25px; }
+            .error-content h1 { font-size: 48px; }
+            .error-content h2 { font-size: 20px; }
+            .error-actions { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="error-content">
+            <div class="error-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+
+            <h1>500</h1>
+            <h2>Error Interno del Servidor</h2>
+
+            <p class="error-description">
+                Lo sentimos, algo salió mal en el servidor. Nuestro equipo técnico ya ha sido notificado y está trabajando 
+                para resolver el problema.
+            </p>
+
+            <div class="error-details">
+                <p class="error-code">
+                    <strong>Código de error:</strong> <code>INTERNAL_SERVER_ERROR</code>
+                </p>
+                {% if error_id %}
+                <p class="error-reference">
+                    <strong>ID de referencia:</strong> <code>{{ error_id }}</code>
+                </p>
+                <p class="error-code">
+                    <strong>Detalles:</strong> <code>{{ error }}</code>
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="error-actions">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                    <span>Volver al Inicio</span>
+                </a>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                    <span>Página Anterior</span>
+                </a>
+            </div>
+
+            <div class="error-suggestions">
+                <h3>Lo que puede hacer:</h3>
+                <ul>
+                    <li>Intente recargar la página (F5 o Ctrl+R)</li>
+                    <li>Vacíe la caché del navegador</li>
+                    <li>Cierre completamente el navegador y vuelva a abrirlo</li>
+                    <li>Intente nuevamente en unos minutos</li>
+                    <li>Contacte al equipo de soporte si el problema persiste</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,36 +1,262 @@
-{% extends "base.html" %}
-{% block title %}404{% endblock %}
-{% block content %}
-<div class="text-center py-5">
-  <h1 class="display-5">Error 404</h1>
-  <p class="lead mb-4" id="phrase">Esta página se ha ido a hacer inventario.</p>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error 404 - Página no encontrada</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-  <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-sm">Volver al Dashboard</a>
-  <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">Regresar</a>
-</div>
-{% endblock %}
+        .error-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
 
-{% block scripts %}
-<script>
-(function(){
-  const frases = [
-    'La página se escondió detrás de una caja de tus productos.',
-    '404: Inventario desactualizado de rutas.',
-    'Has encontrado un pasillo fantasma.',
-    'Este enlace estaba en liquidación y ya no existe.',
-    'Ruta extraviada. ¿Re-etiquetamos?',
-    'Parece que este enlace se ha agotado.',
-    'La página está en cuarentena por inventario.',
-    'Error 404: Producto no encontrado.',
-    'Esta página está fuera de stock.',
-    'La página se ha ido a hacer inventario.',
-    'Ups, esta página no está en el catálogo.',
-    'Esta página está siendo reabastecida.',
-    'Creo que esta pagina no esta en tu stock.',
-    'No soy Google, no tengo todas las respuestas.',
-  ];
-  const el = document.getElementById('phrase');
-  el.textContent = frases[Math.floor(Math.random()*frases.length)];
-})();
-</script>
-{% endblock %}
+        .error-content {
+            background: white;
+            border-radius: 12px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            color: #dc3545; /* Puedes cambiar este color a azul o naranja si prefieres diferenciar el 404 */
+        }
+
+        .error-icon svg {
+            width: 100%;
+            height: 100%;
+            /* Animación suave para la lupa flotando */
+            animation: float-error 3s ease-in-out infinite;
+        }
+
+        @keyframes float-error {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .error-content h1 {
+            font-size: 64px;
+            font-weight: 700;
+            color: #dc3545;
+            margin: 0 0 10px 0;
+            line-height: 1;
+        }
+
+        .error-content h2 {
+            font-size: 24px;
+            color: #333;
+            margin: 0 0 20px 0;
+            font-weight: 600;
+        }
+
+        .error-description {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .error-details {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 6px;
+            text-align: left;
+        }
+
+        .error-details p {
+            margin: 10px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .error-details code {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63031;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .error-suggestions {
+            text-align: left;
+            background: #fffbea;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .error-suggestions h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #d63031;
+            margin: 0 0 15px 0;
+        }
+
+        .error-suggestions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .error-suggestions li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .error-suggestions li:before {
+            content: ">";
+            position: absolute;
+            left: 0;
+            color: #d63031;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .error-content { padding: 40px 25px; }
+            .error-content h1 { font-size: 48px; }
+            .error-content h2 { font-size: 20px; }
+            .error-actions { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="error-content">
+            <div class="error-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="10" cy="10" r="7"></circle>
+                  <line x1="21" y1="21" x2="15" y2="15"></line>
+                  <path d="M8 8a2 2 0 1 1 4 0c0 1.5-2 2-2 3.5"></path>
+                  <line x1="10" y1="14" x2="10.01" y2="14"></line>
+              </svg>
+            </div>
+
+            <h1>404</h1>
+            <h2>Página no encontrada</h2>
+
+            <p class="error-description" id="phrase">
+                Esta página se ha ido a hacer inventario.
+            </p>
+
+            <div class="error-details">
+                <p class="error-code">
+                    <strong>Código de error:</strong> <code>PAGE_NOT_FOUND</code>
+                </p>
+                <p class="error-reference">
+                    <strong>Ruta solicitada:</strong> <code>{{ request.path }}</code>
+                </p>
+            </div>
+
+            <div class="error-actions">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                    <span>Volver al Dashboard</span>
+                </a>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                    <span>Regresar</span>
+                </a>
+            </div>
+
+            <div class="error-suggestions">
+                <h3>Lo que puede hacer:</h3>
+                <ul>
+                    <li>Verificar que la dirección web esté bien escrita.</li>
+                    <li>Revisar si el producto o registro que busca fue eliminado.</li>
+                    <li>Utilizar los menús de navegación desde el Dashboard.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+      const frases = [
+        'La página se escondió detrás de una caja de tus productos.',
+        '404: Inventario desactualizado de rutas.',
+        'Has encontrado un pasillo fantasma.',
+        'Este enlace estaba en liquidación y ya no existe.',
+        'Ruta extraviada. ¿Re-etiquetamos?',
+        'Parece que este enlace se ha agotado.',
+        'La página está en cuarentena por inventario.',
+        'Error 404: Producto no encontrado.',
+        'Esta página está fuera de stock.',
+        'La página se ha ido a hacer inventario.',
+        'Ups, esta página no está en el catálogo.',
+        'Esta página está siendo reabastecida.',
+        'Creo que esta pagina no esta en tu stock.',
+        'No soy Google, no tengo todas las respuestas.'
+      ];
+      
+      const el = document.getElementById('phrase');
+      if (el) {
+          el.textContent = frases[Math.floor(Math.random() * frases.length)];
+      }
+    })();
+    </script>
+</body>
+</html>
