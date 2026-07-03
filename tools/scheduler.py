@@ -48,5 +48,12 @@ class Scheduler:
             thread.join(timeout=5)
         self.threads.clear()
         logger.info("Scheduler detenido")
+        
+    def reset_task(self, target_func):
+        """Reinicia una tarea específica."""
+        logger.info(f"Reiniciando tarea: {target_func.__name__}")
+        self.stop()
+        self.tasks = [(interval, func) for interval, func in self.tasks if func != target_func]
+        self.start()
 
 SCHEDULER = Scheduler()

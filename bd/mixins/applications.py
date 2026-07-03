@@ -1,4 +1,3 @@
-from data.roles import ROLES
 from tools.logger import logger
 from bd.bdErrors import DatabaseError
 

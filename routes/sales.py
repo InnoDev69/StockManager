@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from api.auth_utils import require_auth, require_admin, require_role
-from api.notifications_api import notify_user
+from api.auth_utils import require_auth, require_role
 from bd.bdInstance import db
 from data.roles import ROLES
 

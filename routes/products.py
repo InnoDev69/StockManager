@@ -2,12 +2,10 @@ import csv
 import io
 import time
 import uuid
-from api.auth_utils import require_auth, require_admin, require_role
+from api.auth_utils import require_auth, require_role
 from data.roles import ROLES
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify, send_file
-from api.notifications_api import notify_user
 from bd.bdInstance import db
-from bd.bdConector import ValidationError
 from tools.logger import logger
 
 try:

@@ -100,3 +100,4 @@ desktop.ini
 *.swp
 *~ 
 run-dev.py
+*.json

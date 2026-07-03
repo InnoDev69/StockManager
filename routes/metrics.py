@@ -1,6 +1,6 @@
 from data.roles import ROLES
-from flask import Blueprint, render_template, session, redirect, url_for, flash
-from api.auth_utils import require_auth, require_admin, require_role
+from flask import Blueprint, render_template, session
+from api.auth_utils import require_auth, require_role
 
 metrics_bp = Blueprint('metrics', __name__)
 

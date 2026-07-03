@@ -33,48 +33,6 @@ class ItemsMixin:
             (barrs_code, description, name, quantity, min_quantity, expiration_date, price, localDate(), localDate()),
         )
 
-    def get_item_by_barcode(self, barcode):
-        """
-        Busca un producto por su código de barras.
-
-        Args:
-            barcode (str): Código de barras del producto
-
-        Returns:
-            tuple|None: (id, barrs_code, name, description, quantity, expiration_date, price) o None
-        """
-        rows = self.execute_query(
-            "SELECT id, barrs_code, name, description, quantity, expiration_date, price FROM items WHERE barrs_code = ? AND status = 1",
-            (barcode,),
-        )
-        return rows[0] if rows else None
-
-    def get_item_stock(self, item_id):
-        """
-        Obtiene la cantidad en stock de un producto.
-
-        Args:
-            item_id (int): ID del producto
-
-        Returns:
-            int|None: Cantidad en stock o None si el producto no existe
-        """
-        rows = self.execute_query(
-            "SELECT quantity FROM items WHERE id = ?",
-            (item_id,),
-        )
-        return rows[0][0] if rows else None
-
-    def total_items(self):
-        """
-        Obtiene el total de productos activos en el inventario.
-
-        Returns:
-            int: Total de productos registrados
-        """
-        rows = self.execute_query("SELECT COUNT(*) FROM items WHERE status = 1")
-        return rows[0][0] if rows else 0
-
     def get_item_details(self, item_id):
         """
         Obtiene los detalles completos de un producto por su ID.
@@ -103,22 +61,6 @@ class ItemsMixin:
             "status": row[6],
             "expiration_date": row[7],
         }
-
-    def get_item_status(self, item_id):
-        """
-        Obtiene el estado (habilitado/deshabilitado) de un producto.
-
-        Args:
-            item_id (int): ID del producto
-
-        Returns:
-            int|None: 1 si habilitado, 0 si deshabilitado, None si no existe
-        """
-        rows = self.execute_query(
-            "SELECT status FROM items WHERE id = ?",
-            (item_id,),
-        )
-        return rows[0][0] if rows else None
 
     def disable_item(self, item_id):
         """Deshabilita un producto (status = 0)."""
@@ -189,35 +131,47 @@ class ItemsMixin:
         """
         Verifica el stock de todos los productos y crea una notificación si está bajo.
         Si el stock se recupera, resetea la notificación para futuras alertas.
-        
         Args:
             user_id (int): ID del usuario a notificar
         """
-    
         items = self.execute_query(
-            "SELECT id, quantity, min_quantity, notified_low_stock FROM items WHERE status = 1"
+            """SELECT id, name, quantity, min_quantity, notified_low_stock
+            FROM items
+            WHERE status = 1
+                AND quantity IS NOT NULL
+                AND min_quantity IS NOT NULL"""
         )
-        
-        for item_id, quantity, min_quantity, notified in items:
-            if quantity is not None and min_quantity is not None:
-                if quantity < min_quantity and not notified:
-                    self.create_notification(
-                        user_id=user_id,
-                        title="Stock bajo",
-                        message=f"El producto {self.get_item_name(item_id)} (ID: {item_id}) tiene stock bajo ({quantity} unidades).",
-                        notification_type='warning'
-                    )
-                    self.execute_query(
-                        "UPDATE items SET notified_low_stock = 1 WHERE id = ?",
-                        (item_id,),
-                        fetch=False
-                    )
-                elif quantity >= min_quantity and notified:
-                    self.execute_query(
-                        "UPDATE items SET notified_low_stock = 0 WHERE id = ?",
-                        (item_id,),
-                        fetch=False
-                    )
+
+        to_notify = []   # ids a marcar notified_low_stock = 1
+        to_reset = []    # ids a marcar notified_low_stock = 0
+
+        for item_id, name, quantity, min_quantity, notified in items:
+            if quantity < min_quantity and not notified:
+                self.create_notification(
+                    user_id=user_id,
+                    title="Stock bajo",
+                    message=f"El producto {name} (ID: {item_id}) tiene stock bajo ({quantity} unidades).",
+                    notification_type='warning'
+                )
+                to_notify.append(item_id)
+            elif quantity >= min_quantity and notified:
+                to_reset.append(item_id)
+
+        if to_notify:
+            placeholders = ",".join("?" * len(to_notify))
+            self.execute_query(
+                f"UPDATE items SET notified_low_stock = 1 WHERE id IN ({placeholders})",
+                tuple(to_notify),
+                fetch=False
+            )
+
+        if to_reset:
+            placeholders = ",".join("?" * len(to_reset))
+            self.execute_query(
+                f"UPDATE items SET notified_low_stock = 0 WHERE id IN ({placeholders})",
+                tuple(to_reset),
+                fetch=False
+            )
                     
     def activate_item(self, item_id):
         """Activa un producto deshabilitado."""
@@ -226,29 +180,6 @@ class ItemsMixin:
             (item_id,),
             fetch=False,
         )
-    
-    def add_item_with_auto_barcode(self, barrs_code, description, name, quantity, min_quantity, expiration_date, price):
-        """
-        Agrega producto. Si no hay código de barras, genera uno automáticamente.
-        
-        Args:
-            barrs_code: Código manual (puede estar vacío)
-            description, name, quantity, min_quantity, expiration_date, price: datos del producto
-            
-        Returns:
-            str: El código de barras asignado (manual o generado)
-        """
-        # Si no proporciona código, generar uno basado en ID
-        if not barrs_code or barrs_code.strip() == "":
-            # Obtener próximo ID
-            result = self.execute_query("SELECT MAX(id) FROM items")
-            next_id = (result[0][0] or 0) + 1
-            barrs_code = f"PRD{next_id:06d}"
-        
-        # Agregar el producto
-        self.add_item(barrs_code, description, name, quantity, min_quantity, expiration_date, price)
-        
-        return barrs_code
 
     def update_item_barcode(self, item_id, new_barrs_code):
         """
