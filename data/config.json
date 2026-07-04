@@ -1,9 +1,0 @@
-{
-  "backup": {
-    "auto_enabled": false,
-    "destination_type": "sync_folder",
-    "frequency_days": 7,
-    "retention_days": 6
-  },
-  "_version": 1
-}
