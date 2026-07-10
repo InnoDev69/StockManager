@@ -144,18 +144,85 @@ function groupSettings(settingsObj) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ÍCONOS SVG POR GRUPO
 // ─────────────────────────────────────────────────────────────────────────────
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 const GROUP_ICONS = {
-  general: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>`,
-  mail: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
-  smtp: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
-  auth: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
-  app: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
-  db: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>`,
-  log: `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  general: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "circle", attrs: { cx: "12", cy: "12", r: "3" } },
+      { tag: "path", attrs: { d: "M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" } },
+    ],
+  },
+  mail: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "rect", attrs: { width: "20", height: "16", x: "2", y: "4", rx: "2" } },
+      { tag: "path", attrs: { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" } },
+    ],
+  },
+  smtp: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "rect", attrs: { width: "20", height: "16", x: "2", y: "4", rx: "2" } },
+      { tag: "path", attrs: { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" } },
+    ],
+  },
+  auth: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "rect", attrs: { width: "18", height: "11", x: "3", y: "11", rx: "2" } },
+      { tag: "path", attrs: { d: "M7 11V7a5 5 0 0 1 10 0v4" } },
+    ],
+  },
+  app: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "rect", attrs: { width: "20", height: "14", x: "2", y: "3", rx: "2" } },
+      { tag: "path", attrs: { d: "M8 21h8M12 17v4" } },
+    ],
+  },
+  db: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "ellipse", attrs: { cx: "12", cy: "5", rx: "9", ry: "3" } },
+      { tag: "path", attrs: { d: "M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" } },
+      { tag: "path", attrs: { d: "M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" } },
+    ],
+  },
+  log: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "path", attrs: { d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" } },
+      { tag: "polyline", attrs: { points: "14 2 14 8 20 8" } },
+      { tag: "line", attrs: { x1: "16", y1: "13", x2: "8", y2: "13" } },
+      { tag: "line", attrs: { x1: "16", y1: "17", x2: "8", y2: "17" } },
+    ],
+  },
 };
 
+function createSvgElement(tag, attrs = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  Object.entries(attrs).forEach(([key, value]) => {
+    el.setAttribute(key, value);
+  });
+  return el;
+}
+
 function getGroupIcon(groupName) {
-  return GROUP_ICONS[groupName.toLowerCase()] || GROUP_ICONS.general;
+  const icon = GROUP_ICONS[groupName.toLowerCase()] || GROUP_ICONS.general;
+  const svg = createSvgElement("svg", {
+    width: "14",
+    height: "14",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    viewBox: icon.viewBox,
+  });
+  icon.elements.forEach((item) => svg.appendChild(createSvgElement(item.tag, item.attrs)));
+  return svg;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -250,7 +317,7 @@ function renderCard(groupName, fields) {
 
   const iconSpan = document.createElement("span");
   iconSpan.className = "config-card__icon";
-  iconSpan.innerHTML = icon;
+  iconSpan.appendChild(icon);
 
   const titleEl = document.createElement("h3");
   titleEl.className = "config-card__title";
@@ -287,11 +354,14 @@ const ConfigSection = {
   },
 
   renderLoading() {
-    this.container.innerHTML = `
-      <div class="config-loading">
-        <span class="spinner"></span>
-        Cargando configuraciones…
-      </div>`;
+    const loading = document.createElement("div");
+    loading.className = "config-loading";
+
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+
+    loading.append(spinner, document.createTextNode("Cargando configuraciones…"));
+    this.container.replaceChildren(loading);
   },
 
   renderError(msg) {
@@ -311,7 +381,11 @@ const ConfigSection = {
     icon.style.margin = "0 auto 0.75rem";
     icon.style.display = "block";
     icon.style.opacity = ".7";
-    icon.innerHTML = "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>";
+    icon.append(
+      createSvgElement("circle", { cx: "12", cy: "12", r: "10" }),
+      createSvgElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }),
+      createSvgElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" }),
+    );
 
     const title = document.createElement("strong");
     title.textContent = "No se pudieron cargar las configuraciones";
