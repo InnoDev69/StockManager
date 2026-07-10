@@ -25,7 +25,7 @@ def get_data_path(archive=None):
         if archive:
             return os.path.join(data_dir, archive)
         
-        logger.info(f"Using data directory (production mode): {data_dir}")
+        logger.info(f"Using data directory (production mode): {data_dir}", source="DIRS_MODULE")
         
         return data_dir
     else:
@@ -35,8 +35,8 @@ def get_data_path(archive=None):
         dir = os.path.dirname(path)
         
         if dir:
-            logger.info(f"Ensuring directory exists: {dir}")
+            logger.info(f"Ensuring directory exists: {dir}", source="DIRS_MODULE")
             os.makedirs(dir, exist_ok=True)
         
-        logger.info(f"Using path (dev mode): {path}")
+        logger.info(f"Using path (dev mode): {path}", source="DIRS_MODULE")
         return path

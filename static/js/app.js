@@ -1,16 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar salud de la API
-  try {
-    const healthRes = await fetch('/api/health');
-    const healthData = await healthRes.json();
-    const healthEl = document.getElementById('health');
-    if (healthEl) healthEl.textContent = healthData.status || 'unknown';
-  } catch (error) {
-    const healthEl = document.getElementById('health');
-    if (healthEl) healthEl.textContent = 'error';
-  }
-
-  // Cargar productos si estamos en dashboard
+  // Cargar productos si esta en el dashboard
   if (document.getElementById('productsList')) {
     await loadProducts();
   }

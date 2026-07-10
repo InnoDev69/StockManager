@@ -7,7 +7,6 @@ from data.roles import ROLES
 from data.variables import Var
 from tools.logger import logger
 from tools.timmer import measure_time
-from data.validators import ItemValidator, UserValidator, ValidationError
 
 from bd.mixins.users import UsersMixin
 from bd.mixins.items import ItemsMixin
@@ -17,7 +16,7 @@ from bd.mixins.password_reset import PasswordResetMixin
 from bd.mixins.notifications import NotificationsMixin
 from bd.mixins.applications import ApplicationsMixin
 from bd.mixins.audit import AuditMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 _thread_local = threading.local()
 
@@ -314,7 +313,7 @@ class BDConector(
         """
         try:
             if self.execute_query("SELECT id FROM users WHERE role = ?",(ROLES.ROOT,)):
-                logger.info("Usuario root ya existe, skip creación")
+                logger.info("Usuario root ya existe, skip su creación", source="DB")
                 return
             self.add_user(
                 username="root",
@@ -325,7 +324,7 @@ class BDConector(
                 application=Var.USER_APPLICATION_ACCEPTED
             )
         except DatabaseError as e:
-            logger.error(f"Error al crear usuario root: {e}")
+            logger.error(f"Error al crear usuario root: {e}", source="DB")
 
     def __run_migrations(self):
         """
@@ -479,9 +478,10 @@ class BDConector(
         with self._cursor() as cur:
             cur.execute(query, params)
             if fetch:
-                logger.debug(f"Executed query: {query} with params: {params}")
+                logger.debug(f"Executed query: {query} with params: {params}", source="DB")
                 return cur.fetchall()
             logger.debug(
-                f"Rows affected: {cur.rowcount} for query: {query} with params: {params}"
+                f"Rows affected: {cur.rowcount} for query: {query} with params: {params}",
+                source="DB"
             )
             return cur.rowcount
