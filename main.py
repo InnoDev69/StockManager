@@ -72,7 +72,7 @@ for bp in all_blueprints:
 
 @app.errorhandler(404)
 def page_not_found(e):
-    logger.warning(f"[{APP_LOGGER_NAME}] 404 - Ruta no encontrada: {request.path}")
+    logger.warning(f"404 - Ruta no encontrada: {request.path}", source=APP_LOGGER_NAME)
     if request.path.startswith("/api"):
         return {"error": "Ruta no encontrada"}, 404
     return render_template("404.html"), 404
@@ -80,13 +80,13 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     error_id = str(uuid.uuid4())[:8].upper()
-    logger.error(f"[{APP_LOGGER_NAME}] Internal server error {error_id}: {e}", exc_info=True)
+    logger.error(f"Internal server error {error_id}: {e}", exc_info=True, source=APP_LOGGER_NAME)
     return render_template("500.html", error_id=error_id, error=e), 500
 
 @app.errorhandler(Exception)
 def handle_exception(e):
     error_id = str(uuid.uuid4())[:8].upper()
-    logger.exception(f"[{APP_LOGGER_NAME}] Excepción no capturada en {request.path}: {str(e)}")
+    logger.exception(f"Excepción no capturada en {request.path}: {str(e)}", source=APP_LOGGER_NAME)
     return render_template("500.html", error_id=error_id, error=e), 500
 
 # ── Servidor Waitress ─────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ def cleanup():
         return
     _cleanup_done = True
 
-    logger.info(f"[{APP_LOGGER_NAME}] Limpiando recursos...")
+    logger.info("Limpiando recursos...", source=APP_LOGGER_NAME)
     SCHEDULER.stop()
 
     if _server:
@@ -137,7 +137,7 @@ def cleanup():
     db.close_conn()
 
 def signal_handler(sig, frame):
-    logger.info(f"[{APP_LOGGER_NAME}] Señal de terminación recibida, cerrando servidor...")
+    logger.info("Señal de terminación recibida, cerrando servidor...", source=APP_LOGGER_NAME)
     cleanup()
     sys.exit(0)
 
@@ -169,7 +169,7 @@ def handle_dll_exception():
     internal_dir = os.path.join(base_dir, "_internal")
 
     if not os.path.exists(internal_dir):
-        logger.error(f"Directorio no encontrado: {internal_dir}")
+        logger.error(f"Directorio no encontrado: {internal_dir}", source=APP_LOGGER_NAME)
         return
 
     ps_command = (
@@ -186,14 +186,14 @@ def handle_dll_exception():
         )
 
         if resultado.returncode == 0:
-            logger.info(f"[{APP_LOGGER_NAME}] Archivos desbloqueados correctamente.")
+            logger.info("Archivos desbloqueados correctamente.", source=APP_LOGGER_NAME)
             show_message_box("Corrección aplicada", "Se ha aplicado una corrección para resolver el error de DLL. Por favor, reinicia la aplicación.", type="info")
         else:
             show_message_box("Error al aplicar corrección", "No se pudo aplicar la corrección automática. Por favor, desbloquea manualmente los archivos en el directorio '_internal' y reinicia la aplicación.", type="error")
-            logger.error(f"[{APP_LOGGER_NAME}] El comando terminó con errores: {resultado.stderr}")
+            logger.error(f"El comando terminó con errores: {resultado.stderr}", source=APP_LOGGER_NAME)
 
     except Exception as e:
-        logger.error(f"[{APP_LOGGER_NAME}] Error al ejecutar PowerShell: {e}")
+        logger.error(f"Error al ejecutar PowerShell: {e}", source=APP_LOGGER_NAME)
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 
@@ -235,8 +235,8 @@ if __name__ == "__main__":
         if not wait_for_server(FLASK_HOST, FLASK_PORT, timeout=15.0):
             raise RuntimeError("Waitress no respondió en 15 segundos.")
 
-        logger.info(f"[{APP_LOGGER_NAME}] Servidor listo, abriendo ventana...")
-        logger.info(f"[{APP_LOGGER_NAME}] boot:server_ready {(perf_counter() - t0) * 1000} ms")
+        logger.info("Servidor listo, abriendo ventana...", source=APP_LOGGER_NAME)
+        logger.info(f"boot:server_ready {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         window = webview.create_window(
             "Stockly",
@@ -246,24 +246,24 @@ if __name__ == "__main__":
             min_size=(800, 600),
         )
         
-        logger.info(f"[{APP_LOGGER_NAME}] boot:window_created {(perf_counter() - t0) * 1000} ms")
+        logger.info(f"boot:window_created {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         # Iniciar webview
         if sys.platform == "linux" and os.path.exists(icon_path):
             try:
                 webview.start(icon=icon_path)
             except Exception as e:
-                logger.warning(f"[{APP_LOGGER_NAME}]No se pudo establecer el ícono: {e}")
+                logger.warning(f"No se pudo establecer el ícono: {e}", source=APP_LOGGER_NAME)
                 webview.start()
         else:
-            logger.info(f"[{APP_LOGGER_NAME}] Aplicación iniciada")
+            logger.info("Aplicación iniciada", source=APP_LOGGER_NAME)
             webview.start()
     except RuntimeError as e:
         if "Failed to resolve Python.Runtime.Loader.Initialize" in str(e):
-            logger.warning(f"[{APP_LOGGER_NAME}]Falta Python.Runtime.Loader.Initialize, intentando resolver...")
+            logger.warning("Falta Python.Runtime.Loader.Initialize, intentando resolver...", source=APP_LOGGER_NAME)
             handle_dll_exception()
     except Exception as e:
-        logger.exception(f"[{APP_LOGGER_NAME}] Error al iniciar el servidor: {e}")
-        show_message_box("Error al iniciar el servidor", f"[{APP_LOGGER_NAME}] Error al iniciar el servidor: {e}", type="error")
+        logger.exception(f"Error al iniciar el servidor: {e}", source=APP_LOGGER_NAME)
+        show_message_box("Error al iniciar el servidor", f"Error al iniciar el servidor: {e}", type="error")
     finally:
         cleanup()

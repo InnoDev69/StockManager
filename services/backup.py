@@ -32,12 +32,23 @@ class BackupService:
 
     def _perform_backup(self):
         backup_dir = config.get("backup.destination_path")
+        if not backup_dir:
+            logger.error(
+                "Backup destination path is not configured.",
+                source=self.logger_name,
+            )
+            return
+
         logger.info(f"Performing backup for {self.db} to {backup_dir}", source=self.logger_name)
         self.backup_database(backup_dir)
         self._cleanup_old_backups(backup_dir)
 
     def backup_database(self, backup_dir):
         """Copia el archivo de la base de datos a la carpeta indicada."""
+        if not backup_dir:
+            logger.error("Backup destination path is not configured.", source=self.logger_name)
+            raise ValueError("backup_dir is required")
+
         os.makedirs(backup_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -49,7 +60,7 @@ class BackupService:
             logger.info(f"Backup successfully saved to {dest_path}", source=self.logger_name)
             return dest_path
         except Exception as e:
-            logger.info(f"Backup failed: {e}", source=self.logger_name)
+            logger.error(f"Backup failed: {e}", source=self.logger_name)
             raise
 
     def restore_database(self, backup_path):
@@ -57,7 +68,7 @@ class BackupService:
         logger.info(f"Restoring database from {backup_path}", source=self.logger_name)
 
         if not os.path.exists(backup_path):
-            logger.info(f"Backup file not found: {backup_path}", source=self.logger_name)
+            logger.warning(f"Backup file not found: {backup_path}", source=self.logger_name)
             raise FileNotFoundError(backup_path)
 
         shutil.copy2(backup_path, self.db)
@@ -84,4 +95,4 @@ class BackupService:
                     os.remove(fpath)
                     logger.info(f"Deleted expired backup: {fpath}", source=self.logger_name)
             except Exception as e:
-                logger.info(f"Failed to check/delete backup {fpath}: {e}", source=self.logger_name)
+                logger.error(f"Failed to check/delete backup {fpath}: {e}", source=self.logger_name)

@@ -165,43 +165,71 @@ function renderField({ key, subKey, value }) {
   const type = detectType(value);
   const label = keyToLabel(subKey || key);
   const fieldId = subKey ? `cfg-${key}-${subKey}` : `cfg-${key}`;
-  const dataAttrs = `data-key="${key}" data-type="${type}"${subKey ? ` data-subkey="${subKey}"` : ""}`;
+  const field = document.createElement("div");
+  field.className = "config-field";
+  field.dataset.key = key;
+  field.dataset.type = type;
+  if (subKey) field.dataset.subkey = subKey;
 
   if (type === "boolean" || type === "boolean-string") {
     const checked = value === true || value === "true";
-    return `
-      <div class="config-field" ${dataAttrs}>
-        <div class="config-field__toggle-row">
-          <span class="config-field__toggle-label">${label}</span>
-          <label class="toggle" title="Activar/desactivar ${label}">
-            <input type="checkbox" id="${fieldId}" ${checked ? "checked" : ""}>
-            <span class="toggle__rail"></span>
-          </label>
-        </div>
-      </div>`;
+    const toggleRow = document.createElement("div");
+    toggleRow.className = "config-field__toggle-row";
+
+    const toggleLabel = document.createElement("span");
+    toggleLabel.className = "config-field__toggle-label";
+    toggleLabel.textContent = label;
+
+    const toggle = document.createElement("label");
+    toggle.className = "toggle";
+    toggle.title = `Activar/desactivar ${label}`;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = fieldId;
+    checkbox.checked = checked;
+
+    const rail = document.createElement("span");
+    rail.className = "toggle__rail";
+
+    toggle.append(checkbox, rail);
+    toggleRow.append(toggleLabel, toggle);
+    field.append(toggleRow);
+    return field;
   }
 
   const inputType = type === "number" || type === "number-string" ? "number" : "text";
-  const escapedValue = String(value).replace(/"/g, "&quot;");
   const badgeId = subKey ? `badge-${key}-${subKey}` : `badge-${key}`;
 
-  return `
-    <div class="config-field" ${dataAttrs}>
-      <label class="config-field__label" for="${fieldId}">${label}</label>
-      <div class="config-field__row">
-        <input
-          type="${inputType}"
-          id="${fieldId}"
-          value="${escapedValue}"
-          data-original="${escapedValue}"
-          autocomplete="off"
-          spellcheck="false">
-        <button class="btn btn--primary btn-xs config-save-btn" aria-label="Guardar ${label}">
-          Guardar
-        </button>
-        <span class="saved-badge" id="${badgeId}">✓</span>
-      </div>
-    </div>`;
+  const labelEl = document.createElement("label");
+  labelEl.className = "config-field__label";
+  labelEl.htmlFor = fieldId;
+  labelEl.textContent = label;
+
+  const row = document.createElement("div");
+  row.className = "config-field__row";
+
+  const input = document.createElement("input");
+  input.type = inputType;
+  input.id = fieldId;
+  input.value = String(value);
+  input.dataset.original = String(value);
+  input.autocomplete = "off";
+  input.spellcheck = false;
+
+  const button = document.createElement("button");
+  button.className = "btn btn--primary btn-xs config-save-btn";
+  button.setAttribute("aria-label", `Guardar ${label}`);
+  button.textContent = "Guardar";
+
+  const badge = document.createElement("span");
+  badge.className = "saved-badge";
+  badge.id = badgeId;
+  badge.textContent = "✓";
+
+  row.append(input, button, badge);
+  field.append(labelEl, row);
+  return field;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,18 +242,27 @@ function renderCard(groupName, fields) {
       : groupName.charAt(0).toUpperCase() + groupName.slice(1);
 
   const icon = getGroupIcon(groupName);
-  const fieldsHtml = fields.map(renderField).join("");
+  const card = document.createElement("div");
+  card.className = "card config-card";
 
-  return `
-    <div class="card config-card">
-      <div class="config-card__header">
-        <span class="config-card__icon">${icon}</span>
-        <h3 class="config-card__title">${title}</h3>
-      </div>
-      <div class="config-card__body">
-        ${fieldsHtml}
-      </div>
-    </div>`;
+  const header = document.createElement("div");
+  header.className = "config-card__header";
+
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "config-card__icon";
+  iconSpan.innerHTML = icon;
+
+  const titleEl = document.createElement("h3");
+  titleEl.className = "config-card__title";
+  titleEl.textContent = title;
+
+  const body = document.createElement("div");
+  body.className = "config-card__body";
+  body.append(...fields.map(renderField));
+
+  header.append(iconSpan, titleEl);
+  card.append(header, body);
+  return card;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -258,32 +295,61 @@ const ConfigSection = {
   },
 
   renderError(msg) {
-    this.container.innerHTML = `
-      <div class="card" style="padding: 2rem 1.5rem; text-align: center; color: var(--danger, #e53e3e);">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin: 0 auto 0.75rem; display: block; opacity: .7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <strong>No se pudieron cargar las configuraciones</strong>
-        <p style="font-size: 0.85rem; margin: 0.5rem 0 1rem; color: var(--text-muted);">${msg}</p>
-        <button class="btn btn--ghost" id="configRetryBtn">Reintentar</button>
-      </div>`;
-    document.getElementById("configRetryBtn")?.addEventListener("click", () => this.init());
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.padding = "2rem 1.5rem";
+    card.style.textAlign = "center";
+    card.style.color = "var(--danger, #e53e3e)";
+
+    const icon = document.createElement("svg");
+    icon.width = "24";
+    icon.height = "24";
+    icon.fill = "none";
+    icon.stroke = "currentColor";
+    icon.setAttribute("stroke-width", "2");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.style.margin = "0 auto 0.75rem";
+    icon.style.display = "block";
+    icon.style.opacity = ".7";
+    icon.innerHTML = "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>";
+
+    const title = document.createElement("strong");
+    title.textContent = "No se pudieron cargar las configuraciones";
+
+    const message = document.createElement("p");
+    message.style.fontSize = "0.85rem";
+    message.style.margin = "0.5rem 0 1rem";
+    message.style.color = "var(--text-muted)";
+    message.textContent = msg;
+
+    const retryButton = document.createElement("button");
+    retryButton.className = "btn btn--ghost";
+    retryButton.id = "configRetryBtn";
+    retryButton.textContent = "Reintentar";
+    retryButton.addEventListener("click", () => this.init());
+
+    card.append(icon, title, message, retryButton);
+    this.container.replaceChildren(card);
   },
 
   renderSettings(data) {
     const groups = groupSettings(data);
 
     if (!Object.keys(groups).length) {
-      this.container.innerHTML = `
-        <div class="card" style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
-          No hay configuraciones disponibles.
-        </div>`;
+      const emptyState = document.createElement("div");
+      emptyState.className = "card";
+      emptyState.style.padding = "2.5rem";
+      emptyState.style.textAlign = "center";
+      emptyState.style.color = "var(--text-muted)";
+      emptyState.textContent = "No hay configuraciones disponibles.";
+      this.container.replaceChildren(emptyState);
       return;
     }
 
-    const cardsHtml = Object.entries(groups)
-      .map(([name, fields]) => renderCard(name, fields))
-      .join("");
-
-    this.container.innerHTML = `<div class="config-grid">${cardsHtml}</div>`;
+    const grid = document.createElement("div");
+    grid.className = "config-grid";
+    grid.append(...Object.entries(groups).map(([name, fields]) => renderCard(name, fields)));
+    this.container.replaceChildren(grid);
   },
 
   bindEvents() {

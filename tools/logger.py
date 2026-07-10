@@ -102,39 +102,34 @@ class AppLogger:
         file_handler.setLevel(self._level)
         file_handler.setFormatter(formatter)
         self._logger.addHandler(file_handler)
+
+    def _format_message(self, message: str, source: str = None):
+        if source:
+            return f"[{source}] {message}"
+        return message
     
     def error(self, message: str, exc_info: bool = False, source: str = None):
         """Log de error. exc_info=True para incluir traceback."""
-        self._logger.error(message, exc_info=exc_info)
+        self._logger.error(self._format_message(message, source), exc_info=exc_info)
     
     def warning(self, message: str, source: str = None):
         """Log de advertencia."""
-        if source:
-            message = f"[{source}] {message}"
-        self._logger.warning(message)
+        self._logger.warning(self._format_message(message, source))
     
     def info(self, message: str, source: str = None):
         """Log informativo."""
-        if source:
-            message = f"[{source}] {message}"
-        self._logger.info(message)
+        self._logger.info(self._format_message(message, source))
     
     def debug(self, message: str, source: str = None):
         """Log de debug (solo en archivo)."""
-        if source:
-            message = f"[{source}] {message}"
-        self._logger.debug(message)
+        self._logger.debug(self._format_message(message, source))
     
     def exception(self, message: str, source: str = None):
         """Log de excepción con traceback completo."""
-        if source:
-            message = f"[{source}] {message}"
-        self._logger.exception(message)
+        self._logger.exception(self._format_message(message, source))
     
     def critical(self, message: str, source: str = None):
         """Log de error crítico."""
-        if source:
-            message = f"[{source}] {message}"
-        self._logger.critical(message)
+        self._logger.critical(self._format_message(message, source))
 
 logger = AppLogger()
