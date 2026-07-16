@@ -1,0 +1,940 @@
+diff --git a/api/products_api.py b/api/products_api.py
+index 1c07373..6515a12 100644
+--- a/api/products_api.py
++++ b/api/products_api.py
+@@ -529,4 +529,52 @@ def activate_product(product_id):
+     
+     except Exception as e:
+         logger.exception(f"Error al activar producto {product_id}: {str(e)}")
++        return jsonify({"error": "Error interno"}), 500
++    
++@products_api.route("/products/update_price_bulk", methods=["POST"])
++@require_role(ROLES.ADMIN, ROLES.ROOT)
++@audit_action("product", "update_price_bulk")
++def update_price_bulk():
++    """
++    Actualiza el precio de múltiples productos en una sola operación.
++    
++    Requiere login: True.
++    Requiere rol: admin.
++    
++    Request Body (JSON):
++        products (list): Lista de objetos con 'id' y 'new_price'
++            - id (int): ID del producto
++            - new_price (float): Nuevo precio
++    
++    Returns:
++        JSON: {"message": "Precios actualizados exitosamente"}
++    
++    Status Codes:
++        200: Precios actualizados exitosamente
++        400: Datos inválidos
++        401: No autorizado
++        403: Permiso denegado (no es admin)
++        500: Error en la base de datos
++    """
++    
++    data = request.get_json()
++    
++    if not data or "products" not in data or not isinstance(data["products"], list):
++        return jsonify({"error": "Datos inválidos"}), 400
++    
++    try:
++        for item in data["products"]:
++            product_id = item.get("id")
++            new_price = item.get("new_price")
++            
++            query = "UPDATE items SET price = ?, updated_at = ? WHERE id = ?"
++            db.execute_many(query, [(new_price, localDate(), product_id)])
++        
++        db.create_notification(user_id=session.get('user_id'), title="Precios actualizados", message=f"Los precios de los productos han sido actualizados.", notification_type='success')
++        notify_user(session.get('user_id'))
++        
++        return jsonify({"message": "Precios actualizados exitosamente"}), 200
++    
++    except Exception as e:
++        logger.exception(f"Error al actualizar precios en bulk: {str(e)}")
+         return jsonify({"error": "Error interno"}), 500
+\ No newline at end of file
+diff --git a/bd/bdConector.py b/bd/bdConector.py
+index 87396d5..85cbfe1 100644
+--- a/bd/bdConector.py
++++ b/bd/bdConector.py
+@@ -430,6 +430,10 @@ class BDConector(
+ 
+         Returns:
+             int: Total de filas afectadas
++            
++        Example:
++            items = [(1, 'Item A', 10), (2, 'Item B', 5)]
++            db.execute_many("INSERT INTO items (id, name, quantity) VALUES (?, ?, ?)", items)
+         """
+         with self._cursor() as cur:
+             cur.executemany(query, params_list)
+diff --git a/static/js/product-management.js b/static/js/product-management.js
+index 76c9038..ed8fc28 100644
+--- a/static/js/product-management.js
++++ b/static/js/product-management.js
+@@ -12,6 +12,12 @@
+   let pageSize     = 50;
+   let currentProductId = null;
+ 
++  // ===== SELECCIÓN MASIVA / EDICIÓN DE PRECIOS EN LOTE =====
++  // Map<productId, productSnapshot> — persiste la selección entre cambios de página.
++  let selectedProducts = new Map();
++  let lastRenderTotal  = 0;
++  let lastRenderPages  = 1;
++
+   function $(id) { return document.getElementById(id); }
+   function show(el) { if (el) el.style.display = ''; }
+   function hide(el) { if (el) el.style.display = 'none'; }
+@@ -108,7 +114,7 @@
+     inputs.forEach(input => {
+       const rawValue = input.value;
+       const value = (rawValue && typeof rawValue === 'string') ? rawValue.trim() : '';
+-      
++
+       if (input.required && !value) {
+         input.style.borderColor = 'var(--danger)';
+         isValid = false;
+@@ -314,12 +320,16 @@
+     const paginationInfoTop  = $('pagination-info-top');
+ 
+     $('products-count').textContent = total + ' producto' + (total !== 1 ? 's' : '');
++    lastRenderTotal = total;
++    lastRenderPages = pages;
+ 
+     if (products.length === 0) {
+       tableBody.innerHTML = '';
+       show(emptyState);
+       hide(paginationControls);
+       hide(paginationInfoTop);
++      syncSelectAllCheckbox();
++      updateBulkBar();
+       return;
+     }
+ 
+@@ -340,9 +350,11 @@
+         ? escapeHtml(p.description.substring(0, 50)) + (p.description.length > 50 ? '...' : '')
+         : '';
+       const price  = (p.price || 0).toFixed(2);
++      const isSelected = selectedProducts.has(p.id);
+ 
+       html +=
+-        '<tr data-id="' + p.id + '">' +
++        '<tr data-id="' + p.id + '" class="' + (isSelected ? 'row-selected' : '') + '">' +
++          '<td style="padding:0.875rem 0.75rem;text-align:center;vertical-align:middle;width:2.5rem;"><input type="checkbox" class="row-select-checkbox" data-select-id="' + p.id + '"' + (isSelected ? ' checked' : '') + ' aria-label="Seleccionar ' + name + '"></td>' +
+           '<td style="padding:0.875rem 1rem;"><span class="mono" style="font-size:0.85rem;color:var(--text-muted);">' + (p.barcode || '—') + '</span></td>' +
+           '<td style="padding:0.875rem 1rem;"><div style="font-weight:600;">' + name + '</div>' +
+             (desc ? '<div class="text-muted" style="font-size:0.8rem;margin-top:0.25rem;">' + desc + '</div>' : '') + '</td>' +
+@@ -364,6 +376,8 @@
+ 
+     renderPaginationButtons(pages);
+     show(paginationControls);
++    syncSelectAllCheckbox();
++    updateBulkBar();
+     tableBody.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+   }
+ 
+@@ -452,7 +466,7 @@
+     show($('edit-modal'));
+     loadProductAttributes(productId);
+     $('edit-modal').setAttribute('aria-hidden', 'false');
+-    
++
+     // Reinitialize CalendarPicker for the expiration date field
+     if (typeof CalendarPicker !== 'undefined') {
+       const input = $('edit-expiration-date');
+@@ -610,6 +624,442 @@
+     }
+   }
+ 
++  // ======================================================================
++  // SELECCIÓN MASIVA DE PRODUCTOS
++  // ======================================================================
++
++  function handleTableChange(e) {
++    const cb = e.target.closest('.row-select-checkbox');
++    if (!cb) return;
++    const id = parseInt(cb.getAttribute('data-select-id'));
++    setRowSelected(id, cb.checked);
++  }
++
++  function setRowSelected(id, selected) {
++    const product = pageProducts.find(p => p.id === id);
++    if (selected) {
++      if (product) selectedProducts.set(id, product);
++    } else {
++      selectedProducts.delete(id);
++    }
++    const cb = document.querySelector('.row-select-checkbox[data-select-id="' + id + '"]');
++    if (cb) cb.checked = selected;
++    const row = cb ? cb.closest('tr') : null;
++    if (row) row.classList.toggle('row-selected', selected);
++    syncSelectAllCheckbox();
++    updateBulkBar();
++  }
++
++  function toggleSelectAllOnPage(e) {
++    const checked = e.target.checked;
++    document.querySelectorAll('.row-select-checkbox').forEach(cb => {
++      const id = parseInt(cb.getAttribute('data-select-id'));
++      const product = pageProducts.find(p => p.id === id);
++      cb.checked = checked;
++      if (checked) {
++        if (product) selectedProducts.set(id, product);
++      } else {
++        selectedProducts.delete(id);
++      }
++      const row = cb.closest('tr');
++      if (row) row.classList.toggle('row-selected', checked);
++    });
++    syncSelectAllCheckbox();
++    updateBulkBar();
++  }
++
++  function syncSelectAllCheckbox() {
++    const selectAll = $('select-all-checkbox');
++    if (!selectAll) return;
++    const rowCheckboxes = document.querySelectorAll('.row-select-checkbox');
++    if (rowCheckboxes.length === 0) {
++      selectAll.checked = false;
++      selectAll.indeterminate = false;
++      return;
++    }
++    const checkedCount = document.querySelectorAll('.row-select-checkbox:checked').length;
++    selectAll.checked = checkedCount === rowCheckboxes.length;
++    selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
++  }
++
++  function clearSelection() {
++    selectedProducts.clear();
++    document.querySelectorAll('.row-select-checkbox').forEach(cb => {
++      cb.checked = false;
++      const row = cb.closest('tr');
++      if (row) row.classList.remove('row-selected');
++    });
++    syncSelectAllCheckbox();
++    updateBulkBar();
++  }
++
++  function updateBulkBar() {
++    const bar = $('bulk-actions-bar');
++    if (!bar) return;
++    const count = selectedProducts.size;
++    if (count === 0) {
++      hide(bar);
++      return;
++    }
++    const countEl = $('bulk-selected-count');
++    const labelEl = $('bulk-selected-label');
++    if (countEl) countEl.textContent = count;
++    if (labelEl) labelEl.textContent = count === 1 ? 'producto seleccionado' : 'productos seleccionados';
++    bar.style.display = 'flex';
++  }
++
++  // ======================================================================
++  // AJUSTE MASIVO DE PRECIOS
++  // ======================================================================
++
++  function getPriceMax() {
++    const modal = $('bulk-price-modal');
++    const raw = modal ? parseFloat(modal.getAttribute('data-price-max')) : NaN;
++    return (isFinite(raw) && raw > 0) ? raw : 999999999;
++  }
++
++  function computeNewPrice(currentPrice, mode, sign, value) {
++    const base = currentPrice || 0;
++    if (mode === 'percent') {
++      const factor = value / 100;
++      return sign === 'decrease' ? base * (1 - factor) : base * (1 + factor);
++    }
++    if (mode === 'fixed') {
++      return sign === 'decrease' ? base - value : base + value;
++    }
++    return value; // exact
++  }
++
++  function roundCurrency(n) {
++    return Math.round((n + Number.EPSILON) * 100) / 100;
++  }
++
++  function getBulkFormValues() {
++    const modeInput = document.querySelector('input[name="bulk-mode"]:checked');
++    const mode = modeInput ? modeInput.value : 'percent';
++    const sign = $('bulk-sign').value;
++    const rawValue = $('bulk-value').value;
++    const value = rawValue === '' ? NaN : parseFloat(rawValue);
++    const includeDisabled = $('bulk-include-disabled').checked;
++    return { mode, sign, value, includeDisabled };
++  }
++
++  function validateBulkValue(mode, sign, value) {
++    if (isNaN(value) || !isFinite(value)) return 'Ingresa un valor numérico válido.';
++    if (value < 0) return 'El valor no puede ser negativo.';
++    if (mode === 'percent') {
++      if (value === 0) return 'El porcentaje debe ser mayor a 0.';
++      if (sign === 'decrease' && value > 100) return 'No puedes disminuir más del 100%.';
++    }
++    if (mode === 'fixed' && value === 0) {
++      return 'El monto debe ser mayor a 0.';
++    }
++    if (mode === 'exact') {
++      const max = getPriceMax();
++      if (value > max) return 'El precio excede el máximo permitido ($' + max.toFixed(2) + ').';
++    }
++    return null;
++  }
++
++  function getSelectedForOperation(includeDisabled) {
++    const all = Array.from(selectedProducts.values());
++    const included = all.filter(p => includeDisabled || p.status !== 0);
++    const excludedDisabledCount = all.length - included.length;
++    return { included, excludedDisabledCount };
++  }
++
++  function updateBulkModeUI() {
++    const modeInput = document.querySelector('input[name="bulk-mode"]:checked');
++    const mode = modeInput ? modeInput.value : 'percent';
++    const signField  = $('bulk-sign-field');
++    const valueLabel = $('bulk-value-label');
++    const suffix     = $('bulk-value-suffix');
++    const valueInput = $('bulk-value');
++
++    if (mode === 'exact') {
++      hide(signField);
++      valueLabel.textContent = 'Nuevo precio exacto';
++      suffix.textContent = '$';
++      valueInput.placeholder = 'Ej: 1500.00';
++    } else if (mode === 'percent') {
++      show(signField);
++      valueLabel.textContent = 'Porcentaje a aplicar';
++      suffix.textContent = '%';
++      valueInput.placeholder = 'Ej: 10';
++    } else {
++      show(signField);
++      valueLabel.textContent = 'Monto a aplicar';
++      suffix.textContent = '$';
++      valueInput.placeholder = 'Ej: 50.00';
++    }
++  }
++
++  function renderBulkPreviewRows(rows) {
++    const body = $('bulk-preview-body');
++    if (!body) return;
++    if (rows.length === 0) {
++      body.innerHTML = '';
++      return;
++    }
++    let html = '';
++    rows.forEach(r => {
++      html += '<tr class="' + (r.negative ? 'preview-row-invalid' : '') + '">' +
++        '<td>' + escapeHtml(r.name) + (r.disabled ? '<span class="preview-tag disabled-tag">Deshabilitado</span>' : '') + '</td>' +
++        '<td style="text-align:right;" class="mono">$' + r.currentPrice.toFixed(2) + '</td>' +
++        '<td style="text-align:center;">' + r.adjustmentLabel + '</td>' +
++        '<td style="text-align:right;" class="mono">' + (r.negative ? '<span class="preview-tag negative-tag">Inválido</span>' : '$' + r.newPrice.toFixed(2)) + '</td>' +
++      '</tr>';
++    });
++    body.innerHTML = html;
++  }
++
++  function updateBulkPreview() {
++    const { mode, sign, value, includeDisabled } = getBulkFormValues();
++    const errorEl      = $('bulk-form-error');
++    const reviewBtn     = $('bulk-review-btn');
++    const emptyEl       = $('bulk-preview-empty');
++    const wrapperEl     = $('bulk-preview-wrapper');
++    const excludedNote  = $('bulk-excluded-note');
++
++    hide(errorEl);
++    $('bulk-modal-count').textContent = selectedProducts.size;
++
++    const { included, excludedDisabledCount } = getSelectedForOperation(includeDisabled);
++
++    if (excludedNote) {
++      if (excludedDisabledCount > 0) {
++        excludedNote.textContent = excludedDisabledCount + ' producto(s) deshabilitado(s) de tu selección se omitirán de este ajuste.';
++        show(excludedNote);
++      } else {
++        hide(excludedNote);
++      }
++    }
++
++    const validationMsg = validateBulkValue(mode, sign, value);
++    if (validationMsg) {
++      hide(wrapperEl);
++      show(emptyEl);
++      emptyEl.textContent = 'Ingresa un valor válido para ver la vista previa de los cambios.';
++      $('bulk-preview-affected-count').textContent = '0';
++      reviewBtn.disabled = true;
++      if ($('bulk-value').value !== '') {
++        errorEl.textContent = validationMsg;
++        show(errorEl);
++      }
++      return;
++    }
++
++    if (included.length === 0) {
++      hide(wrapperEl);
++      show(emptyEl);
++      emptyEl.textContent = 'No hay productos habilitados en tu selección. Activa "Incluir productos deshabilitados" o cambia tu selección.';
++      $('bulk-preview-affected-count').textContent = '0';
++      reviewBtn.disabled = true;
++      return;
++    }
++
++    let hasNegative = false;
++    const rows = included.map(p => {
++      const currentPrice = p.price || 0;
++      const newPrice = roundCurrency(computeNewPrice(currentPrice, mode, sign, value));
++      const negative = newPrice < 0;
++      if (negative) hasNegative = true;
++
++      let adjustmentLabel;
++      if (mode === 'percent')      adjustmentLabel = (sign === 'decrease' ? '−' : '+') + value + '%';
++      else if (mode === 'fixed')   adjustmentLabel = (sign === 'decrease' ? '−$' : '+$') + value.toFixed(2);
++      else                         adjustmentLabel = '= $' + value.toFixed(2);
++
++      return { id: p.id, name: p.name, disabled: p.status === 0, currentPrice, newPrice, negative, adjustmentLabel };
++    });
++
++    hide(emptyEl);
++    show(wrapperEl);
++    renderBulkPreviewRows(rows);
++    $('bulk-preview-affected-count').textContent = rows.length;
++
++    if (hasNegative) {
++      errorEl.textContent = 'Algunos productos quedarían con precio negativo con este ajuste. Reduce el valor antes de continuar.';
++      show(errorEl);
++      reviewBtn.disabled = true;
++    } else {
++      reviewBtn.disabled = false;
++    }
++  }
++
++  function setBulkFormDisabled(disabled) {
++    document.querySelectorAll('input[name="bulk-mode"]').forEach(el => { el.disabled = disabled; });
++    $('bulk-sign').disabled = disabled;
++    $('bulk-value').disabled = disabled;
++    $('bulk-include-disabled').disabled = disabled;
++  }
++
++  function setBulkMainActionsVisible(visible) {
++    $('bulk-main-actions').style.display = visible ? 'flex' : 'none';
++  }
++
++  function resetBulkForm() {
++    document.querySelector('input[name="bulk-mode"][value="percent"]').checked = true;
++    $('bulk-sign').value = 'increase';
++    $('bulk-value').value = '';
++    $('bulk-include-disabled').checked = false;
++    hide($('bulk-form-error'));
++    hide($('bulk-excluded-note'));
++    updateBulkModeUI();
++    setBulkFormDisabled(false);
++    hide($('bulk-confirm-banner'));
++    setBulkMainActionsVisible(true);
++    const applyBtn = $('bulk-confirm-apply-btn');
++    if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Sí, aplicar cambios'; }
++    const cancelBtn = $('bulk-confirm-cancel-btn');
++    if (cancelBtn) cancelBtn.disabled = false;
++  }
++
++  function openBulkPriceModal() {
++    if (selectedProducts.size === 0) return;
++    resetBulkForm();
++    $('bulk-modal-count').textContent = selectedProducts.size;
++    show($('bulk-price-modal'));
++    $('bulk-price-modal').setAttribute('aria-hidden', 'false');
++    updateBulkPreview();
++    $('bulk-value').focus();
++  }
++
++  function closeBulkPriceModal() {
++    hide($('bulk-price-modal'));
++    $('bulk-price-modal').setAttribute('aria-hidden', 'true');
++  }
++
++  function showBulkConfirmStep() {
++    const { mode, includeDisabled } = getBulkFormValues();
++    const { included } = getSelectedForOperation(includeDisabled);
++    if (included.length === 0) return;
++    $('bulk-confirm-count').textContent = included.length;
++    setBulkMainActionsVisible(false);
++    setBulkFormDisabled(true);
++    show($('bulk-confirm-banner'));
++  }
++
++  function hideBulkConfirmStep() {
++    hide($('bulk-confirm-banner'));
++    setBulkFormDisabled(false);
++    setBulkMainActionsVisible(true);
++  }
++
++  /**
++   * ======================================================================
++   * CAPA DE INTEGRACIÓN — AJUSTE MASIVO DE PRECIOS (applyBulkPriceUpdate)
++   * ======================================================================
++   * Backend real conectado: POST /api/products/update_price_bulk
++   * (requiere rol admin/root — ver @require_role en la ruta Flask).
++   *
++   * IMPORTANTE: el backend real NO calcula precios ni informa detalle por
++   * producto. Solo aplica el `new_price` que se le manda y devuelve
++   * {"message": "..."} en éxito o {"error": "..."} en falla. Por eso TODO
++   * el cálculo (porcentaje/monto/exacto) y TODA la validación (negativos,
++   * deshabilitados, etc.) tienen que resolverse en el cliente ANTES de
++   * llamar a este endpoint — ver `handleBulkApply`, que arma cada item
++   * como { id, new_price } ya con el precio final calculado.
++   *
++   * Request  POST /api/products/update_price_bulk
++   *   { "products": [ { "id": number, "new_price": number }, ... ] }
++   *
++   * Response 200
++   *   { "message": "Precios actualizados exitosamente" }
++   *
++   * Response 400/401/403/500
++   *   { "error": "..." }
++   * ======================================================================
++   */
++  async function applyBulkPriceUpdate(items) {
++    const response = await fetch('/api/products/update_price_bulk', {
++      method: 'POST',
++      credentials: 'same-origin',
++      headers: {
++        'Content-Type': 'application/json'
++      },
++      body: JSON.stringify({
++        products: items.map(p => ({
++          id: p.id,
++          new_price: p.newPrice
++        }))
++      })
++    });
++
++    const result = await response.json();
++
++    if (!response.ok) {
++      throw new Error(result.error || 'Error al actualizar precios');
++    }
++
++    return result;
++  }
++
++  async function handleBulkApply() {
++    const applyBtn  = $('bulk-confirm-apply-btn');
++    const cancelBtn = $('bulk-confirm-cancel-btn');
++    const { mode, sign, value, includeDisabled } = getBulkFormValues();
++    const { included } = getSelectedForOperation(includeDisabled);
++
++    if (included.length === 0) return;
++
++    // El backend real solo aplica el precio final que le mandamos — todo el
++    // cálculo (porcentaje / monto / exacto) vive acá, del lado del cliente.
++    // Si algún producto quedaría con precio negativo lo excluimos por las
++    // dudas (la vista previa ya bloquea llegar hasta acá en ese caso, esto
++    // es solo una segunda barrera defensiva).
++    const computedItems = [];
++    const skippedNegative = [];
++    included.forEach(p => {
++      const currentPrice = p.price || 0;
++      const newPrice = roundCurrency(computeNewPrice(currentPrice, mode, sign, value));
++      if (newPrice < 0) {
++        skippedNegative.push(p);
++        return;
++      }
++      computedItems.push({ id: p.id, newPrice });
++    });
++
++    if (computedItems.length === 0) {
++      if (typeof Notify !== 'undefined') Notify.error('No hay productos válidos para actualizar.');
++      return;
++    }
++
++    applyBtn.disabled = true;
++    cancelBtn.disabled = true;
++    const originalLabel = applyBtn.textContent;
++    applyBtn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;vertical-align:-1px;margin-right:0.4rem;animation:spin 0.7s linear infinite;"></span>Aplicando...';
++
++    try {
++      await applyBulkPriceUpdate(computedItems);
++
++      // El backend no devuelve detalle por producto, así que reflejamos en
++      // la UI los precios que nosotros mismos calculamos y enviamos.
++      computedItems.forEach(u => {
++        const p = pageProducts.find(pp => pp.id === u.id);
++        if (p) p.price = u.newPrice;
++        if (selectedProducts.has(u.id)) selectedProducts.get(u.id).price = u.newPrice;
++      });
++
++      closeBulkPriceModal();
++      clearSelection();
++      renderTable(pageProducts, lastRenderTotal, lastRenderPages);
++
++      if (typeof Notify !== 'undefined') {
++        Notify.success(computedItems.length + ' producto(s) actualizados correctamente.');
++        if (skippedNegative.length > 0) {
++          Notify.error(skippedNegative.length + ' producto(s) se omitieron por quedar con precio negativo.');
++        }
++      }
++    } catch (error) {
++      console.error('Error aplicando ajuste masivo de precios:', error);
++      if (typeof Notify !== 'undefined') Notify.error(error.message || 'Error al aplicar el ajuste masivo de precios.');
++      applyBtn.disabled = false;
++      cancelBtn.disabled = false;
++      applyBtn.textContent = originalLabel;
++    }
++  }
++
+   function handleTableClick(e) {
+     const btn = e.target.closest('[data-action]');
+     if (!btn) return;
+@@ -666,6 +1116,74 @@
+     const tableBody = $('products-table-body');
+     if (tableBody) {
+       tableBody.addEventListener('click', handleTableClick);
++      tableBody.addEventListener('change', handleTableChange);
++    }
++
++    const selectAllCb = $('select-all-checkbox');
++    if (selectAllCb) {
++      selectAllCb.addEventListener('change', toggleSelectAllOnPage);
++    }
++
++    const bulkClearBtn = $('bulk-clear-btn');
++    if (bulkClearBtn) {
++      bulkClearBtn.addEventListener('click', clearSelection);
++    }
++
++    const bulkPriceBtn = $('bulk-price-btn');
++    if (bulkPriceBtn) {
++      bulkPriceBtn.addEventListener('click', openBulkPriceModal);
++    }
++
++    const bulkPriceCloseBtn = $('bulk-price-close-btn');
++    if (bulkPriceCloseBtn) {
++      bulkPriceCloseBtn.addEventListener('click', closeBulkPriceModal);
++    }
++
++    const bulkPriceOverlay = $('bulk-price-overlay');
++    if (bulkPriceOverlay) {
++      bulkPriceOverlay.addEventListener('click', closeBulkPriceModal);
++    }
++
++    const bulkCancelBtn = $('bulk-cancel-btn');
++    if (bulkCancelBtn) {
++      bulkCancelBtn.addEventListener('click', closeBulkPriceModal);
++    }
++
++    document.querySelectorAll('input[name="bulk-mode"]').forEach(el => {
++      el.addEventListener('change', function() {
++        updateBulkModeUI();
++        updateBulkPreview();
++      });
++    });
++
++    const bulkSign = $('bulk-sign');
++    if (bulkSign) {
++      bulkSign.addEventListener('change', updateBulkPreview);
++    }
++
++    const bulkValue = $('bulk-value');
++    if (bulkValue) {
++      bulkValue.addEventListener('input', debounce(updateBulkPreview, 200));
++    }
++
++    const bulkIncludeDisabled = $('bulk-include-disabled');
++    if (bulkIncludeDisabled) {
++      bulkIncludeDisabled.addEventListener('change', updateBulkPreview);
++    }
++
++    const bulkReviewBtn = $('bulk-review-btn');
++    if (bulkReviewBtn) {
++      bulkReviewBtn.addEventListener('click', showBulkConfirmStep);
++    }
++
++    const bulkConfirmCancelBtn = $('bulk-confirm-cancel-btn');
++    if (bulkConfirmCancelBtn) {
++      bulkConfirmCancelBtn.addEventListener('click', hideBulkConfirmStep);
++    }
++
++    const bulkConfirmApplyBtn = $('bulk-confirm-apply-btn');
++    if (bulkConfirmApplyBtn) {
++      bulkConfirmApplyBtn.addEventListener('click', handleBulkApply);
+     }
+ 
+     document.addEventListener('keydown', function(e) {
+@@ -676,6 +1194,7 @@
+         closeNewAttributeModal();
+         closeDeleteAttributeModal();
+         closeReactivateModal();
++        closeBulkPriceModal();
+       }
+     });
+ 
+@@ -705,4 +1224,4 @@
+   } else {
+     init();
+   }
+-})();
++})();
+\ No newline at end of file
+diff --git a/templates/product_management.html b/templates/product_management.html
+index 261d0bb..198d3ce 100644
+--- a/templates/product_management.html
++++ b/templates/product_management.html
+@@ -103,6 +103,24 @@
+     <span id="products-count" class="text-muted" style="font-size: 0.875rem;">0 productos</span>
+   </div>
+ 
++  <!-- Barra de acciones masivas (visible al seleccionar productos) -->
++  <div id="bulk-actions-bar" style="display: none; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.75rem 1.25rem; background: color-mix(in srgb, var(--brand) 8%, transparent); border-bottom: 1px solid var(--border);">
++    <div style="display: flex; align-items: center; gap: 0.75rem;">
++      <span style="min-width: 28px; height: 28px; padding: 0 0.4rem; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--brand); color: #fff; font-size: 0.75rem; font-weight: 700;" id="bulk-selected-count">0</span>
++      <span style="font-weight: 600; font-size: 0.9rem;" id="bulk-selected-label">productos seleccionados</span>
++      <span class="text-muted" style="font-size: 0.8rem;">(puedes seguir seleccionando en otras páginas)</span>
++    </div>
++    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
++      <button type="button" class="btn btn-ghost" id="bulk-clear-btn" style="padding: 0.5rem 0.875rem; font-size: 0.85rem;">Deseleccionar todo</button>
++      <button type="button" class="btn" id="bulk-price-btn" style="padding: 0.5rem 0.875rem; font-size: 0.85rem;">
++        <svg style="width: 14px; height: 14px; margin-right: 0.25rem; vertical-align: -2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z"></path>
++        </svg>
++        Ajustar precios en lote
++      </button>
++    </div>
++  </div>
++
+   <!-- Info de paginación superior -->
+   <div id="pagination-info-top" style="display: none; padding: 0.625rem 1.25rem; background: var(--panel-2); border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
+     Mostrando <span id="page-from">0</span>–<span id="page-to">0</span> de <span id="page-total">0</span> productos
+@@ -112,6 +130,9 @@
+     <table class="table" style="width: 100%; border-collapse: collapse;">
+       <thead>
+         <tr style="background: var(--panel-2); border-bottom: 1px solid var(--border);">
++          <th style="padding: 0.875rem 0.75rem; text-align: center; width: 2.5rem;">
++            <input type="checkbox" id="select-all-checkbox" title="Seleccionar todos los productos de esta página" aria-label="Seleccionar todos los productos de esta página" style="width: 16px; height: 16px; cursor: pointer;">
++          </th>
+           <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+           <th style="padding: 0.875rem 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Producto</th>
+           <th style="padding: 0.875rem 1rem; text-align: center; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Stock</th>
+@@ -409,6 +430,123 @@
+   </div>
+ </div>
+ 
++<!-- Modal de ajuste masivo de precios -->
++<div id="bulk-price-modal" class="modal" style="display: none;" aria-hidden="true" data-price-max="{{ Limits.ITEM_PRICE_MAX }}">
++  <div class="overlay" id="bulk-price-overlay"></div>
++  <div class="dialog card" style="width: min(720px, 95vw); max-height: 90vh; overflow-y: auto;">
++    <header class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); z-index: 10;">
++      <div style="display: flex; align-items: center; gap: 0.75rem;">
++        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand);">
++          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
++            <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z"/>
++          </svg>
++        </span>
++        <div>
++          <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">Ajuste masivo de precios</h3>
++          <p class="text-muted" style="margin: 0.15rem 0 0 0; font-size: 0.8rem;"><span id="bulk-modal-count">0</span> producto(s) seleccionado(s)</p>
++        </div>
++      </div>
++      <button type="button" class="btn-ghost close-btn" id="bulk-price-close-btn" style="padding: 0.5rem;">✕</button>
++    </header>
++
++    <div style="padding: 1.25rem; display: grid; gap: 1.25rem;">
++
++      <!-- Paso 1: modo de ajuste -->
++      <div>
++        <label class="label" style="display: block; margin-bottom: 0.5rem;">Tipo de ajuste</label>
++        <div id="bulk-mode-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
++          <label class="bulk-mode-option">
++            <input type="radio" name="bulk-mode" value="percent" checked>
++            <span>Porcentaje (%)</span>
++          </label>
++          <label class="bulk-mode-option">
++            <input type="radio" name="bulk-mode" value="fixed">
++            <span>Monto fijo ($)</span>
++          </label>
++          <label class="bulk-mode-option">
++            <input type="radio" name="bulk-mode" value="exact">
++            <span>Precio exacto</span>
++          </label>
++        </div>
++      </div>
++
++      <!-- Paso 2: dirección + valor -->
++      <div style="display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: end;">
++        <div class="field" id="bulk-sign-field">
++          <label class="label" for="bulk-sign">Dirección</label>
++          <select id="bulk-sign" style="min-width: 140px;">
++            <option value="increase">Aumentar</option>
++            <option value="decrease">Disminuir</option>
++          </select>
++        </div>
++        <div class="field">
++          <label class="label" for="bulk-value" id="bulk-value-label">Porcentaje a aplicar</label>
++          <div style="position: relative;">
++            <input type="number" id="bulk-value" min="0" step="0.01" placeholder="Ej: 10" style="width: 100%; padding-right: 2.25rem;">
++            <span id="bulk-value-suffix" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none;">%</span>
++          </div>
++        </div>
++      </div>
++
++      <div class="field" style="display: flex; align-items: center; gap: 0.75rem;">
++        <label class="switch">
++          <input type="checkbox" id="bulk-include-disabled">
++          <span class="slider"></span>
++        </label>
++        <label for="bulk-include-disabled" style="cursor: pointer; font-size: 0.875rem;">
++          Incluir productos deshabilitados de la selección en este ajuste
++          <span class="text-muted" style="display: block; font-size: 0.75rem; font-weight: 400;">Si está desactivado, los productos deshabilitados seleccionados se omiten del ajuste.</span>
++        </label>
++      </div>
++      <div id="bulk-excluded-note" class="text-muted" style="display: none; font-size: 0.8rem; margin-top: -0.5rem;"></div>
++
++      <div id="bulk-form-error" class="alert-error" style="display: none;"></div>
++
++      <!-- Vista previa -->
++      <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
++        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
++          <h4 style="margin: 0; font-size: 0.9rem; font-weight: 600;">Vista previa</h4>
++          <span class="text-muted" style="font-size: 0.8rem;"><span id="bulk-preview-affected-count">0</span> producto(s) serán afectados</span>
++        </div>
++
++        <div id="bulk-preview-empty" style="display: none; padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; background: var(--panel-2); border-radius: 6px;">
++          Ingresa un valor válido para ver la vista previa de los cambios.
++        </div>
++
++        <div id="bulk-preview-wrapper" style="display: none; max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
++          <table class="table" style="width: 100%; border-collapse: collapse;">
++            <thead style="position: sticky; top: 0;">
++              <tr style="background: var(--panel-2);">
++                <th style="padding: 0.5rem 0.75rem; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Producto</th>
++                <th style="padding: 0.5rem 0.75rem; text-align: right; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Precio actual</th>
++                <th style="padding: 0.5rem 0.75rem; text-align: center; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Ajuste</th>
++                <th style="padding: 0.5rem 0.75rem; text-align: right; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Nuevo precio</th>
++              </tr>
++            </thead>
++            <tbody id="bulk-preview-body"></tbody>
++          </table>
++        </div>
++      </div>
++
++      <!-- Confirmación final -->
++      <div id="bulk-confirm-banner" style="display: none; padding: 1rem; border-radius: 6px; background: color-mix(in srgb, var(--warning) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);">
++        <p style="margin: 0 0 0.75rem 0; font-size: 0.875rem;">
++          ¿Confirmas aplicar este ajuste a <strong id="bulk-confirm-count">0</strong> producto(s)? Esta acción actualizará los precios inmediatamente.
++        </p>
++        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
++          <button type="button" class="btn btn-ghost" id="bulk-confirm-cancel-btn" style="padding: 0.5rem 0.875rem; font-size: 0.85rem;">Volver</button>
++          <button type="button" class="btn" id="bulk-confirm-apply-btn" style="padding: 0.5rem 0.875rem; font-size: 0.85rem; --btn-bg: var(--warning); --btn-bg-2: #f59e0b;">Sí, aplicar cambios</button>
++        </div>
++      </div>
++
++      <div class="form-actions" id="bulk-main-actions" style="margin-top: 0.25rem; display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--panel); z-index: 10;">
++        <button type="button" class="btn btn-ghost" id="bulk-cancel-btn">Cancelar</button>
++        <button type="button" class="btn" id="bulk-review-btn" disabled>Revisar y aplicar</button>
++      </div>
++    </div>
++  </div>
++</div>
++
+ <style>
+   @keyframes spin {
+     to { transform: rotate(360deg); }
+@@ -561,11 +699,11 @@
+   }
+ 
+   @media (max-width: 768px) {
+-    .table th:nth-child(4), .table td:nth-child(4) { display: none; }
++    .table th:nth-child(5), .table td:nth-child(5) { display: none; }
+   }
+ 
+   @media (max-width: 640px) {
+-    .table th:nth-child(1), .table td:nth-child(1) { display: none; }
++    .table th:nth-child(2), .table td:nth-child(2) { display: none; }
+   }
+ 
+   /* Toggle Switch */
+@@ -654,6 +792,82 @@
+     font-size: 0.875rem;
+     font-weight: 500;
+   }
++
++  /* Selección masiva */
++  .row-select-checkbox, #select-all-checkbox {
++    width: 16px;
++    height: 16px;
++    cursor: pointer;
++    accent-color: var(--brand);
++  }
++
++  tr[data-id].row-selected {
++    background-color: color-mix(in srgb, var(--brand) 7%, transparent);
++  }
++
++  #bulk-actions-bar {
++    animation: modalSlideIn 0.15s ease;
++  }
++
++  /* Tarjetas de radio para el modo de ajuste */
++  .bulk-mode-option {
++    display: flex;
++    align-items: center;
++    gap: 0.5rem;
++    padding: 0.625rem 0.75rem;
++    border: 1px solid var(--border);
++    border-radius: 6px;
++    cursor: pointer;
++    font-size: 0.875rem;
++    transition: border-color 0.15s ease, background 0.15s ease;
++  }
++
++  .bulk-mode-option:has(input:checked) {
++    border-color: var(--brand);
++    background: color-mix(in srgb, var(--brand) 8%, transparent);
++    font-weight: 600;
++  }
++
++  .bulk-mode-option input { accent-color: var(--brand); cursor: pointer; }
++
++  #bulk-preview-body tr.preview-row-disabled { opacity: 0.55; }
++  #bulk-preview-body tr.preview-row-excluded { opacity: 0.4; text-decoration: line-through; }
++  #bulk-preview-body tr.preview-row-invalid td { color: var(--danger); }
++
++  #bulk-preview-body td {
++    padding: 0.5rem 0.75rem;
++    border-bottom: 1px solid var(--border);
++    font-size: 0.85rem;
++  }
++
++  #bulk-preview-body tr:last-child td { border-bottom: none; }
++
++  .preview-tag {
++    display: inline-block;
++    font-size: 0.65rem;
++    font-weight: 700;
++    text-transform: uppercase;
++    letter-spacing: 0.03em;
++    padding: 0.1rem 0.4rem;
++    border-radius: 4px;
++    margin-left: 0.4rem;
++    vertical-align: middle;
++  }
++
++  .preview-tag.disabled-tag {
++    background: color-mix(in srgb, var(--text-muted) 20%, transparent);
++    color: var(--text-muted);
++  }
++
++  .preview-tag.negative-tag {
++    background: color-mix(in srgb, var(--danger) 15%, transparent);
++    color: var(--danger);
++  }
++
++  #bulk-price-btn:disabled, #bulk-review-btn:disabled {
++    opacity: 0.5;
++    cursor: not-allowed;
++  }
+ </style>
+ 
+ 
