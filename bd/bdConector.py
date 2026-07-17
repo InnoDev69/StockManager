@@ -430,6 +430,10 @@ class BDConector(
 
         Returns:
             int: Total de filas afectadas
+            
+        Example:
+            items = [(1, 'Item A', 10), (2, 'Item B', 5)]
+            db.execute_many("INSERT INTO items (id, name, quantity) VALUES (?, ?, ?)", items)
         """
         with self._cursor() as cur:
             cur.executemany(query, params_list)

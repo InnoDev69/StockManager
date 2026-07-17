@@ -530,3 +530,51 @@ def activate_product(product_id):
     except Exception as e:
         logger.exception(f"Error al activar producto {product_id}: {str(e)}")
         return jsonify({"error": "Error interno"}), 500
+    
+@products_api.route("/products/update_price_bulk", methods=["POST"])
+@require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "update_price_bulk")
+def update_price_bulk():
+    """
+    Actualiza el precio de múltiples productos en una sola operación.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Request Body (JSON):
+        products (list): Lista de objetos con 'id' y 'new_price'
+            - id (int): ID del producto
+            - new_price (float): Nuevo precio
+    
+    Returns:
+        JSON: {"message": "Precios actualizados exitosamente"}
+    
+    Status Codes:
+        200: Precios actualizados exitosamente
+        400: Datos inválidos
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+        500: Error en la base de datos
+    """
+    
+    data = request.get_json()
+    
+    if not data or "products" not in data or not isinstance(data["products"], list):
+        return jsonify({"error": "Datos inválidos"}), 400
+    
+    try:
+        for item in data["products"]:
+            product_id = item.get("id")
+            new_price = item.get("new_price")
+            
+            query = "UPDATE items SET price = ?, updated_at = ? WHERE id = ?"
+            db.execute_many(query, [(new_price, localDate(), product_id)])
+        
+        db.create_notification(user_id=session.get('user_id'), title="Precios actualizados", message=f"Los precios de los productos han sido actualizados.", notification_type='success')
+        notify_user(session.get('user_id'))
+        
+        return jsonify({"message": "Precios actualizados exitosamente"}), 200
+    
+    except Exception as e:
+        logger.exception(f"Error al actualizar precios en bulk: {str(e)}")
+        return jsonify({"error": "Error interno"}), 500
