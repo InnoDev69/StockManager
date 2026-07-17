@@ -6,6 +6,8 @@
   <meta name="color-scheme" content="dark">
   <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/feature-highlights.css') }}">
+  <script src="{{ url_for('static', filename='js/feature-highlights.js') }}"></script>
   <script>
     window.ROLES = {
       ADMIN:  "{{ ROLES.ADMIN }}",

@@ -1,0 +1,91 @@
+/* feature-highlights.css — tag "NUEVO" pulsante + tooltip.
+   Todo lo agrega feature-highlights.js (clase fh-anchor, fh-badge,
+   fh-tooltip, y el atributo data-seen) — no hace falta tocar nada acá
+   por template, solo cargar este archivo una vez. */
+
+.fh-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.fh-badge {
+  position: absolute;
+  /* Adentro del borde, no sobresaliendo: si sobresaliera (offset
+     negativo) y el contenedor padre tuviera overflow:hidden (común en
+     cards con bordes redondeados), quedaría cortado sin que nada acá
+     lo pueda arreglar. Si tu card SÍ tiene overflow visible y querés
+     el look "medio afuera", cambiá top/right a valores negativos. */
+  top: 6px;
+  right: 6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 20;
+  animation: fh-pulse 1.6s infinite;
+}
+
+.fh-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #111827;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  padding: 9px 13px;
+  border-radius: 10px;
+  text-align: center;
+  /* Crece con el contenido hasta max-width, y recién ahí hace salto
+     de línea — así se ve bien tanto con 20 como con 100 caracteres. */
+  white-space: normal;
+  width: max-content;
+  min-width: 90px;
+  max-width: 260px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 30;
+}
+
+.fh-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #111827;
+}
+
+.fh-anchor[data-seen="false"]:hover .fh-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.fh-anchor[data-seen="true"] .fh-badge,
+.fh-anchor[data-seen="true"] .fh-tooltip {
+  display: none;
+}
+
+@keyframes fh-pulse {
+  0% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 2px rgba(239, 68, 68, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
