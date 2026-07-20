@@ -12,6 +12,9 @@ from bd.bdErrors import DatabaseError
 from api.error_handlers import handle_db_error
 import sqlite3
 from data.roles import ROLES
+from services import cache_service
+from data.limits import Limits
+import requests
 
 ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
 
@@ -563,12 +566,28 @@ def update_price_bulk():
         return jsonify({"error": "Datos inválidos"}), 400
     
     try:
+        params_list = []
+
         for item in data["products"]:
             product_id = item.get("id")
             new_price = item.get("new_price")
+
+            if product_id is None:
+                return jsonify({"error": "Cada producto requiere id"}), 400
+
+            if not isinstance(new_price, (int, float)):
+                return jsonify({"error": "Cada producto requiere un precio numérico"}), 400
+
+            if new_price < 0 or new_price > Limits.ITEM_PRICE_MAX:
+                return jsonify({
+                    "error": f"El precio debe estar entre 0 y {Limits.ITEM_PRICE_MAX}"
+                }), 400
             
+            params_list.append((new_price, localDate(), product_id))
+
+        if params_list:
             query = "UPDATE items SET price = ?, updated_at = ? WHERE id = ?"
-            db.execute_many(query, [(new_price, localDate(), product_id)])
+            db.execute_many(query, params_list)
         
         db.create_notification(user_id=session.get('user_id'), title="Precios actualizados", message=f"Los precios de los productos han sido actualizados.", notification_type='success')
         notify_user(session.get('user_id'))
@@ -578,3 +597,62 @@ def update_price_bulk():
     except Exception as e:
         logger.exception(f"Error al actualizar precios en bulk: {str(e)}")
         return jsonify({"error": "Error interno"}), 500
+    
+OFF_DOMAINS = {
+    "food": "world.openfoodfacts.org",
+    "beauty": "world.openbeautyfacts.org",
+    "petfood": "world.openpetfoodfacts.org",
+    "product": "world.openproductsfacts.org",
+}
+
+HEADERS = {"User-Agent": "Stockly - Python - Version 1.0"}
+
+def fetch_off_product(barcode, domain="world.openfoodfacts.org"):
+    url = f"https://{domain}/api/v0/product/{barcode}.json"
+    return requests.get(url, timeout=5, headers=HEADERS)
+
+@products_api.route("/products/info/<string:barcode>", methods=["GET"])
+@require_auth
+def get_product_info(barcode):
+    """
+    Obtiene información de un producto por su código de barras a través de la API de OpenFoodFacts.
+    """
+    # Primero intenta obtener el producto del cache
+    cached_data = cache_service.get(f"product:{barcode}")
+    if cached_data:
+        return jsonify(cached_data), 200
+
+    try:
+        response = fetch_off_product(barcode)
+    except requests.RequestException:
+        return jsonify({"error": "No se pudo conectar con OpenFoodFacts"}), 502
+
+    data = response.json() if response.content else {}
+
+    if response.status_code == 404 and "different product type" in data.get("status_verbose", ""):
+        other_type = data["status_verbose"].split(":")[-1].strip()
+        other_domain = OFF_DOMAINS.get(other_type)
+        if other_domain:
+            try:
+                response = fetch_off_product(barcode, domain=other_domain)
+                data = response.json() if response.content else {}
+            except requests.RequestException:
+                return jsonify({"error": "No se pudo conectar con OpenFoodFacts"}), 502
+
+    if response.status_code != 200:
+        return jsonify({"error": "Error al consultar OpenFoodFacts"}), 500
+
+    if data.get("status") != 1:
+        return jsonify({"error": "Producto no encontrado en OpenFoodFacts"}), 404
+
+    product_data = data.get("product", {})
+    product_json = {
+        "barcode": barcode,
+        "name": product_data.get("product_name", ""),
+        "description": product_data.get("generic_name", ""),
+        "brands": product_data.get("brands", ""),
+        "categories": product_data.get("categories", ""),
+        "image_url": product_data.get("image_url", "")
+    }
+    cache_service.set(f"product:{barcode}", product_json, ttl=3600)  # Cache para 1 hora
+    return jsonify(product_json), 200 

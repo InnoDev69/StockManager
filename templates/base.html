@@ -206,6 +206,17 @@
           </svg>
           Configuracion
         </a>
+        <a href="{{ url_for('changelog.changelog_view') }}" 
+        class="sb__menu-item" role="menuitem"
+        data-feature-id="new_changelogs_feature"
+        data-feature-text="Nuevo apartado de Novedades"
+        data-feature-glow>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Novedades
+        </a>
         <div class="sb__menu-divider"></div>
         <a href="{{ url_for('auth.logout') }}" class="sb__menu-item sb__menu-item--danger" role="menuitem">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

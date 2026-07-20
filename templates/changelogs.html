@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Novedades{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Novedades</h1>
+    <p class="page-subtitle">Todo lo que fue cambiando en Stockly, versión por versión.</p>
+  </div>
+
+  <div
+    id="changelog-list"
+    class="list"
+    aria-live="polite"
+    data-current-version="{{ current_version or '' }}"
+  ></div>
+
+  <p id="changelog-empty" class="page-subtitle" hidden>
+    No pudimos traer las novedades ahora mismo. Probá de nuevo más tarde.
+  </p>
+
+  <div class="back-footer">
+    <button id="changelog-load-more" class="btn btn-ghost" type="button" hidden>
+      Ver más versiones
+    </button>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/changelog.js') }}" defer></script>
+{% endblock %}

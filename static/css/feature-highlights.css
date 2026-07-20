@@ -89,3 +89,54 @@
     box-shadow: 0 0 0 2px #fff, 0 0 0 0 rgba(239, 68, 68, 0);
   }
 }
+
+/* --- Aura neón ------------------------------------------------------ */
+/* Modo default: rainbow. Alternativas via JS: "random" (color fijo al
+   azar por elemento) o cualquier color CSS válido (sólido).
+   Se dibuja con ::before para no agregar más nodos al DOM. */
+
+.fh-anchor::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: var(--fh-glow-radius, 10px);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.fh-anchor[data-seen="false"]::before {
+  opacity: 1;
+  /* #ff2d78 es solo el fallback si nadie seteó --fh-glow-color (no
+     debería pasar nunca vía JS, pero por si se usa el atributo a
+     mano sin pasar por buildBadge/applyGlow). El color real lo pone
+     el JS con el.style.setProperty("--fh-glow-color", ...). */
+  box-shadow:
+    0 0 6px 1px var(--fh-glow-color, #ff2d78),
+    0 0 14px 3px var(--fh-glow-color, #ff2d78),
+    0 0 26px 7px var(--fh-glow-color, #ff2d78);
+  animation: fh-glow-pulse 1.8s ease-in-out infinite;
+}
+
+/* rainbow: rota el matiz sobre el color base, sin depender de animar
+   custom properties de color (soporte parejo entre motores) */
+.fh-anchor[data-glow="rainbow"][data-seen="false"]::before {
+  animation:
+    fh-glow-pulse 1.8s ease-in-out infinite,
+    fh-hue-rotate 3s linear infinite;
+}
+
+@keyframes fh-glow-pulse {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50%      { filter: brightness(1.4) saturate(1.2); }
+}
+
+@keyframes fh-hue-rotate {
+  from { filter: brightness(1.15) hue-rotate(0deg); }
+  to   { filter: brightness(1.15) hue-rotate(360deg); }
+}
+
+.fh-anchor[data-seen="true"]::before {
+  display: none;
+}

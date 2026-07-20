@@ -12,6 +12,7 @@ from api.debug_api import debug_bp
 from api.applications_api import applications_api
 from api.audit_api import audit_api
 from api.feature_highlights import bp as feature_highlights_bp
+from api.changelog_api import changelog_bp
 
 api_bp.register_blueprint(products_api)
 api_bp.register_blueprint(sales_api)
@@ -23,3 +24,4 @@ api_bp.register_blueprint(debug_bp)
 api_bp.register_blueprint(applications_api)
 api_bp.register_blueprint(audit_api)
 api_bp.register_blueprint(feature_highlights_bp)
+api_bp.register_blueprint(changelog_bp)

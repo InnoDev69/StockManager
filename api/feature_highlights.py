@@ -25,11 +25,13 @@ bp = Blueprint("feature_highlights", __name__)
 @bp.route("/ui/is-new", methods=["GET"])
 def get_is_new():
     """retorna si el usuario a abierto la app por primera vez desde la instalación"""
-    if config.get("app.has_launched_before") is None or config.get("app.has_launched_before") is False:
+    has_launched_before = bool(config.get("app.has_launched_before"))
+
+    if not has_launched_before:
         config.set("app.has_launched_before", True)
-        return jsonify({"is_new": True}) #Cambiar luego de la nueva release asi todos los usuarios vean el highlight de la nueva feature
-    else:
-        return jsonify({"is_new": config.get("app.has_launched_before")})
+        return jsonify({"is_new": True})
+
+    return jsonify({"is_new": False})
 
 @bp.route("/ui/seen-highlights", methods=["GET"])
 def get_seen_highlights():

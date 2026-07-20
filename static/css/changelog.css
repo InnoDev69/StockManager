@@ -1,0 +1,79 @@
+/* changelog.css — usa exclusivamente los tokens ya definidos en
+   _variables.css / _components.css, no introduce colores nuevos. */
+
+.changelog-card {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.changelog-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.changelog-body h4 {
+  margin: var(--spacing-md) 0 var(--spacing-xs) 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.changelog-body h4:first-child {
+  margin-top: 0;
+}
+
+.changelog-body p {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.changelog-body ul,
+.changelog-body ol {
+  margin: 0 0 var(--spacing-sm) 0;
+  padding-left: 1.2em;
+  color: var(--text-muted);
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.changelog-body li {
+  line-height: 1.5;
+}
+
+.changelog-body a {
+  color: var(--brand-2);
+  text-decoration: none;
+}
+
+.changelog-body a:hover {
+  text-decoration: underline;
+}
+
+.changelog-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.changelog-body pre {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.changelog-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+#changelog-load-more {
+  margin-inline: auto;
+}

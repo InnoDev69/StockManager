@@ -54,18 +54,35 @@ def get_inventory_forecast(start_date, end_date):
     """
     with db.transaction() as cur:
         cur.execute("""
-            SELECT 
-                id, name, barrs_code, quantity, min_quantity,
-                COALESCE((
-                    SELECT SUM(d.quantity)
-                    FROM details d
-                    JOIN sells s ON d.sell_id = s.id
-                    WHERE d.item_id = items.id
-                    AND DATE(s.date) BETWEEN ? AND ?
-                ), 0) as units_sold
-            FROM items
-            WHERE status = 1
-            ORDER BY quantity ASC
+            SELECT
+            i.id,
+            i.name,
+            i.barrs_code,
+            i.quantity,
+            i.min_quantity,
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN DATE(s.date) BETWEEN ? AND ?
+                        THEN d.quantity
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS units_sold
+        FROM items i
+        LEFT JOIN details d
+            ON d.item_id = i.id
+        LEFT JOIN sells s
+            ON s.id = d.sell_id
+        WHERE i.status = 1
+        GROUP BY
+            i.id,
+            i.name,
+            i.barrs_code,
+            i.quantity,
+            i.min_quantity
+        ORDER BY i.quantity ASC;
         """, (start_date, end_date))
         
         items = cur.fetchall()
@@ -73,26 +90,31 @@ def get_inventory_forecast(start_date, end_date):
                       datetime.strptime(start_date, '%Y-%m-%d')).days + 1
         
         forecast = []
-        for item in items:
-            item_id, name, sku, stock, min_qty, units_sold = item
+        for (item_id, name, sku, stock, min_qty, units_sold) in items:
             
-            if units_sold == 0:
-                days_left = None
-                daily_avg = 0
-                rotation = 0
+            daily_avg = units_sold / period_days if units_sold else 0
+
+            days_left = (
+                int(stock / daily_avg)
+                if daily_avg
+                else None
+            )
+
+            rotation = (
+                round(units_sold / stock, 2)
+                if stock
+                else 0
+            )
+
+            if days_left is None:
                 status = "normal"
+            elif days_left <= 3:
+                status = "danger"
+            elif days_left <= 7:
+                status = "warning"
             else:
-                daily_avg = units_sold / period_days
-                days_left = int(stock / daily_avg) if daily_avg > 0 else None
-                rotation = round((units_sold / stock), 2) if stock > 0 else 0
-                
-                if days_left and days_left <= 3:
-                    status = "danger"
-                elif days_left and days_left <= 7:
-                    status = "warning"
-                else:
-                    status = "normal"
-            
+                status = "normal"
+
             forecast.append({
                 "id": item_id,
                 "name": name,
@@ -103,7 +125,7 @@ def get_inventory_forecast(start_date, end_date):
                 "dailyAverage": round(daily_avg, 2),
                 "daysRemaining": days_left,
                 "rotation": rotation,
-                "status": status
+                "status": status,
             })
         
         return sorted([f for f in forecast if f["daysRemaining"] is not None], 

@@ -798,19 +798,48 @@
     const body = $('bulk-preview-body');
     if (!body) return;
     if (rows.length === 0) {
-      body.innerHTML = '';
+      body.replaceChildren();
       return;
     }
-    let html = '';
+
+    body.replaceChildren();
     rows.forEach(r => {
-      html += '<tr class="' + (r.negative ? 'preview-row-invalid' : '') + '">' +
-        '<td>' + escapeHtml(r.name) + (r.disabled ? '<span class="preview-tag disabled-tag">Deshabilitado</span>' : '') + '</td>' +
-        '<td style="text-align:right;" class="mono">$' + r.currentPrice.toFixed(2) + '</td>' +
-        '<td style="text-align:center;">' + r.adjustmentLabel + '</td>' +
-        '<td style="text-align:right;" class="mono">' + (r.negative ? '<span class="preview-tag negative-tag">Inválido</span>' : '$' + r.newPrice.toFixed(2)) + '</td>' +
-      '</tr>';
+      const row = document.createElement('tr');
+      if (r.negative) row.className = 'preview-row-invalid';
+
+      const nameCell = document.createElement('td');
+      nameCell.append(document.createTextNode(r.name));
+      if (r.disabled) {
+        const disabledTag = document.createElement('span');
+        disabledTag.className = 'preview-tag disabled-tag';
+        disabledTag.textContent = 'Deshabilitado';
+        nameCell.appendChild(disabledTag);
+      }
+
+      const currentPriceCell = document.createElement('td');
+      currentPriceCell.style.textAlign = 'right';
+      currentPriceCell.className = 'mono';
+      currentPriceCell.textContent = '$' + r.currentPrice.toFixed(2);
+
+      const adjustmentCell = document.createElement('td');
+      adjustmentCell.style.textAlign = 'center';
+      adjustmentCell.textContent = r.adjustmentLabel;
+
+      const newPriceCell = document.createElement('td');
+      newPriceCell.style.textAlign = 'right';
+      newPriceCell.className = 'mono';
+      if (r.negative) {
+        const invalidTag = document.createElement('span');
+        invalidTag.className = 'preview-tag negative-tag';
+        invalidTag.textContent = 'Inválido';
+        newPriceCell.appendChild(invalidTag);
+      } else {
+        newPriceCell.textContent = '$' + r.newPrice.toFixed(2);
+      }
+
+      row.append(nameCell, currentPriceCell, adjustmentCell, newPriceCell);
+      body.appendChild(row);
     });
-    body.innerHTML = html;
   }
 
   function updateBulkPreview() {
