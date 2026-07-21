@@ -656,3 +656,64 @@ def get_product_info(barcode):
     }
     cache_service.set(f"product:{barcode}", product_json, ttl=3600)  # Cache para 1 hora
     return jsonify(product_json), 200 
+
+@products_api.route("/products/stock_update_bulk", methods=["POST"])
+@require_role(ROLES.ADMIN, ROLES.ROOT)
+@audit_action("product", "stock_update_bulk")
+def stock_update_bulk():
+    """
+    Actualiza el stock de múltiples productos en una sola operación.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Request Body (JSON):
+        products (list): Lista de objetos con 'id' y 'new_stock'
+            - id (int): ID del producto
+            - new_stock (int): Nuevo stock
+    
+    Returns:
+        JSON: {"message": "Stock actualizado exitosamente"}
+    
+    Status Codes:
+        200: Stock actualizado exitosamente
+        400: Datos inválidos
+        401: No autorizado
+        403: Permiso denegado (no es admin)
+        500: Error en la base de datos
+    """
+    
+    data = request.get_json()
+    
+    if not data or "products" not in data or not isinstance(data["products"], list):
+        return jsonify({"error": "Datos inválidos"}), 400
+    
+    try:
+        params_list = []
+
+        for item in data["products"]:
+            product_id = item.get("id")
+            new_stock = item.get("new_stock")
+
+            if product_id is None:
+                return jsonify({"error": "Cada producto requiere id"}), 400
+
+            if not isinstance(new_stock, int) or new_stock < 0:
+                return jsonify({"error": "Cada producto requiere un stock entero no negativo"}), 400
+            
+            params_list.append((new_stock, localDate(), product_id))
+
+        if params_list:
+            query = "UPDATE items SET quantity = ?, updated_at = ? WHERE id = ?"
+            db.execute_many(query, params_list)
+        
+        db.check_and_notify_low_stock(session.get('user_id'))
+        
+        db.create_notification(user_id=session.get('user_id'), title="Stock actualizado", message=f"El stock de los productos ha sido actualizado.", notification_type='success')
+        notify_user(session.get('user_id'))
+        
+        return jsonify({"message": "Stock actualizado exitosamente"}), 200
+    
+    except Exception as e:
+        logger.exception(f"Error al actualizar stock en bulk: {str(e)}")
+        return jsonify({"error": "Error interno"}), 500

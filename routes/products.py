@@ -413,3 +413,20 @@ def download_barcodes_pdf():
     except Exception as e:
         logger.error(f"Error generando PDF: {e}")
         return jsonify({"error": str(e)}), 500
+    
+@products_bp.route("/products/barcodes/print", methods=["GET"])
+@require_role(ROLES.ADMIN, ROLES.ROOT)
+def stock_scan():
+    """
+    Vista para escanear códigos de barras y actualizar stock.
+    
+    Permite a los usuarios escanear productos y ajustar cantidades en tiempo real.
+    Solo accesible para administradores.
+    
+    Requiere login: True.
+    Requiere rol: admin.
+    
+    Returns:
+        Template: stock_scan.html con interfaz de escaneo
+    """
+    return render_template("stock_scan.html", role=session.get("role", ROLES.VENDOR))

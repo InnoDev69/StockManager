@@ -275,7 +275,8 @@ function showAutofillConfirmModal(data) {
   const someFieldsSkipped = (!!data.name && !canFillName) || (!!data.description && !canFillDescription);
 
   const modalHtml = `
-    <div id="autofillModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
+    <div data-feature-id="product-autofill" data-feature-text="Caracteristica de autocompletado" 
+    data-feature-glow id="autofillModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
                               background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
                               z-index:1001; animation:fadeIn .2s ease; padding: 1rem;">
       <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
@@ -369,8 +370,8 @@ function applyAutofill(data, flags) {
     filledCount++;
   }
 
-  if (filledCount > 0 && typeof showToast === 'function') {
-    showToast('Formulario completado con la información encontrada.', 'success');
+    if (filledCount > 0 && typeof NotificationManager !== 'undefined') {
+    NotificationManager.success('Formulario completado con la información encontrada.');
   }
 }
 

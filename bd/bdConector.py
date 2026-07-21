@@ -6,7 +6,6 @@ from bd.bdErrors import *
 from data.roles import ROLES
 from data.variables import Var
 from tools.logger import logger
-from tools.timmer import measure_time
 
 from bd.mixins.users import UsersMixin
 from bd.mixins.items import ItemsMixin
@@ -465,7 +464,6 @@ class BDConector(
         """Obtiene todas las filas (alias para clarity)."""
         return self.execute_query(query, params)
 
-    @measure_time
     def execute_query(self, query, params=(), fetch=True):
         """
         Ejecuta una consulta SQL arbitraria con parámetros seguros.
