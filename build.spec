@@ -62,8 +62,6 @@ a = Analysis(
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
-        ('bd', 'bd'),
-        ('api', 'api'),
         ('.env', '.'),
     ] + webview_datas + gi_datas + collect_data_files('barcode'),
     hiddenimports=[
