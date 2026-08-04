@@ -1,0 +1,272 @@
+/* stock-scan.css — usa exclusivamente tokens de _variables.css. */
+
+/* Bug fix: .alert trae display:flex por defecto, que le gana en
+   especificidad al [hidden] nativo del navegador (mismo peso de
+   selector, pero el author-stylesheet gana sobre el UA-stylesheet).
+   Sin esto, #scan-error se ve como una caja vacía aunque tenga el
+   atributo hidden. */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Zona de escaneo ---------- */
+
+.scan-zone {
+  position: relative;
+}
+
+.scan-zone-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.scan-zone-icon {
+  position: absolute;
+  left: var(--spacing-lg);
+  display: flex;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+#scan-barcode-input {
+  font-size: 1.15rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  padding: 0.95rem 1rem 0.95rem 3.1rem;
+  border-radius: var(--radius-md);
+  border-width: 2px;
+  background: var(--panel-2);
+  transition: border-color 0.15s ease, box-shadow 0.2s ease, background 0.15s ease;
+}
+
+#scan-barcode-input:focus {
+  background: var(--card);
+  border-color: var(--brand-2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 20%, transparent);
+}
+
+#scan-barcode-input:focus + .scan-zone-icon,
+.scan-zone-input-wrap:has(#scan-barcode-input:focus) .scan-zone-icon {
+  color: var(--brand-2);
+}
+
+.scan-zone-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.scan-zone-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.scan-zone-input-wrap:has(#scan-barcode-input:focus) ~ .scan-zone-status .scan-zone-status-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent);
+  animation: scan-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes scan-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--success) 10%, transparent); }
+}
+
+/* ---------- Resumen ---------- */
+
+.scan-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+.scan-summary-item {
+  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-2);
+}
+
+.scan-summary-item .stat-value {
+  font-size: 1.75rem;
+}
+
+/* ---------- Tabla ---------- */
+
+.scan-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.scan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.scan-table thead th {
+  text-align: left;
+  padding: var(--spacing-md);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.scan-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.scan-table tbody tr:hover {
+  background: color-mix(in srgb, var(--brand) 4%, transparent);
+}
+
+.scan-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+.scan-table td {
+  padding: var(--spacing-md);
+  vertical-align: middle;
+}
+
+.scan-table tbody tr.scan-row-flash {
+  animation: scan-row-flash 0.7s ease;
+}
+
+@keyframes scan-row-flash {
+  0%   { background: color-mix(in srgb, var(--success) 18%, transparent); }
+  100% { background: transparent; }
+}
+
+.scan-cell-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scan-cell-code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.scan-cell-stock,
+.scan-cell-result {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.scan-cell-result {
+  font-weight: 700;
+  color: var(--success);
+}
+
+.scan-table-empty-row td {
+  border-bottom: none !important;
+}
+
+.scan-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-4xl) var(--spacing-md);
+  color: var(--text-muted);
+}
+
+.scan-empty-state svg {
+  opacity: 0.5;
+}
+
+.scan-empty-state-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scan-empty-state-subtitle {
+  font-size: 0.88rem;
+  max-width: 320px;
+  text-align: center;
+}
+
+/* ---------- Controles de cantidad ---------- */
+
+.scan-qty-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  background: var(--panel-2);
+}
+
+.scan-qty-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+}
+
+.scan-qty-btn:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+.scan-qty-input {
+  width: 46px;
+  text-align: center;
+  padding: 0.25rem 0.1rem;
+  border: none;
+  background: transparent;
+  font-weight: 600;
+}
+
+.scan-qty-input:focus {
+  box-shadow: none;
+  outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent);
+  border-radius: 4px;
+}
+
+.scan-remove-btn {
+  color: var(--text-muted);
+}
+
+.scan-remove-btn:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* ---------- Acciones ---------- */
+
+.scan-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.scan-actions-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

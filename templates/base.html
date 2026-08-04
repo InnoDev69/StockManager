@@ -163,6 +163,19 @@
           Codigos de barras
         </a>
         {% endif %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+        <a href="/products/barcodes/print" class="sb__action"
+        data-feature-id="barcode_update_stock_feature"
+        data-feature-text="Nuevo apartado de actualización de stock"
+        data-feature-glow>
+          <span class="sb__action-icon sb__action-icon--purple">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+            </svg>
+          </span>
+          Scanear stock
+        </a>
+        {% endif %}
         {% endif %}
         {% endblock %}
       </div>
@@ -205,6 +218,17 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           Configuracion
+        </a>
+        <a href="{{ url_for('changelog.changelog_view') }}" 
+        class="sb__menu-item" role="menuitem"
+        data-feature-id="new_changelogs_feature"
+        data-feature-text="Nuevo apartado de Novedades"
+        data-feature-glow>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Novedades
         </a>
         <div class="sb__menu-divider"></div>
         <a href="{{ url_for('auth.logout') }}" class="sb__menu-item sb__menu-item--danger" role="menuitem">

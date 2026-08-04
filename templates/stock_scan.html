@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Reposición por escáner{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Reposición de stock por escáner</h1>
+    <p class="page-subtitle">Escaneá códigos de barras uno tras otro. El foco vuelve solo al campo después de cada lectura.</p>
+  </div>
+
+  <div class="card" style="display: grid; gap: var(--spacing-xl);">
+    <div class="scan-zone">
+      <label class="label" for="scan-barcode-input">Escaneá o escribí un código de barras</label>
+      <div class="scan-zone-input-wrap">
+        <input
+          type="text"
+          id="scan-barcode-input"
+          inputmode="none"
+          autocomplete="off"
+          placeholder="Esperando escaneo…"
+          autofocus
+        />
+        <span class="scan-zone-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 5v14M7 5v14M10 5v14M13 5v10M16 5v14M19 5v10M21 5v14" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+      <div class="scan-zone-status">
+        <span class="scan-zone-status-dot" aria-hidden="true"></span>
+        <span>Listo para escanear — cada lectura se agrega sola a la lista</span>
+      </div>
+    </div>
+
+    <div id="scan-error" class="alert alert-danger" hidden></div>
+
+    <div class="scan-summary">
+      <div class="scan-summary-item">
+        <span class="stat-label">Productos distintos</span>
+        <span id="scan-summary-count" class="stat-value">0</span>
+      </div>
+      <div class="scan-summary-item">
+        <span class="stat-label">Unidades totales</span>
+        <span id="scan-summary-total" class="stat-value">0</span>
+      </div>
+    </div>
+
+    <div class="scan-table-wrap">
+      <table class="scan-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Stock actual</th>
+            <th>Cantidad</th>
+            <th>Stock resultante</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="scan-table-body">
+          <tr id="scan-table-empty" class="scan-table-empty-row">
+            <td colspan="6">
+              <div class="scan-empty-state">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 5v14M7 5v14M10 5v14M13 5v10M16 5v14M19 5v10M21 5v14" stroke-linecap="round" />
+                </svg>
+                <span class="scan-empty-state-title">Todavía no escaneaste ningún producto</span>
+                <span class="scan-empty-state-subtitle">Apuntá el lector al primer código de barras para empezar la lista.</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scan-actions">
+      <span class="scan-actions-hint">Los cambios se aplican recién al confirmar.</span>
+      <button type="button" id="scan-confirm-btn" class="btn" disabled>
+        Confirmar reposición
+      </button>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/stock-scan.css') }}">
+<script src="{{ url_for('static', filename='js/stock-scan.js') }}" defer></script>
+{% endblock %}
