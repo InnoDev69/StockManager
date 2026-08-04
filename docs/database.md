@@ -410,7 +410,7 @@ db.add_user(
 
 ```python
 from bd.bdInstance import db
-from tools.local_time import localDate
+from miscellaneous import localDate
 
 db.add_item(
     barrs_code="PRD0001",

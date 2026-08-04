@@ -95,7 +95,7 @@ except DatabaseError as e:
 
 ## 4. Audit Logging
 
-The project uses `tools/audit_decorator.py` to automatically record important user actions.
+The project uses `miscellaneous/audit_decorator.py` to automatically record important user actions.
 
 ### 4.1 What the decorator does
 
@@ -714,7 +714,7 @@ def create_thing():
 If you want a full picture of the data flow, read this document together with:
 
 - `docs/database.md` for the schema and connector layer
-- `tools/audit_decorator.py` for audit generation rules
+- `miscellaneous/audit_decorator.py` for audit generation rules
 - `api/error_handlers.py` for response normalization
 - `api/auth_utils.py` for auth and role gating
 

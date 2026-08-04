@@ -10,18 +10,17 @@ from time import perf_counter
 
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
-from api import api_bp
-from data.variables import Var
-from routes import all_blueprints
-from data.limits import Limits
-from tools.logger import logger
-from tools.scheduler import SCHEDULER
-from bd.bdInstance import db
+from server.api import api_bp
+from miscellaneous import Var
+from server.routes import all_blueprints
+from miscellaneous import Limits
+from miscellaneous import logger, SCHEDULER
+from server.bd.bdInstance import db
 from waitress import create_server
-from data.roles import ROLES
+from miscellaneous import ROLES
 
-from config import config  # Asegura que se carguen los módulos de configuración
-from services import backup_service
+from client.config import config  # Asegura que se carguen los módulos de configuración
+from server.services import backup_service
 
 t0 = perf_counter()
 logger.info("boot:start", source="ROOT")
@@ -30,7 +29,7 @@ load_dotenv()
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 
-WAITRESS_THREADS = 8
+WAITRESS_THREADS = 4
 FLASK_HOST = '127.0.0.1'
 FLASK_PORT = 5000
 APP_LOGGER_NAME = "ROOT"
@@ -214,6 +213,7 @@ if __name__ == "__main__":
         if sys.platform == "linux":
             os.environ.setdefault("PYWEBVIEW_GTK", "1")
             os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+            os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
             import io
             import contextlib
             with contextlib.redirect_stderr(io.StringIO()):
