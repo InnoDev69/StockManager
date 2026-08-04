@@ -41,24 +41,41 @@ class CreditMixin:
 
     # ---------- Saldo ----------
 
-    def get_customer_balance(self, customer_id):
+    def get_customer_balance(self, customer_id, cur=None):
         """
         Retorna el saldo pendiente del cliente (positivo = debe).
         """
-        row = self.get_single_row(
-            """
-            SELECT COALESCE(SUM(
-                CASE
-                    WHEN type = 'DEBT' THEN amount
-                    WHEN type = 'PAYMENT' THEN -amount
-                    WHEN type = 'ADJUSTMENT' THEN amount
-                END
-            ), 0)
-            FROM account_movements
-            WHERE customer_id = ?
-            """,
-            (customer_id,),
-        )
+        if cur is not None:
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(
+                    CASE
+                        WHEN type = 'DEBT' THEN amount
+                        WHEN type = 'PAYMENT' THEN -amount
+                        WHEN type = 'ADJUSTMENT' THEN amount
+                    END
+                ), 0)
+                FROM account_movements
+                WHERE customer_id = ?
+                """,
+                (customer_id,),
+            )
+            row = cur.fetchone()
+        else:
+            row = self.get_single_row(
+                """
+                SELECT COALESCE(SUM(
+                    CASE
+                        WHEN type = 'DEBT' THEN amount
+                        WHEN type = 'PAYMENT' THEN -amount
+                        WHEN type = 'ADJUSTMENT' THEN amount
+                    END
+                ), 0)
+                FROM account_movements
+                WHERE customer_id = ?
+                """,
+                (customer_id,),
+            )
         return row[0] if row else 0.0
 
     def get_customer_movements(self, customer_id, limit=50):
@@ -86,13 +103,17 @@ class CreditMixin:
         Valida límite de crédito antes de insertar. Si `force=True` (uso
         admin vía require_role), permite superar el límite igual.
         """
-        customer = self.get_customer(customer_id)
+        cur.execute(
+            "SELECT id, name, phone, credit_limit, status FROM customers WHERE id = ?",
+            (customer_id,),
+        )
+        customer = cur.fetchone()
         if not customer:
             raise DatabaseError(f"Cliente {customer_id} no existe")
 
         credit_limit = customer[3]
         if credit_limit is not None and not force:
-            current_balance = self.get_customer_balance(customer_id)
+            current_balance = self.get_customer_balance(customer_id, cur=cur)
             if current_balance + amount_due > credit_limit:
                 raise CreditLimitExceededError(
                     f"Cliente {customer_id} supera el límite de crédito "

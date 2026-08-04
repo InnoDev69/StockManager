@@ -78,8 +78,18 @@ function initProductFormSubmit() {
     const errors = validateProductForm(form);
     if (errors.length > 0) {
       if (globalError) {
-        globalError.innerHTML = '<strong>Por favor, corrige los siguientes errores:</strong><ul style="margin: 0.5rem 0 0; padding-left: 1.5rem;">' +
-          errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+        const message = document.createElement('strong');
+        message.textContent = 'Por favor, corrige los siguientes errores:';
+
+        const list = document.createElement('ul');
+        list.style.cssText = 'margin: 0.5rem 0 0; padding-left: 1.5rem;';
+        errors.forEach(errorText => {
+          const item = document.createElement('li');
+          item.textContent = errorText;
+          list.appendChild(item);
+        });
+
+        globalError.replaceChildren(message, list);
         globalError.style.display = 'block';
       }
       return;
@@ -274,70 +284,140 @@ function showAutofillConfirmModal(data) {
   const extraInfo = [data.brands, data.categories].filter(Boolean).join(' · ');
   const someFieldsSkipped = (!!data.name && !canFillName) || (!!data.description && !canFillDescription);
 
-  const modalHtml = `
-    <div data-feature-id="product-autofill" data-feature-text="Caracteristica de autocompletado" 
-    data-feature-glow id="autofillModal" style="position:fixed; top:0; left:0; right:0; bottom:0;
-                              background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
-                              z-index:1001; animation:fadeIn .2s ease; padding: 1rem;">
-      <div style="background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg);
-                  width:100%; max-width:440px; animation:slideDown .3s ease; border:1px solid var(--border);">
-        <div style="display:flex; align-items:center; gap:1rem; padding:1.5rem;
-                    background:color-mix(in srgb, var(--brand) 10%, transparent);
-                    border-bottom:2px solid color-mix(in srgb, var(--brand) 30%, transparent);
-                    border-radius:12px 12px 0 0;">
-          ${data.image_url ? `
-            <img src="${escapeHtml(data.image_url)}" alt="" width="48" height="48"
-                 style="border-radius:8px; object-fit:cover; flex-shrink:0; border:1px solid var(--border);"
-                 onerror="this.style.display='none'">
-          ` : `
-            <div style="width:48px; height:48px; border-radius:50%; flex-shrink:0;
-                        background:color-mix(in srgb, var(--brand) 12%, transparent); border:2px solid var(--brand);
-                        display:flex; align-items:center; justify-content:center; color:var(--brand);">
-              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </div>
-          `}
-          <div style="flex:1; min-width:0;">
-            <h3 style="margin:0; font-size:1rem; font-weight:700; color:var(--text);">Información encontrada</h3>
-            <p style="margin:0.2rem 0 0; font-size:0.8rem; color:var(--text-muted);">vía OpenFoodFacts</p>
-          </div>
-        </div>
+  const modalEl = document.createElement('div');
+  modalEl.id = 'autofillModal';
+  modalEl.dataset.featureId = 'product-autofill';
+  modalEl.dataset.featureText = 'Caracteristica de autocompletado';
+  modalEl.setAttribute('data-feature-glow', '');
+  modalEl.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1001; animation:fadeIn .2s ease; padding: 1rem;';
 
-        <div style="padding:1.5rem; color:var(--text); font-size:.9rem; line-height:1.5;">
-          <p style="margin:0 0 0.75rem;">Encontramos datos para este código de barras. ¿Querés completar el formulario con esta información?</p>
-          <div style="background:var(--panel-2); border-radius:8px; padding:0.75rem 1rem; font-size:0.85rem;">
-            ${data.name ? `<div><strong>Nombre:</strong> ${escapeHtml(data.name)}</div>` : ''}
-            ${data.description ? `<div style="margin-top:0.35rem;"><strong>Descripción:</strong> ${escapeHtml(data.description)}</div>` : ''}
-            ${extraInfo ? `<div style="margin-top:0.35rem; color:var(--text-muted);">${escapeHtml(extraInfo)}</div>` : ''}
-          </div>
-          ${someFieldsSkipped ? `
-            <p style="margin:0.75rem 0 0; font-size:0.8rem; color:var(--text-muted);">
-              Solo se completarán los campos que todavía estén vacíos.
-            </p>
-          ` : ''}
-        </div>
+  const dialog = document.createElement('div');
+  dialog.style.cssText = 'background:var(--card); border-radius:12px; box-shadow:var(--shadow-lg); width:100%; max-width:440px; animation:slideDown .3s ease; border:1px solid var(--border);';
 
-        <div style="display:flex; gap:.75rem; padding:1rem 1.5rem; border-top:1px solid var(--border);
-                    background:var(--panel); border-radius:0 0 12px 12px;">
-          <button type="button" id="autofillRejectBtn"
-                  style="flex:1; padding:.65rem; border:1px solid var(--border); background:transparent;
-                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; color:var(--text);">
-            No, gracias
-          </button>
-          <button type="button" id="autofillAcceptBtn"
-                  style="flex:1; padding:.65rem; border:none; background:var(--brand);
-                          border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; color:#fff;">
-            Completar campos
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex; align-items:center; gap:1rem; padding:1.5rem; background:color-mix(in srgb, var(--brand) 10%, transparent); border-bottom:2px solid color-mix(in srgb, var(--brand) 30%, transparent); border-radius:12px 12px 0 0;';
 
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = modalHtml;
-  document.body.appendChild(wrapper.firstElementChild);
+  if (data.image_url) {
+    const image = document.createElement('img');
+    image.src = data.image_url;
+    image.alt = '';
+    image.width = 48;
+    image.height = 48;
+    image.style.cssText = 'border-radius:8px; object-fit:cover; flex-shrink:0; border:1px solid var(--border);';
+    image.addEventListener('error', () => {
+      image.style.display = 'none';
+    });
+    header.appendChild(image);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.style.cssText = 'width:48px; height:48px; border-radius:50%; flex-shrink:0; background:color-mix(in srgb, var(--brand) 12%, transparent); border:2px solid var(--brand); display:flex; align-items:center; justify-content:center; color:var(--brand);';
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const icon = document.createElementNS(svgNs, 'svg');
+    icon.setAttribute('width', '22');
+    icon.setAttribute('height', '22');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('stroke', 'currentColor');
+    icon.setAttribute('stroke-width', '2');
+    icon.setAttribute('viewBox', '0 0 24 24');
 
-  const modalEl = document.getElementById('autofillModal');
+    const circle = document.createElementNS(svgNs, 'circle');
+    circle.setAttribute('cx', '11');
+    circle.setAttribute('cy', '11');
+    circle.setAttribute('r', '8');
+
+    const line = document.createElementNS(svgNs, 'line');
+    line.setAttribute('x1', '21');
+    line.setAttribute('y1', '21');
+    line.setAttribute('x2', '16.65');
+    line.setAttribute('y2', '16.65');
+
+    icon.appendChild(circle);
+    icon.appendChild(line);
+    placeholder.appendChild(icon);
+    header.appendChild(placeholder);
+  }
+
+  const titleWrap = document.createElement('div');
+  titleWrap.style.cssText = 'flex:1; min-width:0;';
+  const title = document.createElement('h3');
+  title.style.cssText = 'margin:0; font-size:1rem; font-weight:700; color:var(--text);';
+  title.textContent = 'Información encontrada';
+  const subtitle = document.createElement('p');
+  subtitle.style.cssText = 'margin:0.2rem 0 0; font-size:0.8rem; color:var(--text-muted);';
+  subtitle.textContent = 'vía OpenFoodFacts';
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(subtitle);
+  header.appendChild(titleWrap);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'padding:1.5rem; color:var(--text); font-size:.9rem; line-height:1.5;';
+
+  const prompt = document.createElement('p');
+  prompt.style.cssText = 'margin:0 0 0.75rem;';
+  prompt.textContent = 'Encontramos datos para este código de barras. ¿Querés completar el formulario con esta información?';
+  body.appendChild(prompt);
+
+  const summary = document.createElement('div');
+  summary.style.cssText = 'background:var(--panel-2); border-radius:8px; padding:0.75rem 1rem; font-size:0.85rem;';
+
+  if (data.name) {
+    const line = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = 'Nombre:';
+    line.appendChild(strong);
+    line.appendChild(document.createTextNode(' ' + data.name));
+    summary.appendChild(line);
+  }
+
+  if (data.description) {
+    const line = document.createElement('div');
+    line.style.marginTop = '0.35rem';
+    const strong = document.createElement('strong');
+    strong.textContent = 'Descripción:';
+    line.appendChild(strong);
+    line.appendChild(document.createTextNode(' ' + data.description));
+    summary.appendChild(line);
+  }
+
+  if (extraInfo) {
+    const line = document.createElement('div');
+    line.style.cssText = 'margin-top:0.35rem; color:var(--text-muted);';
+    line.textContent = extraInfo;
+    summary.appendChild(line);
+  }
+
+  body.appendChild(summary);
+
+  if (someFieldsSkipped) {
+    const note = document.createElement('p');
+    note.style.cssText = 'margin:0.75rem 0 0; font-size:0.8rem; color:var(--text-muted);';
+    note.textContent = 'Solo se completarán los campos que todavía estén vacíos.';
+    body.appendChild(note);
+  }
+
+  const footer = document.createElement('div');
+  footer.style.cssText = 'display:flex; gap:.75rem; padding:1rem 1.5rem; border-top:1px solid var(--border); background:var(--panel); border-radius:0 0 12px 12px;';
+
+  const rejectBtn = document.createElement('button');
+  rejectBtn.type = 'button';
+  rejectBtn.id = 'autofillRejectBtn';
+  rejectBtn.style.cssText = 'flex:1; padding:.65rem; border:1px solid var(--border); background:transparent; border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; color:var(--text);';
+  rejectBtn.textContent = 'No, gracias';
+
+  const acceptBtn = document.createElement('button');
+  acceptBtn.type = 'button';
+  acceptBtn.id = 'autofillAcceptBtn';
+  acceptBtn.style.cssText = 'flex:1; padding:.65rem; border:none; background:var(--brand); border-radius:8px; cursor:pointer; font-weight:600; font-size:.9rem; color:#fff;';
+  acceptBtn.textContent = 'Completar campos';
+
+  footer.appendChild(rejectBtn);
+  footer.appendChild(acceptBtn);
+
+  dialog.appendChild(header);
+  dialog.appendChild(body);
+  dialog.appendChild(footer);
+  modalEl.appendChild(dialog);
+  document.body.appendChild(modalEl);
 
   function closeAutofillModal() {
     modalEl.remove();
@@ -347,9 +427,9 @@ function showAutofillConfirmModal(data) {
     if (e.target.id === 'autofillModal') closeAutofillModal();
   });
 
-  document.getElementById('autofillRejectBtn').addEventListener('click', closeAutofillModal);
+  rejectBtn.addEventListener('click', closeAutofillModal);
 
-  document.getElementById('autofillAcceptBtn').addEventListener('click', () => {
+  acceptBtn.addEventListener('click', () => {
     applyAutofill(data, { canFillName, canFillDescription });
     closeAutofillModal();
   });

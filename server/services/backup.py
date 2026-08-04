@@ -9,10 +9,11 @@ from client.config import config
 class BackupService:
     def __init__(self, db):
         self.db = db
+        self.db_path = getattr(db, "db_path", db)
         self.logger_name = "BACKUP_MODULE"
         if config.get("backup.auto_enabled"):
             self._start_service()
-            logger.info(f"BackupService initialized with database: {self.db}", source=self.logger_name)
+            logger.info(f"BackupService initialized with database: {self.db_path}", source=self.logger_name)
         else:
             logger.info("BackupService is disabled in configuration.", source=self.logger_name)
 
@@ -22,7 +23,7 @@ class BackupService:
             self._perform_backup
         )  # Schedule daily backups
         logger.info(
-            f"Started backup service for {self.db} interval: {config.get('backup.frequency_days')}",
+            f"Started backup service for {self.db_path} interval: {config.get('backup.frequency_days')}",
             source=self.logger_name
         )
 
@@ -38,7 +39,7 @@ class BackupService:
             )
             return
 
-        logger.info(f"Performing backup for {self.db} to {backup_dir}", source=self.logger_name)
+        logger.info(f"Performing backup for {self.db_path} to {backup_dir}", source=self.logger_name)
         self.backup_database(backup_dir)
         self._cleanup_old_backups(backup_dir)
 
@@ -51,11 +52,11 @@ class BackupService:
         os.makedirs(backup_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{os.path.splitext(os.path.basename(self.db))[0]}_{timestamp}.bak"
+        filename = f"{os.path.splitext(os.path.basename(self.db_path))[0]}_{timestamp}.bak"
         dest_path = os.path.join(backup_dir, filename)
 
         try:
-            shutil.copy2(self.db, dest_path)
+            shutil.copy2(self.db_path, dest_path)
             logger.info(f"Backup successfully saved to {dest_path}", source=self.logger_name)
             return dest_path
         except Exception as e:
@@ -70,7 +71,7 @@ class BackupService:
             logger.warning(f"Backup file not found: {backup_path}", source=self.logger_name)
             raise FileNotFoundError(backup_path)
 
-        shutil.copy2(backup_path, self.db)
+        shutil.copy2(backup_path, self.db_path)
         logger.info(f"Database restored from {backup_path}", source=self.logger_name)
 
     def _cleanup_old_backups(self, backup_dir):

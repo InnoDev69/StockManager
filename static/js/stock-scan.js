@@ -97,47 +97,100 @@
     updateSummary();
   }
 
+  function buildScanRow(item) {
+    const row = document.createElement("tr");
+    row.dataset.barcode = item.barcode;
+
+    const codeCell = document.createElement("td");
+    codeCell.className = "scan-cell-code";
+    codeCell.textContent = item.barcode;
+
+    const nameCell = document.createElement("td");
+    nameCell.className = "scan-cell-name";
+    nameCell.textContent = item.name;
+
+    const stockCell = document.createElement("td");
+    stockCell.className = "scan-cell-stock";
+    stockCell.textContent = String(item.currentStock);
+
+    const qtyCell = document.createElement("td");
+    const controls = document.createElement("div");
+    controls.className = "scan-qty-controls";
+
+    const decBtn = document.createElement("button");
+    decBtn.type = "button";
+    decBtn.className = "btn-ghost scan-qty-btn";
+    decBtn.dataset.action = "dec";
+    decBtn.setAttribute("aria-label", "Bajar cantidad");
+    decBtn.textContent = "−";
+
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = "1";
+    qtyInput.step = "1";
+    qtyInput.className = "scan-qty-input";
+    qtyInput.value = String(item.qty);
+
+    const incBtn = document.createElement("button");
+    incBtn.type = "button";
+    incBtn.className = "btn-ghost scan-qty-btn";
+    incBtn.dataset.action = "inc";
+    incBtn.setAttribute("aria-label", "Subir cantidad");
+    incBtn.textContent = "+";
+
+    controls.appendChild(decBtn);
+    controls.appendChild(qtyInput);
+    controls.appendChild(incBtn);
+    qtyCell.appendChild(controls);
+
+    const resultCell = document.createElement("td");
+    resultCell.className = "scan-cell-result";
+    resultCell.textContent = String(item.currentStock + item.qty);
+
+    const actionCell = document.createElement("td");
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "close-btn scan-remove-btn";
+    removeBtn.setAttribute("aria-label", "Quitar de la lista");
+    removeBtn.textContent = "✕";
+    actionCell.appendChild(removeBtn);
+
+    row.appendChild(codeCell);
+    row.appendChild(nameCell);
+    row.appendChild(stockCell);
+    row.appendChild(qtyCell);
+    row.appendChild(resultCell);
+    row.appendChild(actionCell);
+
+    qtyInput.addEventListener("change", () => {
+      const parsed = parseInt(qtyInput.value, 10);
+      setQty(item.barcode, Number.isFinite(parsed) ? parsed : 1);
+    });
+
+    incBtn.addEventListener("click", () => {
+      setQty(item.barcode, getQty(item.barcode) + 1);
+    });
+
+    decBtn.addEventListener("click", () => {
+      setQty(item.barcode, getQty(item.barcode) - 1);
+    });
+
+    removeBtn.addEventListener("click", () => {
+      removeItem(item.barcode);
+    });
+
+    return row;
+  }
+
   function renderRow(item) {
     let row = tableBody.querySelector(`tr[data-barcode="${CSS.escape(item.barcode)}"]`);
     if (!row) {
-      row = document.createElement("tr");
-      row.dataset.barcode = item.barcode;
-      row.innerHTML = `
-        <td class="scan-cell-code">${escapeHtml(item.barcode)}</td>
-        <td class="scan-cell-name">${escapeHtml(item.name)}</td>
-        <td class="scan-cell-stock">${item.currentStock}</td>
-        <td>
-          <div class="scan-qty-controls">
-            <button type="button" class="btn-ghost scan-qty-btn" data-action="dec" aria-label="Bajar cantidad">−</button>
-            <input type="number" min="1" step="1" class="scan-qty-input" value="${item.qty}" />
-            <button type="button" class="btn-ghost scan-qty-btn" data-action="inc" aria-label="Subir cantidad">+</button>
-          </div>
-        </td>
-        <td class="scan-cell-result">${item.currentStock + item.qty}</td>
-        <td>
-          <button type="button" class="close-btn scan-remove-btn" aria-label="Quitar de la lista">✕</button>
-        </td>
-      `;
+      row = buildScanRow(item);
       tableBody.appendChild(row);
-
-      const qtyInput = row.querySelector(".scan-qty-input");
-      qtyInput.addEventListener("change", () => {
-        const parsed = parseInt(qtyInput.value, 10);
-        setQty(item.barcode, Number.isFinite(parsed) ? parsed : 1);
-      });
-
-      row.querySelector('[data-action="inc"]').addEventListener("click", () => {
-        setQty(item.barcode, getQty(item.barcode) + 1);
-      });
-      row.querySelector('[data-action="dec"]').addEventListener("click", () => {
-        setQty(item.barcode, getQty(item.barcode) - 1);
-      });
-      row.querySelector(".scan-remove-btn").addEventListener("click", () => {
-        removeItem(item.barcode);
-      });
     } else {
-      row.querySelector(".scan-qty-input").value = item.qty;
-      row.querySelector(".scan-cell-result").textContent = item.currentStock + item.qty;
+      row.querySelector(".scan-qty-input").value = String(item.qty);
+      row.querySelector(".scan-cell-stock").textContent = String(item.currentStock);
+      row.querySelector(".scan-cell-result").textContent = String(item.currentStock + item.qty);
     }
 
     emptyRow.hidden = items.size > 0;

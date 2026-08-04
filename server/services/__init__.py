@@ -1,8 +1,8 @@
 from .backup import BackupService
-from miscellaneous import get_data_path
+from server.bd.bdInstance import db
 from .cache import CacheService
 
-backup_service = BackupService(db=get_data_path("stock.db"))
+backup_service = BackupService(db=db)
 cache_service = CacheService()
 
 __all__ = ['backup_service', 'cache_service']

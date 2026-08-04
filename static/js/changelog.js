@@ -1,17 +1,3 @@
-/**
- * changelog.js — Página de Novedades.
- *
- * Espera un endpoint GET que devuelva:
- *   { "changelog": ["## Changelog\n...markdown...", "..."] }
- * (el array viene ordenado del release más nuevo al más viejo, tal
- * cual lo devuelve la API de GitHub).
- *
- * Cada string es el body crudo del release. No siempre trae la
- * versión de forma explícita: las entradas viejas la tienen adentro
- * de la línea "Full Changelog: .../compare/vX...vY" (se extrae con
- * regex), pero la más nueva no tiene esa línea — para esa se usa
- * data-current-version del contenedor (ver changelog.html).
- */
 (function () {
   "use strict";
 
@@ -30,42 +16,89 @@
   let entries = [];
   let rendered = 0;
 
-  // ---------- markdown-lite → HTML ----------
-  // Cubre lo que realmente aparece en estos release notes: encabezados
-  // "## ", listas "- " / "1. ", **negrita**, `código en línea`,
-  // ```bloques de código```, [links](url) y párrafos sueltos. No es un
-  // parser de markdown completo a propósito — para este contenido
-  // (notas de release de GitHub) alcanza y sobra.
-  function escapeHtml(str) {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+  function appendInlineContent(parent, text) {
+    const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))/g;
+    let lastIndex = 0;
+
+    for (let match = pattern.exec(text); match; match = pattern.exec(text)) {
+      if (match.index > lastIndex) {
+        parent.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+
+      const token = match[0];
+      if (token.startsWith("`")) {
+        const code = document.createElement("code");
+        code.textContent = token.slice(1, -1);
+        parent.appendChild(code);
+      } else if (token.startsWith("**")) {
+        const strong = document.createElement("strong");
+        strong.textContent = token.slice(2, -2);
+        parent.appendChild(strong);
+      } else {
+        const link = document.createElement("a");
+        link.textContent = match[2];
+        link.href = match[3];
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        parent.appendChild(link);
+      }
+
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parent.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
   }
 
-  function inline(text) {
-    let out = escapeHtml(text);
-    out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
-    out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    out = out.replace(
-      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
-    );
-    return out;
-  }
-
-  function markdownLiteToHtml(md) {
+  function markdownLiteToFragment(md) {
     const lines = md.replace(/\r\n/g, "\n").split("\n");
-    let html = "";
-    let listType = null; // "ul" | "ol" | null
+    const fragment = document.createDocumentFragment();
+    let listType = null;
+    let listEl = null;
     let inCodeBlock = false;
     let codeBuffer = [];
 
     function closeList() {
       if (listType) {
-        html += listType === "ul" ? "</ul>" : "</ol>";
         listType = null;
+        listEl = null;
       }
+    }
+
+    function openList(type) {
+      if (listType !== type) {
+        closeList();
+        listType = type;
+        listEl = document.createElement(type);
+        fragment.appendChild(listEl);
+      }
+    }
+
+    function appendListItem(text) {
+      const li = document.createElement("li");
+      appendInlineContent(li, text);
+      listEl.appendChild(li);
+    }
+
+    function appendHeading(text) {
+      const heading = document.createElement("h4");
+      appendInlineContent(heading, text);
+      fragment.appendChild(heading);
+    }
+
+    function appendParagraph(text) {
+      const paragraph = document.createElement("p");
+      appendInlineContent(paragraph, text);
+      fragment.appendChild(paragraph);
+    }
+
+    function appendCodeBlock(buffer) {
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      code.textContent = buffer.join("\n");
+      pre.appendChild(code);
+      fragment.appendChild(pre);
     }
 
     for (const rawLine of lines) {
@@ -73,7 +106,7 @@
 
       if (line.trim().startsWith("```")) {
         if (inCodeBlock) {
-          html += `<pre><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+          appendCodeBlock(codeBuffer);
           codeBuffer = [];
           inCodeBlock = false;
         } else {
@@ -82,6 +115,7 @@
         }
         continue;
       }
+
       if (inCodeBlock) {
         codeBuffer.push(rawLine);
         continue;
@@ -95,44 +129,36 @@
       const heading = line.match(/^#{2,4}\s+(.*)$/);
       if (heading) {
         closeList();
-        html += `<h4>${inline(heading[1])}</h4>`;
+        appendHeading(heading[1]);
         continue;
       }
 
       const bullet = line.match(/^[-*]\s+(.*)$/);
       if (bullet) {
-        if (listType !== "ul") {
-          closeList();
-          html += "<ul>";
-          listType = "ul";
-        }
-        html += `<li>${inline(bullet[1])}</li>`;
+        openList("ul");
+        appendListItem(bullet[1]);
         continue;
       }
 
       const numbered = line.match(/^\d+\.\s+(.*)$/);
       if (numbered) {
-        if (listType !== "ol") {
-          closeList();
-          html += "<ol>";
-          listType = "ol";
-        }
-        html += `<li>${inline(numbered[1])}</li>`;
+        openList("ol");
+        appendListItem(numbered[1]);
         continue;
       }
 
       closeList();
-      html += `<p>${inline(line)}</p>`;
+      appendParagraph(line);
     }
 
     closeList();
     if (inCodeBlock && codeBuffer.length) {
-      html += `<pre><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`;
+      appendCodeBlock(codeBuffer);
     }
-    return html;
+
+    return fragment;
   }
 
-  // ---------- versión por entrada ----------
   function extractVersion(body, index) {
     const match = body.match(COMPARE_RE);
     if (match) return match[1];
@@ -140,7 +166,6 @@
     return null;
   }
 
-  // ---------- render ----------
   function buildCard(body, index) {
     const version = extractVersion(body, index);
 
@@ -157,10 +182,10 @@
 
     card.appendChild(header);
 
-    const body_el = document.createElement("div");
-    body_el.className = "changelog-body";
-    body_el.innerHTML = markdownLiteToHtml(body);
-    card.appendChild(body_el);
+    const bodyEl = document.createElement("div");
+    bodyEl.className = "changelog-body";
+    bodyEl.appendChild(markdownLiteToFragment(body));
+    card.appendChild(bodyEl);
 
     return card;
   }

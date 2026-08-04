@@ -617,7 +617,11 @@ def get_product_info(barcode):
     # Primero intenta obtener el producto del cache
     cached_data = cache_service.get(f"product:{barcode}")
     if cached_data:
-        return jsonify(cached_data), 200
+        cached_payload = dict(cached_data)
+        cached_status = cached_payload.pop("_status", None)
+        if cached_status is None:
+            cached_status = 404 if cached_payload.get("error") else 200
+        return jsonify(cached_payload), cached_status
 
     try:
         response = fetch_off_product(barcode)
@@ -640,7 +644,11 @@ def get_product_info(barcode):
         return jsonify({"error": "Error al consultar OpenFoodFacts"}), 500
 
     if data.get("status") != 1:
-        cache_service.set(f"product:{barcode}", {"error": "Producto no encontrado en OpenFoodFacts"}, ttl=3600)  # Cache para 1 hora
+        cache_service.set(
+            f"product:{barcode}",
+            {"_status": 404, "error": "Producto no encontrado en OpenFoodFacts"},
+            ttl=3600,
+        )  # Cache para 1 hora
         return jsonify({"error": "Producto no encontrado en OpenFoodFacts"}), 404
 
     product_data = data.get("product", {})
@@ -652,7 +660,11 @@ def get_product_info(barcode):
         "categories": product_data.get("categories", ""),
         "image_url": product_data.get("image_url", "")
     }
-    cache_service.set(f"product:{barcode}", product_json, ttl=3600)  # Cache para 1 hora
+    cache_service.set(
+        f"product:{barcode}",
+        {"_status": 200, **product_json},
+        ttl=3600,
+    )  # Cache para 1 hora
     return jsonify(product_json), 200 
 
 @products_api.route("/products/stock_update_bulk", methods=["POST"])
