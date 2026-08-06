@@ -9,6 +9,14 @@ let searchTimer;
 let changeCalcOpen = false;
 let selectedPaymentMethod = 'Efectivo';
 
+// ===== ESTADO DE CUENTA CORRIENTE (fiado) =====
+let selectedCustomerId = null;
+let selectedCustomerName = null;
+let selectedCustomerBalance = 0;
+let selectedCustomerLimit = null; // null = sin limite configurado
+let customerSearchTimer;
+let pendingForceCredit = false; // se activa tras un rechazo por limite, para el reintento
+
 // ===== RELOJ =====
 function updateClock() {
   document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('es-ES', {
@@ -21,6 +29,20 @@ async function searchItems(term) {
   if (!term) return [];
   const res = await fetch('/api/items?q=' + encodeURIComponent(term));
   return res.ok ? res.json() : [];
+}
+
+async function searchCustomers(term) {
+  if (!term) return [];
+  const res = await fetch('/api/customers?q=' + encodeURIComponent(term));
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data || [];
+}
+
+async function fetchCustomerBalance(customerId) {
+  const res = await fetch('/api/customers/' + customerId + '/balance');
+  if (!res.ok) return null;
+  return res.json();
 }
 
 async function submitSale(payload) {
@@ -42,6 +64,16 @@ async function fetchTodaysSalesCount() {
   return data.length;
 }
 
+function isCreditMethod(method) {
+  return method === 'Fiado' || method === 'Mixto';
+}
+
+function currentUserIsAdmin() {
+  const el = document.getElementById('userRole');
+  if (!el) return false;
+  return el.value === 'admin' || el.value === 'root';
+}
+
 // ===== PARSER DE TERMINOS =====
 function parseTerm(raw) {
   const t = raw.trim();
@@ -50,7 +82,7 @@ function parseTerm(raw) {
   return { code: t, qty: 1 };
 }
 
-// ===== SUGERENCIAS =====
+// ===== SUGERENCIAS DE PRODUCTOS =====
 function renderSuggestions(items) {
   const box = document.getElementById('suggestions');
   box.innerHTML = '';
@@ -82,7 +114,7 @@ function renderSuggestions(items) {
         hideSuggestions();
         focusSearch();
       });
-    } 
+    }
     box.appendChild(div);
   });
 }
@@ -229,6 +261,7 @@ function renderCart() {
 
   updateChangeCalc();
   generateQuickCashButtons(total);
+  updateProjectedBalance();
 }
 
 // ===== CALCULADORA DE CAMBIO =====
@@ -304,7 +337,7 @@ function getCartTotal() {
   return total;
 }
 
-// ===== BUSQUEDA =====
+// ===== BUSQUEDA DE PRODUCTOS =====
 function focusSearch() {
   const s = document.getElementById('search');
   s.focus();
@@ -314,6 +347,165 @@ function focusSearch() {
 function clearSearch() {
   document.getElementById('search').value = '';
   hideSuggestions();
+}
+
+// ===== CUENTA CORRIENTE (FIADO) =====
+
+function resetCreditState() {
+  selectedCustomerId = null;
+  selectedCustomerName = null;
+  selectedCustomerBalance = 0;
+  selectedCustomerLimit = null;
+  pendingForceCredit = false;
+
+  const customerInput = document.getElementById('customerInput');
+  const customerIdInput = document.getElementById('customerIdInput');
+  const amountPaidInput = document.getElementById('amountPaidInput');
+  if (customerInput) customerInput.value = '';
+  if (customerIdInput) customerIdInput.value = '';
+  if (amountPaidInput) amountPaidInput.value = '';
+
+  const balanceInfo = document.getElementById('customerBalanceInfo');
+  const warning = document.getElementById('creditLimitWarning');
+  if (balanceInfo) balanceInfo.style.display = 'none';
+  if (warning) warning.style.display = 'none';
+}
+
+function updateCreditSectionVisibility() {
+  const creditSection = document.getElementById('creditSection');
+  const amountPaidWrapper = document.getElementById('amountPaidWrapper');
+  if (!creditSection) return;
+
+  const isCredit = isCreditMethod(selectedPaymentMethod);
+  creditSection.style.display = isCredit ? 'block' : 'none';
+
+  if (amountPaidWrapper) {
+    amountPaidWrapper.style.display = selectedPaymentMethod === 'Mixto' ? 'block' : 'none';
+  }
+
+  if (!isCredit) {
+    resetCreditState();
+  }
+
+  updateProjectedBalance();
+}
+
+function updateProjectedBalance() {
+  if (!isCreditMethod(selectedPaymentMethod) || !selectedCustomerId) return;
+
+  const total = getCartTotal();
+  let amountPaidNow = 0;
+
+  if (selectedPaymentMethod === 'Mixto') {
+    const input = document.getElementById('amountPaidInput');
+    amountPaidNow = parseFloat(input && input.value) || 0;
+  }
+
+  const pending = Math.max(0, total - amountPaidNow);
+  const projected = selectedCustomerBalance + pending;
+
+  const projectedEl = document.getElementById('customerProjectedBalance');
+  if (projectedEl) projectedEl.textContent = '$' + projected.toFixed(2);
+
+  const warning = document.getElementById('creditLimitWarning');
+  const warningText = document.getElementById('creditLimitWarningText');
+  const forceBtn = document.getElementById('forceCreditBtn');
+
+  if (selectedCustomerLimit !== null && projected > selectedCustomerLimit) {
+    warning.style.display = 'block';
+    warningText.textContent = 'Esta venta supera el límite de crédito del cliente ($' + selectedCustomerLimit.toFixed(2) + ').';
+    forceBtn.style.display = currentUserIsAdmin() ? 'inline-block' : 'none';
+  } else {
+    warning.style.display = 'none';
+  }
+}
+
+async function selectCustomer(customer) {
+  selectedCustomerId = customer.id;
+  selectedCustomerName = customer.name;
+  pendingForceCredit = false;
+
+  document.getElementById('customerInput').value = customer.name;
+  document.getElementById('customerIdInput').value = customer.id;
+  hideCustomerSuggestions();
+
+  const balanceData = await fetchCustomerBalance(customer.id);
+  if (balanceData) {
+    selectedCustomerBalance = balanceData.balance || 0;
+    selectedCustomerLimit = (balanceData.credit_limit === null || balanceData.credit_limit === undefined)
+      ? null
+      : balanceData.credit_limit;
+  } else {
+    selectedCustomerBalance = 0;
+    selectedCustomerLimit = null;
+  }
+
+  const balanceInfo = document.getElementById('customerBalanceInfo');
+  const limitRow = document.getElementById('customerLimitRow');
+  document.getElementById('customerCurrentBalance').textContent = '$' + selectedCustomerBalance.toFixed(2);
+
+  if (selectedCustomerLimit !== null) {
+    limitRow.style.display = 'flex';
+    document.getElementById('customerCreditLimit').textContent = '$' + selectedCustomerLimit.toFixed(2);
+  } else {
+    limitRow.style.display = 'none';
+  }
+
+  balanceInfo.style.display = 'block';
+  updateProjectedBalance();
+}
+
+function hideCustomerSuggestions() {
+  const dropdown = document.getElementById('customerSuggestionsDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function renderCustomerSuggestions(customers) {
+  const dropdown = document.getElementById('customerSuggestionsDropdown');
+  const container = document.getElementById('customerSuggestionsContainer');
+  if (!dropdown || !container) return;
+
+  if (!customers.length) {
+    container.innerHTML = '<div style="padding: 10px 12px; color: var(--text-muted); font-size: 0.85rem;">Sin resultados</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  container.innerHTML = '';
+  customers.forEach(function(c) {
+    const div = document.createElement('div');
+    div.className = 'customer-suggestion';
+    div.textContent = c.name + (c.phone ? ' — ' + c.phone : '');
+    div.addEventListener('click', function() {
+      selectCustomer(c);
+    });
+    container.appendChild(div);
+  });
+  dropdown.style.display = 'block';
+}
+
+function validateCreditRequirements() {
+  if (!isCreditMethod(selectedPaymentMethod)) return true;
+
+  if (!selectedCustomerId) {
+    Notify.error('Selecciona un cliente para la venta fiada');
+    return false;
+  }
+
+  if (selectedPaymentMethod === 'Mixto') {
+    const total = getCartTotal();
+    const amountPaid = parseFloat(document.getElementById('amountPaidInput').value);
+    if (isNaN(amountPaid) || amountPaid <= 0) {
+      Notify.error('Ingresa el monto abonado');
+      return false;
+    }
+    if (amountPaid >= total) {
+      Notify.error('El monto abonado debe ser menor al total (usa Efectivo si paga todo)');
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // ===== CONFIRMAR VENTA =====
@@ -333,21 +525,28 @@ function showConfirmModal() {
   });
   document.getElementById('modalTotal').textContent = '$' + total.toFixed(2);
   document.getElementById('confirmModal').style.display = 'flex';
+  updateCreditSectionVisibility();
 }
 
 // ===== ULTIMO TICKET =====
-function showLastTicket(cartData, total, paymentMethod) {
+function showLastTicket(cartData, total, paymentMethod, pending) {
   const container = document.getElementById('lastTicketContent');
   const items = [];
   cartData.forEach(function(row) {
     items.push(row.name + ' x' + row.quantity);
   });
 
+  let pendingBadge = '';
+  if (pending && pending > 0) {
+    pendingBadge = '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;background:color-mix(in srgb,var(--warning) 14%,transparent);color:var(--warning);white-space:nowrap;flex-shrink:0;">Pendiente $' + pending.toFixed(2) + '</span>';
+  }
+
   container.innerHTML =
     '<div style="font-size:0.88rem;flex:1;min-width:0;">' +
       '<span style="color:var(--text-muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + items.join(' · ') + '</span>' +
     '</div>' +
     '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--brand);white-space:nowrap;flex-shrink:0;">' + (paymentMethod || 'Efectivo') + '</span>' +
+    pendingBadge +
     '<div style="font-weight:700;font-size:1.1rem;color:var(--success);flex-shrink:0;">$' + total.toFixed(2) + '</div>';
 
   document.getElementById('lastTicket').style.display = 'block';
@@ -362,14 +561,11 @@ function initSalesForm() {
   // Contador de ventas hoy
   updateTodaySalesCount();
 
-  // Búsqueda
+  // Búsqueda de productos
   const searchEl = document.getElementById('search');
   if (searchEl) {
 
     // ── SCANNER: Anti-doble-disparo (CR+LF) ──────────────────────────────
-    // Algunos lectores emiten \r\n; el browser lo convierte en dos keydown
-    // 'Enter' consecutivos. Bloqueamos el segundo si llega en < 50 ms.
-    // capture:true para correr antes que el listener de keydown de abajo.
     let lastEnterTime = 0;
     searchEl.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter') return;
@@ -432,25 +628,64 @@ function initSalesForm() {
     });
   }
 
+  // ── Búsqueda de cliente (fiado) ──────────────────────────────────────
+  const customerInputEl = document.getElementById('customerInput');
+  if (customerInputEl) {
+    customerInputEl.addEventListener('input', function(e) {
+      const val = e.target.value.trim();
+
+      // Si el usuario edita el texto manualmente, invalida la seleccion previa
+      if (val !== selectedCustomerName) {
+        selectedCustomerId = null;
+        document.getElementById('customerIdInput').value = '';
+        document.getElementById('customerBalanceInfo').style.display = 'none';
+      }
+
+      clearTimeout(customerSearchTimer);
+      if (!val) {
+        hideCustomerSuggestions();
+        return;
+      }
+      customerSearchTimer = setTimeout(async function() {
+        renderCustomerSuggestions(await searchCustomers(val));
+      }, 220);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#customerInput') && !e.target.closest('#customerSuggestionsDropdown')) {
+        hideCustomerSuggestions();
+      }
+    });
+  }
+
+  // Monto abonado (Mixto) recalcula saldo proyectado en vivo
+  const amountPaidInputEl = document.getElementById('amountPaidInput');
+  if (amountPaidInputEl) {
+    amountPaidInputEl.addEventListener('input', updateProjectedBalance);
+  }
+
+  // Boton "Forzar" tras superar el limite de credito
+  const forceCreditBtn = document.getElementById('forceCreditBtn');
+  if (forceCreditBtn) {
+    forceCreditBtn.addEventListener('click', function() {
+      pendingForceCredit = true;
+      Notify.warning('Se forzará el límite de crédito al procesar la venta');
+      document.getElementById('creditLimitWarning').style.display = 'none';
+    });
+  }
+
   // ── SCANNER: Focus trap global ────────────────────────────────────────
-  // Si el foco no está en un input editable y llega un carácter imprimible
-  // (típicamente el primer char del código escaneado), redirigir al #search.
-  // El carácter no se cancela: se escribe solo en el input al reenfocar.
   document.addEventListener('keydown', function(e) {
-    // Ignorar si hay un input/textarea activo
     const tag = document.activeElement && document.activeElement.tagName;
     const isEditable = (
       tag === 'INPUT' || tag === 'TEXTAREA' ||
       (document.activeElement && document.activeElement.isContentEditable)
     );
-    // No redirigir si el modal de confirmación está abierto
     const modalOpen = document.getElementById('confirmModal').style.display !== 'none';
     if (isEditable || modalOpen) return;
 
-    // Solo caracteres imprimibles, sin modificadores
     if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
       searchEl.focus();
-      // No preventDefault: el char se escribe en el input normalmente
     }
   });
 
@@ -524,6 +759,7 @@ function initSalesForm() {
         b.classList.remove('active');
       });
       btn.classList.add('active');
+      updateCreditSectionVisibility();
     });
   }
 
@@ -531,6 +767,8 @@ function initSalesForm() {
   const modalConfirmBtn = document.getElementById('modalConfirm');
   if (modalConfirmBtn) {
     modalConfirmBtn.addEventListener('click', async function() {
+      if (!validateCreditRequirements()) return;
+
       const modal = document.getElementById('confirmModal');
       const btn = this;
       btn.disabled = true;
@@ -540,17 +778,39 @@ function initSalesForm() {
         return { item_id: r.id, quantity: r.quantity };
       });
 
-      const result = await submitSale({
+      const requestBody = {
         items: payload,
         payment_method: selectedPaymentMethod
-      });
+      };
+
+      if (isCreditMethod(selectedPaymentMethod)) {
+        requestBody.customer_id = selectedCustomerId;
+        if (selectedPaymentMethod === 'Mixto') {
+          requestBody.amount_paid = parseFloat(document.getElementById('amountPaidInput').value);
+        }
+        if (pendingForceCredit) {
+          requestBody.force_credit = true;
+        }
+      }
+
+      const result = await submitSale(requestBody);
 
       if (result.response.ok) {
-        showLastTicket(cart, getCartTotal(), selectedPaymentMethod);
+        const total = getCartTotal();
+        let paidNow = total;
+        if (selectedPaymentMethod === 'Fiado') paidNow = 0;
+        if (selectedPaymentMethod === 'Mixto') paidNow = parseFloat(document.getElementById('amountPaidInput').value) || 0;
+        const pending = Math.max(0, total - paidNow);
+
+        showLastTicket(cart, total, selectedPaymentMethod, pending);
+
         selectedPaymentMethod = 'Efectivo';
         document.querySelectorAll('.payment-method-btn').forEach(function(b) {
           b.classList.toggle('active', b.dataset.method === 'Efectivo');
         });
+        resetCreditState();
+        updateCreditSectionVisibility();
+
         updateTodaySalesCount();
         document.getElementById('lastAdded').style.display = 'none';
         document.getElementById('cashReceived').value = '';
@@ -558,6 +818,16 @@ function initSalesForm() {
         clearCart();
         clearSearch();
         Notify.success('Venta registrada exitosamente');
+      } else if (result.data.code === 'credit_limit_exceeded') {
+        Notify.error(result.data.error || 'El cliente supera el límite de crédito');
+        const warning = document.getElementById('creditLimitWarning');
+        const warningText = document.getElementById('creditLimitWarningText');
+        const forceBtn = document.getElementById('forceCreditBtn');
+        if (warning && warningText) {
+          warning.style.display = 'block';
+          warningText.textContent = result.data.error || 'El cliente supera el límite de crédito';
+          if (forceBtn) forceBtn.style.display = currentUserIsAdmin() ? 'inline-block' : 'none';
+        }
       } else {
         Notify.error(result.data.error || 'Error al registrar venta');
       }
@@ -584,7 +854,6 @@ function initSalesForm() {
   });
 
   // Atajos de teclado
-  // Usos de Alt+letra: seguros en navegador (evito las combinaciones Alt+F4, Alt+D, Alt+flecha)
   document.addEventListener('keydown', function(e) {
     const modalOpen = document.getElementById('confirmModal').style.display !== 'none';
 
@@ -636,23 +905,26 @@ function initSalesForm() {
     // ── Atajos exclusivos del modal de confirmación ──────────────────────
     if (modalOpen) {
 
-      // Enter: procesa venta (salvo foco en Cancelar)
-      if (e.key === 'Enter' && document.activeElement !== document.getElementById('modalCancel')) {
+      // Enter: procesa venta (salvo foco en Cancelar, cliente o monto)
+      const activeId = document.activeElement && document.activeElement.id;
+      const isTypingField = activeId === 'customerInput' || activeId === 'amountPaidInput';
+      if (e.key === 'Enter' && document.activeElement !== document.getElementById('modalCancel') && !isTypingField) {
         e.preventDefault();
         const confirmBtn = document.getElementById('modalConfirm');
         if (confirmBtn && !confirmBtn.disabled) confirmBtn.click();
       }
 
       // Alt+E / Alt+T / Alt+R: Efectivo / Tarjeta / Transferencia
-      if (e.altKey && (e.key === 'e' || e.key === 't' || e.key === 'r')) {
+      // Alt+O / Alt+M: Fiado ("dObe") / Mixto
+      if (e.altKey && (e.key === 'e' || e.key === 't' || e.key === 'r' || e.key === 'o' || e.key === 'm')) {
         e.preventDefault();
-        const map = { e: 'Efectivo', t: 'Tarjeta', r: 'Transferencia' };
+        const map = { e: 'Efectivo', t: 'Tarjeta', r: 'Transferencia', o: 'Fiado', m: 'Mixto' };
         const btn = document.querySelector('.payment-method-btn[data-method="' + map[e.key] + '"]');
         if (btn) btn.click();
       }
 
-      // Tab / Shift+Tab: cicla los métodos de pago
-      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+      // Tab / Shift+Tab: cicla los métodos de pago (solo si el foco no está en un campo de texto del modal)
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !isTypingField) {
         const methods = Array.from(document.querySelectorAll('.payment-method-btn'));
         const activeIdx = methods.findIndex(function(b) { return b.classList.contains('active'); });
         if (activeIdx !== -1) {

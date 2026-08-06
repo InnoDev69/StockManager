@@ -8,6 +8,7 @@ from server.routes.metrics import metrics_bp
 from server.routes.notifications import notifications_bp
 from server.routes.help import help_bp
 from server.routes.changelog import changelog_bp
+from server.routes.credit import credit_bp
 
 all_blueprints = [
     auth_bp,
@@ -19,5 +20,6 @@ all_blueprints = [
     metrics_bp,
     notifications_bp,
     help_bp,
-    changelog_bp
+    changelog_bp,
+    credit_bp
 ]

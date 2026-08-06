@@ -1,0 +1,1116 @@
+{% extends "base.html" %}
+
+{# ======================================== #}
+{# IMPORTAR COMPONENTES #}
+{% import "components.html" as comp %}
+{# ======================================== #}
+
+{% block title %}Cuentas Corrientes{% endblock %}
+
+{% block content %}
+<style>
+  /* ---------- Layout maestro: lista + detalle ---------- */
+  .cc-layout{
+    display: grid;
+    grid-template-columns: minmax(320px, 34%) 1fr;
+    gap: var(--space-md, 1rem);
+    align-items: start;
+  }
+  @media (max-width: 1100px){
+    .cc-layout{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Stats (mismo lenguaje visual que sales_history) ---------- */
+  .cc-stats-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 640px){ .cc-stats-grid{ grid-template-columns: 1fr; } }
+  .cc-stat{
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem 1.4rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+  }
+  .cc-stat__icon{
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    position: relative; z-index: 1;
+  }
+  .cc-stat__icon--blue  { background: linear-gradient(135deg, #00d4ff, #0099cc); }
+  .cc-stat__icon--red   { background: linear-gradient(135deg, #ff6b6b, #cc5555); }
+  .cc-stat__icon--amber { background: linear-gradient(135deg, #ffb020, #cc8800); }
+  .cc-stat__body{ display: flex; flex-direction: column; gap: .15rem; position: relative; z-index: 1; }
+  .cc-stat__label{
+    font-size: .74rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-muted);
+  }
+  .cc-stat__value{
+    font-size: 1.45rem; font-weight: 800;
+    color: var(--text); letter-spacing: -0.02em; line-height: 1;
+  }
+
+  .cc-panel{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .cc-panel__head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm, .5rem);
+    padding: .75rem 1rem;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .cc-panel__title{
+    margin: 0;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .cc-panel__body{ padding: 1rem; }
+
+  /* ---------- Buscador ---------- */
+  .cc-search{ position: relative; }
+  .cc-search__icon{
+    position: absolute; left: .75rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none; display: flex;
+  }
+  .cc-search__input{
+    width: 100%;
+    padding: .625rem .75rem .625rem 2.5rem;
+    font: inherit;
+    font-size: .95rem;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .cc-search__input:focus{
+    outline: none;
+    border-color: var(--brand, var(--text));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand, var(--text)) 18%, transparent);
+  }
+  .cc-search__kbd{
+    position: absolute; right: .5rem; top: 50%; transform: translateY(-50%);
+  }
+
+  /* ---------- Tabla de clientes ---------- */
+  .cc-table{ width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
+  .cc-table thead th{
+    padding: .5rem .75rem;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .cc-table tbody td{
+    padding: .55rem .75rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    vertical-align: middle;
+  }
+  .cc-num{ text-align: right; font-variant-numeric: tabular-nums; }
+  .cc-scroll{ max-height: 26rem; overflow-y: auto; }
+
+  .cc-row{ cursor: pointer; transition: background .1s ease; }
+  .cc-row:hover{ background: var(--panel-2); }
+  .cc-row[aria-selected="true"]{
+    background: color-mix(in srgb, var(--brand, var(--text)) 12%, transparent);
+    box-shadow: inset 3px 0 0 0 var(--brand, var(--text));
+  }
+
+  /* ---------- Identidad de cliente en la fila ---------- */
+  .cc-identity{ display: flex; align-items: center; gap: .6rem; }
+  .cc-avatar{
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .74rem; font-weight: 700;
+    background: color-mix(in srgb, var(--brand, #00d4ff) 18%, transparent);
+    color: var(--brand, #00d4ff);
+  }
+  .cc-row__name{ font-weight: 600; color: var(--text); line-height: 1.2; }
+  .cc-row__meta{ color: var(--text-muted); font-size: .78rem; line-height: 1.2; }
+
+  /* ---------- Badge de saldo ---------- */
+  .cc-balance-badge{
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .22rem .6rem;
+    border-radius: 999px;
+    font-size: .78rem; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .cc-balance-badge--ok{
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+    color: var(--success);
+  }
+  .cc-balance-badge--debt{
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    color: var(--danger);
+  }
+  .cc-balance-badge--over{
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent);
+  }
+
+  /* ---------- Estado vacío ---------- */
+  .cc-empty{
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .9rem;
+  }
+
+  /* ---------- KPIs del detalle ---------- */
+  .cc-kpis{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+  }
+  @media (max-width: 640px){ .cc-kpis{ grid-template-columns: 1fr; } }
+  .cc-kpi{
+    padding: .875rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--panel-2);
+  }
+  .cc-kpi__label{
+    display: block;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: .25rem;
+  }
+  .cc-kpi__value{
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .cc-kpi--debt{
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+  }
+  .cc-kpi--debt .cc-kpi__label,
+  .cc-kpi--debt .cc-kpi__value{ color: var(--danger); }
+  .cc-kpi--ok{
+    border-color: color-mix(in srgb, var(--success) 35%, transparent);
+    background: color-mix(in srgb, var(--success) 8%, transparent);
+  }
+  .cc-kpi--ok .cc-kpi__value{ color: var(--success); }
+
+  /* ---------- Formulario de cobro en línea ---------- */
+  .cc-form{
+    display: grid;
+    grid-template-columns: 12rem 1fr auto;
+    gap: .75rem;
+    align-items: end;
+  }
+  @media (max-width: 820px){ .cc-form{ grid-template-columns: 1fr; } }
+  .cc-field{ display: flex; flex-direction: column; gap: .25rem; }
+  .cc-field__label{
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .cc-input{
+    width: 100%;
+    padding: .5rem .75rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .cc-input:focus{
+    outline: none;
+    border-color: var(--brand, var(--text));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand, var(--text)) 18%, transparent);
+  }
+  .cc-input--amount{
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .cc-input--amount:disabled,
+  .cc-input:disabled{ opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Chips de modo y montos ---------- */
+  .cc-chips{ display: flex; flex-wrap: wrap; gap: .375rem; }
+  .cc-chip{
+    padding: .3rem .625rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all .12s ease;
+  }
+  .cc-chip:hover:not(:disabled){ color: var(--text); border-color: var(--text-muted); }
+  .cc-chip:disabled{ opacity: .4; cursor: not-allowed; }
+  .cc-chip[aria-pressed="true"]{
+    color: var(--text);
+    border-color: var(--brand, var(--text));
+    background: color-mix(in srgb, var(--brand, var(--text)) 14%, transparent);
+  }
+
+  /* ---------- Barra de atajos ---------- */
+  .cc-shortcuts{
+    display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+    padding: .5rem 1rem;
+    font-size: .75rem;
+    color: var(--text-muted);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .cc-kbd{
+    display: inline-block;
+    min-width: 1.5rem;
+    padding: .1rem .35rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: .7rem;
+    text-align: center;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ---------- Utilidades locales ---------- */
+  .cc-stack{ display: flex; flex-direction: column; gap: 1rem; }
+  .cc-row-actions{ display: flex; align-items: center; gap: .5rem; }
+  .cc-placeholder{
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .6rem; padding: 4rem 1rem; text-align: center; color: var(--text-muted);
+  }
+  .cc-placeholder__icon{
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-muted); opacity: .6;
+  }
+  .cc-hidden{ display: none !important; }
+  .cc-btn-slot{ display: inline-flex; }
+
+  .cc-detail-title-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+  .cc-detail-title-row h3{ display: flex; align-items: center; gap: .6rem; }
+
+  .cc-avatar--lg{
+    width: 40px; height: 40px; font-size: .95rem;
+  }
+
+  /* ---------- Movimientos: fila con icono ---------- */
+  .cc-mv-row{ display: flex; align-items: center; gap: .5rem; }
+  .cc-mv-icon{
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cc-mv-icon--danger{ background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  .cc-mv-icon--success{ background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+  .cc-mv-icon--warning{ background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
+
+  /* ---------- Modal (mismo lenguaje que sales.html) ---------- */
+  .modal-overlay{
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: cc-fadeIn .15s ease;
+  }
+  .modal-card{
+    background: var(--card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-width: 440px; width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: cc-modalSlideIn .2s ease;
+  }
+  .cc-modal-icon{
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .cc-modal-icon--brand{ background: color-mix(in srgb, var(--brand, #00d4ff) 12%, transparent); color: var(--brand, #00d4ff); }
+  @keyframes cc-fadeIn{ from{ opacity: 0; } to{ opacity: 1; } }
+  @keyframes cc-modalSlideIn{
+    from{ opacity: 0; transform: scale(0.96) translateY(8px); }
+    to{ opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes cc-spin{ to{ transform: rotate(360deg); } }
+</style>
+
+<main class="container mt-lg mb-2xl">
+
+  <!-- 1. HEADER -->
+  <div class="flex items-center justify-between mb-lg">
+    {{ comp.page_header('Cuentas Corrientes', 'Buscá un cliente, revisá su deuda y registrá el cobro') }}
+    <div class="cc-row-actions">
+      <span id="btnNewCustomer" class="cc-btn-slot">{{ comp.btn('Nuevo Cliente', type='button') }}</span>
+    </div>
+  </div>
+
+  <!-- 2. STATS -->
+  <div class="cc-stats-grid">
+    <div class="cc-stat">
+      <div class="cc-stat__icon cc-stat__icon--blue">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div class="cc-stat__body">
+        <span class="cc-stat__label">Clientes</span>
+        <span class="cc-stat__value" id="statTotalCustomers">—</span>
+      </div>
+    </div>
+    <div class="cc-stat">
+      <div class="cc-stat__icon cc-stat__icon--red">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div class="cc-stat__body">
+        <span class="cc-stat__label">Deuda total</span>
+        <span class="cc-stat__value" id="statTotalDebt">—</span>
+      </div>
+    </div>
+    <div class="cc-stat">
+      <div class="cc-stat__icon cc-stat__icon--amber">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="cc-stat__body">
+        <span class="cc-stat__label">Sobre el límite</span>
+        <span class="cc-stat__value" id="statOverLimit">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ATAJOS DE TECLADO -->
+  <div class="cc-shortcuts mb-lg" role="note" aria-label="Atajos de teclado">
+    <span><span class="cc-kbd">F2</span> Buscar</span>
+    <span><span class="cc-kbd">↑</span><span class="cc-kbd">↓</span> Recorrer clientes</span>
+    <span><span class="cc-kbd">Enter</span> Abrir cuenta</span>
+    <span><span class="cc-kbd">F4</span> Ir al monto</span>
+    <span><span class="cc-kbd">Ctrl</span>+<span class="cc-kbd">Enter</span> Confirmar</span>
+    <span><span class="cc-kbd">Esc</span> Limpiar</span>
+    <span><span class="cc-kbd">F3</span> Nuevo cliente</span>
+  </div>
+
+  <!-- 4. LAYOUT: LISTA (izq) + CUENTA (der) -->
+  <div class="cc-layout">
+
+    <!-- ===== COLUMNA IZQUIERDA: BUSCADOR + LISTA ===== -->
+    <section class="cc-panel" aria-label="Clientes">
+      <div class="cc-panel__head">
+        <h2 class="cc-panel__title">Clientes</h2>
+        <span class="cc-panel__title" id="customersCount">—</span>
+      </div>
+
+      <div class="cc-panel__body">
+        <div class="cc-search">
+          <span class="cc-search__icon">{{ comp.icon('search', size='18') }}</span>
+          <input type="text" id="searchInput" class="cc-search__input" autocomplete="off"
+                 placeholder="Nombre o teléfono…" aria-label="Buscar cliente">
+          <span class="cc-search__kbd"><span class="cc-kbd">F2</span></span>
+        </div>
+      </div>
+
+      <div class="cc-scroll">
+        <table class="cc-table">
+          <caption class="sr-only">Listado de clientes con cuenta corriente</caption>
+          <thead>
+            <tr>
+              <th scope="col">Cliente</th>
+              <th scope="col" class="cc-num">Saldo</th>
+              <th scope="col" class="cc-num">Límite</th>
+            </tr>
+          </thead>
+          <tbody id="customersTableBody">
+            <tr><td colspan="3" class="cc-empty">Cargando clientes…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== COLUMNA DERECHA: CUENTA SELECCIONADA ===== -->
+    <section class="cc-panel" aria-label="Estado de cuenta" aria-live="polite">
+      <div class="cc-panel__head">
+        <h2 class="cc-panel__title" id="accPanelTitle">Estado de cuenta</h2>
+        <span class="cc-panel__title" id="accCusId"></span>
+      </div>
+
+      <!-- Placeholder cuando no hay cliente elegido -->
+      <div class="cc-placeholder" id="accEmptyState">
+        <div class="cc-placeholder__icon">{{ comp.icon('search', size='24') }}</div>
+        <p class="text-muted" style="margin: 0;">Seleccioná un cliente de la lista para ver su cuenta.</p>
+        <p class="text-muted" style="margin: 0; font-size: .8rem; opacity: .75;">O presioná <span class="cc-kbd">F3</span> para registrar uno nuevo.</p>
+      </div>
+
+      <!-- Detalle -->
+      <div class="cc-panel__body cc-stack cc-hidden" id="accDetail">
+
+        <div class="cc-detail-title-row">
+          <h3 class="mt-0 mb-0">
+            <span class="cc-avatar cc-avatar--lg" id="accCusAvatar">—</span>
+            <span id="accCusName">—</span>
+          </h3>
+          <span id="btnEditCustomer" class="cc-btn-slot">{{ comp.btn('Editar', type='button', variant='ghost') }}</span>
+        </div>
+
+        <!-- KPIs -->
+        <div class="cc-kpis">
+          <div class="cc-kpi cc-kpi--debt">
+            <span class="cc-kpi__label">Deuda pendiente</span>
+            <span class="cc-kpi__value" id="accBalance">$0.00</span>
+          </div>
+          <div class="cc-kpi">
+            <span class="cc-kpi__label">Límite asignado</span>
+            <span class="cc-kpi__value" id="accLimit">Ilimitado</span>
+          </div>
+          <div class="cc-kpi cc-kpi--ok">
+            <span class="cc-kpi__label">Disponible</span>
+            <span class="cc-kpi__value" id="accAvailable">—</span>
+          </div>
+        </div>
+
+        <!-- Operación: cobro / ajuste -->
+        <form id="formAction" novalidate>
+          <input type="hidden" id="actionType" value="payment">
+
+          <div class="cc-chips mb-lg" role="group" aria-label="Tipo de operación">
+            <button type="button" class="cc-chip" id="modePayment" aria-pressed="true">Cobrar abono</button>
+            {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+            <button type="button" class="cc-chip" id="modeAdjustment" aria-pressed="false">Ajuste manual</button>
+            {% endif %}
+          </div>
+
+          <div class="cc-form">
+            <div class="cc-field">
+              <label class="cc-field__label" for="actionAmount" id="actionAmountLabel">Monto a cobrar ($)</label>
+              <input type="number" step="0.01" min="0" id="actionAmount" class="cc-input cc-input--amount"
+                     autocomplete="off" placeholder="0.00">
+            </div>
+
+            <div class="cc-field">
+              <label class="cc-field__label" for="actionNote">Nota / referencia</label>
+              <input type="text" id="actionNote" class="cc-input" maxlength="100"
+                     autocomplete="off" placeholder="Ej: pago en efectivo">
+            </div>
+
+            <div class="cc-field">
+              <span class="cc-field__label">&nbsp;</span>
+              <span id="actionSubmitSlot" class="cc-btn-slot">{{ comp.btn('Confirmar', type='submit') }}</span>
+            </div>
+          </div>
+
+          <div class="cc-chips mt-lg" role="group" aria-label="Montos rápidos">
+            <button type="button" class="cc-chip" data-amount="500">+500</button>
+            <button type="button" class="cc-chip" data-amount="1000">+1.000</button>
+            <button type="button" class="cc-chip" data-amount="2000">+2.000</button>
+            <button type="button" class="cc-chip" data-amount="5000">+5.000</button>
+            <button type="button" class="cc-chip" id="btnFullDebt">Saldar deuda total</button>
+            <button type="button" class="cc-chip" id="btnClearAmount">Borrar</button>
+          </div>
+        </form>
+
+        <!-- Movimientos -->
+        <div>
+          <div class="flex items-center justify-between mb-lg">
+            <h4 class="mt-0 mb-0">Últimos movimientos</h4>
+            <span id="btnReloadMovements" class="cc-btn-slot">{{ comp.btn('Actualizar', type='button', variant='ghost') }}</span>
+          </div>
+          <div class="cc-scroll">
+            <table class="cc-table">
+              <caption class="sr-only">Movimientos de la cuenta corriente del cliente</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Movimiento</th>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Detalle</th>
+                  <th scope="col" class="cc-num">Monto</th>
+                </tr>
+              </thead>
+              <tbody id="movementsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ==========================================
+     MODAL: NUEVO CLIENTE
+=========================================== -->
+<div id="newCustomerModal" class="modal-overlay cc-hidden" role="dialog" aria-modal="true" aria-label="Registrar Cliente">
+  <div class="modal-card">
+    <div style="text-align: center; padding: 24px 24px 0;">
+      <div class="cc-modal-icon cc-modal-icon--brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 4px; font-size: 1.1rem;">Registrar Cliente</h3>
+      <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.85rem;">Se crea con saldo en $0.00</p>
+      <button type="button" id="closeNewCusBtn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 4px 8px;" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <form id="formNewCustomer" class="p-lg">
+      <div class="cc-stack mb-2xl">
+        {{ comp.form_field('Nombre del Cliente *', 'new_cus_name', required=true, maxlength='60', placeholder='Ej: Juan Pérez') }}
+        {{ comp.form_field('Teléfono', 'new_cus_phone', maxlength='30', placeholder='Opcional') }}
+        {{ comp.form_field('Límite de Crédito ($)', 'new_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
+      </div>
+
+      {{ comp.form_actions(cancel_text='Cancelar', submit_text='Crear Cliente', cancel_id='cancelNewCusBtn2') }}
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================
+     MODAL: EDITAR CLIENTE
+=========================================== -->
+<div id="editCustomerModal" class="modal-overlay cc-hidden" role="dialog" aria-modal="true" aria-label="Editar Cliente">
+  <div class="modal-card">
+    <div style="text-align: center; padding: 24px 24px 0; position: relative;">
+      <div class="cc-modal-icon cc-modal-icon--brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 4px; font-size: 1.1rem;">Editar Cliente</h3>
+      <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.85rem;" id="editModalSubtitle">Actualizá los datos de contacto y crédito</p>
+      <button type="button" id="closeEditCusBtn" class="btn-ghost" style="position: absolute; top: 16px; right: 16px; padding: 4px 8px;" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <form id="formEditCustomer" class="p-lg">
+      <div class="cc-stack mb-2xl">
+        {{ comp.form_field('Nombre del Cliente *', 'edit_cus_name', required=true, maxlength='60', placeholder='Ej: Juan Pérez') }}
+        {{ comp.form_field('Teléfono', 'edit_cus_phone', maxlength='30', placeholder='Opcional') }}
+        {{ comp.form_field('Límite de Crédito ($)', 'edit_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-ghost" id="cancelEditCusBtn2" style="flex: 1; padding: 12px;">Cancelar</button>
+        <button type="submit" class="btn" id="submitEditCusBtn" style="flex: 2; padding: 12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Guardar Cambios
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  const API_BASE = '/api';
+  const HIDDEN = 'cc-hidden';
+
+  let currentCustomerId = null;
+  let currentBalance = 0;
+  let currentCustomerData = null;
+  let customers = [];
+  let activeIndex = -1;
+  let searchTimeout = null;
+
+  const $ = (id) => document.getElementById(id);
+  const slotBtn = (id) => { const s = $(id); return s ? s.querySelector('button, a') : null; };
+  const money = (n) => '$' + (parseFloat(n) || 0).toFixed(2);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+  const initials = (name) => {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  };
+
+  /* ── MODAL ─────────────────────────────────────────────── */
+  function openModal(id) {
+    $(id).classList.remove(HIDDEN);
+    const first = $(id).querySelector('input');
+    if (first) setTimeout(() => first.focus(), 50);
+  }
+  function closeModal(id) { $(id).classList.add(HIDDEN); }
+
+  $('btnNewCustomer').addEventListener('click', () => openModal('newCustomerModal'));
+  ['closeNewCusBtn', 'cancelNewCusBtn2'].forEach((id) => {
+    if ($(id)) $(id).addEventListener('click', () => closeModal('newCustomerModal'));
+  });
+
+  // Cerrar al hacer click en el overlay (fuera de la tarjeta)
+  [$('newCustomerModal'), $('editCustomerModal')].forEach((overlay) => {
+    if (!overlay) return;
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal(overlay.id);
+    });
+  });
+
+  /* ── BUSCADOR ──────────────────────────────────────────── */
+  $('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const q = e.target.value;
+    searchTimeout = setTimeout(() => loadCustomers(q), 250);
+  });
+
+  function clearSearch() {
+    $('searchInput').value = '';
+    loadCustomers();
+    $('searchInput').focus();
+  }
+  $('searchInput').addEventListener('keydown', (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); moveSelection(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); moveSelection(-1); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex < 0 && customers.length) setActive(0);
+      if (customers[activeIndex]) selectCustomer(customers[activeIndex].id);
+    }
+  });
+
+  /* ── STATS ─────────────────────────────────────────────── */
+  function renderStats() {
+    const totalDebt = customers.reduce((sum, c) => sum + (parseFloat(c.balance) || 0), 0);
+    const overLimit = customers.filter((c) => c.credit_limit && parseFloat(c.balance) > parseFloat(c.credit_limit)).length;
+
+    $('statTotalCustomers').textContent = customers.length;
+    $('statTotalDebt').textContent = money(totalDebt);
+    $('statOverLimit').textContent = overLimit;
+  }
+
+  /* ── LISTA DE CLIENTES ─────────────────────────────────── */
+  async function loadCustomers(query = '') {
+    const tbody = $('customersTableBody');
+    try {
+      const url = query
+        ? API_BASE + '/customers?q=' + encodeURIComponent(query)
+        : API_BASE + '/customers';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Error de red');
+      const data = await res.json();
+      customers = data.data || [];
+      activeIndex = -1;
+
+      $('customersCount').textContent = customers.length + (customers.length === 1 ? ' cliente' : ' clientes');
+      renderStats();
+
+      if (!customers.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="cc-empty">No se encontraron clientes</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = customers.map((c, i) => {
+        const limit = c.credit_limit ? money(c.credit_limit) : 'Ilimitado';
+        const balance = parseFloat(c.balance) || 0;
+        const overLimit = c.credit_limit && balance > parseFloat(c.credit_limit);
+
+        let badgeClass = 'cc-balance-badge--ok';
+        let badgeText = 'Al día';
+        if (balance > 0) {
+          badgeClass = overLimit ? 'cc-balance-badge--over' : 'cc-balance-badge--debt';
+          badgeText = money(balance);
+        }
+
+        return '<tr class="cc-row" data-id="' + c.id + '" data-index="' + i + '" tabindex="0" role="button" aria-selected="' + (c.id === currentCustomerId) + '">'
+          + '<td><div class="cc-identity">'
+            + '<span class="cc-avatar">' + esc(initials(c.name)) + '</span>'
+            + '<div><div class="cc-row__name">' + esc(c.name) + '</div><div class="cc-row__meta">' + (c.phone ? esc(c.phone) : '#' + c.id) + '</div></div>'
+          + '</div></td>'
+          + '<td class="cc-num"><span class="cc-balance-badge ' + badgeClass + '">' + badgeText + '</span></td>'
+          + '<td class="cc-num cc-row__meta">' + limit + '</td>'
+          + '</tr>';
+      }).join('');
+
+      Array.prototype.forEach.call(tbody.querySelectorAll('.cc-row'), (row) => {
+        row.addEventListener('click', () => selectCustomer(Number(row.dataset.id)));
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCustomer(Number(row.dataset.id)); }
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML = '<tr><td colspan="3" class="cc-empty">Error al cargar los datos</td></tr>';
+    }
+  }
+
+  function setActive(i) {
+    activeIndex = i;
+    const rows = $('customersTableBody').querySelectorAll('.cc-row');
+    Array.prototype.forEach.call(rows, (r, idx) => {
+      r.setAttribute('aria-selected', idx === i ? 'true' : 'false');
+    });
+    if (rows[i]) rows[i].scrollIntoView({ block: 'nearest' });
+  }
+
+  function moveSelection(delta) {
+    if (!customers.length) return;
+    let next = activeIndex + delta;
+    if (next < 0) next = 0;
+    if (next > customers.length - 1) next = customers.length - 1;
+    setActive(next);
+  }
+
+  /* ── NUEVO CLIENTE ─────────────────────────────────────── */
+  $('formNewCustomer').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameInput = document.querySelector('[name="new_cus_name"]');
+    const phoneInput = document.querySelector('[name="new_cus_phone"]');
+    const limitInput = document.querySelector('[name="new_cus_limit"]');
+
+    const payload = {
+      name: nameInput.value.trim(),
+      phone: phoneInput ? phoneInput.value.trim() : null,
+      credit_limit: (limitInput && limitInput.value) ? parseFloat(limitInput.value) : null
+    };
+    if (!payload.name) { nameInput.focus(); return; }
+
+    try {
+      const res = await fetch(API_BASE + '/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (typeof Notify !== 'undefined') Notify.success('Cliente registrado');
+        closeModal('newCustomerModal');
+        $('formNewCustomer').reset();
+        $('searchInput').value = payload.name;
+        await loadCustomers(payload.name);
+        if (customers.length === 1) selectCustomer(customers[0].id);
+      } else if (typeof Notify !== 'undefined') {
+        Notify.error(data.error || 'Error al crear');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  /* ── EDITAR CLIENTE ────────────────────────────────────── */
+  $('btnEditCustomer').addEventListener('click', () => {
+    if (!currentCustomerId || !currentCustomerData) return;
+    document.querySelector('[name="edit_cus_name"]').value = currentCustomerData.name || '';
+    document.querySelector('[name="edit_cus_phone"]').value = currentCustomerData.phone || '';
+    document.querySelector('[name="edit_cus_limit"]').value = currentCustomerData.credit_limit != null ? currentCustomerData.credit_limit : '';
+    $('editModalSubtitle').textContent = 'Editando a ' + currentCustomerData.name;
+    openModal('editCustomerModal');
+  });
+
+  ['closeEditCusBtn', 'cancelEditCusBtn2'].forEach((id) => {
+    if ($(id)) $(id).addEventListener('click', () => closeModal('editCustomerModal'));
+  });
+
+  $('formEditCustomer').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentCustomerId) return;
+
+    const nameInput = document.querySelector('[name="edit_cus_name"]');
+    const phoneInput = document.querySelector('[name="edit_cus_phone"]');
+    const limitInput = document.querySelector('[name="edit_cus_limit"]');
+
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+
+    const payload = {
+      name: name,
+      phone: phoneInput.value.trim(),
+      credit_limit: limitInput.value ? parseFloat(limitInput.value) : null
+    };
+
+    const submitBtn = $('submitEditCusBtn');
+    const original = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:cc-spin 1s linear infinite;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Guardando...';
+
+    try {
+      const res = await fetch(API_BASE + '/customers/' + currentCustomerId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (typeof Notify !== 'undefined') Notify.success('Cliente actualizado');
+        closeModal('editCustomerModal');
+        await selectCustomer(currentCustomerId);
+        await loadCustomers($('searchInput').value);
+      } else if (typeof Notify !== 'undefined') {
+        Notify.error(data.error || 'Error al actualizar');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = original;
+    }
+  });
+
+  /* ── DETALLE DE CUENTA ─────────────────────────────────── */
+  async function selectCustomer(id) {
+    currentCustomerId = id;
+    const idx = customers.findIndex((c) => c.id === id);
+    if (idx > -1) setActive(idx);
+
+    try {
+      const res = await fetch(API_BASE + '/customers/' + id + '/balance');
+      if (!res.ok) throw new Error('Error obteniendo saldo');
+      const d = await res.json();
+
+      currentBalance = parseFloat(d.balance) || 0;
+      const limit = d.credit_limit ? parseFloat(d.credit_limit) : null;
+
+      currentCustomerData = { name: d.name, phone: d.phone, credit_limit: limit };
+
+      $('accCusAvatar').textContent = initials(d.name);
+      $('accCusName').textContent = d.name;
+      $('accCusId').textContent = '#' + id;
+      $('accBalance').textContent = money(currentBalance);
+      $('accLimit').textContent = limit != null ? money(limit) : 'Ilimitado';
+      $('accAvailable').textContent = limit != null ? money(Math.max(limit - currentBalance, 0)) : 'Sin tope';
+
+      $('accEmptyState').classList.add(HIDDEN);
+      $('accDetail').classList.remove(HIDDEN);
+      resetActionForm();
+      await loadMovements(id);
+    } catch (err) {
+      console.error(err);
+      if (typeof Notify !== 'undefined') Notify.error('Error al cargar la cuenta');
+    }
+  }
+
+  function movementVisual(type) {
+    // El backend guarda el tipo en mayúsculas: DEBT / PAYMENT / ADJUSTMENT
+    if (type === 'DEBT') {
+      return {
+        label: 'Venta', tone: 'danger', sign: '',
+        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>'
+      };
+    }
+    if (type === 'PAYMENT') {
+      return {
+        label: 'Abono', tone: 'success', sign: '-',
+        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+      };
+    }
+    return {
+      label: 'Ajuste', tone: 'warning', sign: '',
+      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+    };
+  }
+
+  async function loadMovements(id) {
+    const tbody = $('movementsTableBody');
+    try {
+      const res = await fetch(API_BASE + '/customers/' + id + '/movements?limit=100');
+      const data = await res.json();
+      const rows = data.data || [];
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="cc-empty">Sin movimientos registrados</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((m) => {
+        const v = movementVisual(m.type);
+        const ref = m.sell_id ? ' <span class="cc-row__meta">#' + m.sell_id + '</span>' : '';
+        return '<tr>'
+          + '<td><div class="cc-mv-row"><span class="cc-mv-icon cc-mv-icon--' + v.tone + '">' + v.icon + '</span>'
+            + '<span class="badge badge-' + v.tone + '">' + v.label + '</span>' + ref + '</div></td>'
+          + '<td class="cc-row__meta">' + esc(m.date) + '</td>'
+          + '<td class="cc-row__meta">' + (m.note ? esc(m.note) : '—') + '</td>'
+          + '<td class="cc-num text-' + v.tone + '">' + v.sign + money(m.amount) + '</td>'
+          + '</tr>';
+      }).join('');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  $('btnReloadMovements').addEventListener('click', () => {
+    if (currentCustomerId) loadMovements(currentCustomerId);
+  });
+
+  /* ── OPERACIÓN: COBRO / AJUSTE ─────────────────────────── */
+  function setMode(type) {
+    $('actionType').value = type;
+    const isPayment = type === 'payment';
+    $('modePayment').setAttribute('aria-pressed', String(isPayment));
+    if ($('modeAdjustment')) $('modeAdjustment').setAttribute('aria-pressed', String(!isPayment));
+    $('actionAmountLabel').textContent = isPayment ? 'Monto a cobrar ($)' : 'Monto del ajuste ($)';
+    $('actionNote').placeholder = isPayment ? 'Ej: pago en efectivo' : 'Motivo del ajuste (obligatorio)';
+    $('actionNote').required = !isPayment;
+  }
+
+  $('modePayment').addEventListener('click', () => setMode('payment'));
+  if ($('modeAdjustment')) $('modeAdjustment').addEventListener('click', () => setMode('adjustment'));
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-amount]'), (btn) => {
+    btn.addEventListener('click', () => {
+      const current = parseFloat($('actionAmount').value) || 0;
+      $('actionAmount').value = (current + parseFloat(btn.dataset.amount)).toFixed(2);
+      $('actionAmount').focus();
+    });
+  });
+
+  $('btnFullDebt').addEventListener('click', () => {
+    $('actionAmount').value = currentBalance.toFixed(2);
+    $('actionAmount').focus();
+  });
+  $('btnClearAmount').addEventListener('click', () => {
+    $('actionAmount').value = '';
+    $('actionAmount').focus();
+  });
+
+  function resetActionForm() {
+    $('actionAmount').value = '';
+    $('actionNote').value = '';
+    setMode('payment');
+  }
+
+  $('formAction').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentCustomerId) return;
+
+    const amount = parseFloat($('actionAmount').value);
+    if (!amount || amount <= 0) {
+      if (typeof Notify !== 'undefined') Notify.error('Ingresá un monto válido');
+      $('actionAmount').focus();
+      return;
+    }
+
+    const type = $('actionType').value;
+
+    if (type === 'payment' && amount > currentBalance) {
+      if (typeof Notify !== 'undefined') Notify.error('El monto supera la deuda pendiente (' + money(currentBalance) + ')');
+      $('actionAmount').focus();
+      return;
+    }
+
+    const note = $('actionNote').value.trim();
+    if (type !== 'payment' && !note) {
+      if (typeof Notify !== 'undefined') Notify.error('El ajuste requiere una nota');
+      $('actionNote').focus();
+      return;
+    }
+
+    const btn = slotBtn('actionSubmitSlot');
+    const original = btn.textContent;
+    btn.textContent = 'Procesando…';
+    btn.disabled = true;
+
+    try {
+      const endpoint = type === 'payment' ? 'payments' : 'adjustments';
+      const res = await fetch(API_BASE + '/customers/' + currentCustomerId + '/' + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount, note: note })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (typeof Notify !== 'undefined') Notify.success('Operación registrada');
+        await selectCustomer(currentCustomerId);
+        await loadCustomers($('searchInput').value);
+        $('searchInput').focus();
+        $('searchInput').select();
+      } else if (typeof Notify !== 'undefined') {
+        Notify.error(data.error || 'Ocurrió un error');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+
+  /* ── ATAJOS GLOBALES ───────────────────────────────────── */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') { e.preventDefault(); $('searchInput').focus(); $('searchInput').select(); }
+    else if (e.key === 'F3') { e.preventDefault(); openModal('newCustomerModal'); }
+    else if (e.key === 'F4') {
+      e.preventDefault();
+      if (currentCustomerId) $('actionAmount').focus();
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if (currentCustomerId) {
+        e.preventDefault();
+        $('formAction').requestSubmit ? $('formAction').requestSubmit() : slotBtn('actionSubmitSlot').click();
+      }
+    } else if (e.key === 'Escape') {
+      if (!$('editCustomerModal').classList.contains(HIDDEN)) closeModal('editCustomerModal');
+      else if (!$('newCustomerModal').classList.contains(HIDDEN)) closeModal('newCustomerModal');
+      else clearSearch();
+    }
+  });
+
+  /* ── INIT ──────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCustomers();
+    $('searchInput').focus();
+  });
+})();
+</script>
+{% endblock %}

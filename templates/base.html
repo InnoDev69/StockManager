@@ -163,7 +163,7 @@
           Codigos de barras
         </a>
         {% endif %}
-        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+        <!-- {% if role == ROLES.ADMIN or role == ROLES.ROOT %} TODO: pensar si es necesario permisos mayores a admin -->
         <a href="/products/barcodes/print" class="sb__action"
         data-feature-id="barcode_update_stock_feature"
         data-feature-text="Nuevo apartado de actualización de stock"
@@ -174,6 +174,19 @@
             </svg>
           </span>
           Scanear stock
+        </a>
+        {% endif %}
+        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+        <a href="/customers" class="sb__action"
+          data-feature-id="customers_feature"
+          data-feature-text="Nuevo apartado de creditos o 'Fiados'"
+          data-feature-glow>
+            <span class="sb__action-icon sb__action-icon--purple">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              </svg>
+            </span>
+            Creditos
         </a>
         {% endif %}
         {% endif %}

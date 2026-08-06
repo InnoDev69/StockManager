@@ -394,6 +394,8 @@ class BDConector(
             ("users", "email", "TEXT NOT NULL UNIQUE"),
             ("sells", "customer_id", "INTEGER DEFAULT NULL"),
             ("sells", "amount_paid", "REAL DEFAULT NULL"),
+            ("sells", "customer_id",  "INTEGER DEFAULT NULL"),
+            ("sells", "amount_paid",  "REAL DEFAULT NULL"),
         ]
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()

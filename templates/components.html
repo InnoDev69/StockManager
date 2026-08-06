@@ -169,3 +169,19 @@
     <span {% if mono %}class="mono"{% endif %}>{{ value }}</span>
   </div>
 {% endmacro %}
+
+{% macro form_footer(submit='Guardar', secondary='Cancelar') %}
+<div class="flex justify-end gap-sm mt-md">
+    {% if secondary %}
+        <button type="button" class="btn btn-ghost" data-action="close">
+            {{ secondary }}
+        </button>
+    {% endif %}
+    
+    {% if submit %}
+        <button type="submit" class="btn">
+            {{ submit }}
+        </button>
+    {% endif %}
+</div>
+{% endmacro %}

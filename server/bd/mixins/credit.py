@@ -1,3 +1,5 @@
+from miscellaneous import localDate
+
 from server.bd.bdErrors import DatabaseError, InsufficientBalanceError, CreditLimitExceededError
 from miscellaneous import logger
 
@@ -16,8 +18,8 @@ class CreditMixin:
     def create_customer(self, name, phone=None, credit_limit=None):
         with self._cursor() as cur:
             cur.execute(
-                "INSERT INTO customers (name, phone, credit_limit) VALUES (?, ?, ?)",
-                (name, phone, credit_limit),
+                "INSERT INTO customers (name, phone, credit_limit, created_at) VALUES (?, ?, ?, ?)",
+                (name, phone, credit_limit, localDate()),
             )
             return cur.lastrowid
 
@@ -89,6 +91,60 @@ class CreditMixin:
             """,
             (customer_id, limit),
         )
+        
+    def update_customer(self, customer_id, name=None, phone=None, credit_limit=None, status=None):
+        """
+        Actualiza los datos del cliente. Solo se actualizan los campos que no sean None.
+        """
+        fields = []
+        values = []
+
+        if name is not None:
+            fields.append("name = ?")
+            values.append(name)
+        if phone is not None:
+            fields.append("phone = ?")
+            values.append(phone)
+        if credit_limit is not None:
+            fields.append("credit_limit = ?")
+            values.append(credit_limit)
+        if status is not None:
+            fields.append("status = ?")
+            values.append(status)
+
+        if not fields:
+            raise DatabaseError("No se proporcionaron campos para actualizar")
+
+        values.append(customer_id)
+        query = f"UPDATE customers SET {', '.join(fields)} WHERE id = ?"
+
+        with self._cursor() as cur:
+            cur.execute(query, tuple(values))
+            
+    def list_customers_with_balance(self, search=None):
+        """
+        Lista clientes activos junto con su saldo actual (positivo = debe).
+        Usa LEFT JOIN para incluir clientes sin movimientos aún (saldo 0).
+        """
+        query = """
+            SELECT c.id, c.name, c.phone, c.credit_limit, c.status,
+                COALESCE(SUM(
+                    CASE
+                        WHEN m.type = 'DEBT' THEN m.amount
+                        WHEN m.type = 'PAYMENT' THEN -m.amount
+                        WHEN m.type = 'ADJUSTMENT' THEN m.amount
+                    END
+                ), 0) AS balance
+            FROM customers c
+            LEFT JOIN account_movements m ON m.customer_id = c.id
+            WHERE c.status = 1
+        """
+        params = []
+        if search:
+            query += " AND c.name LIKE ?"
+            params.append(f"%{search}%")
+        query += " GROUP BY c.id ORDER BY c.name"
+        return self.get_all_rows(query, tuple(params))
 
     # ---------- Movimientos ----------
 
@@ -122,10 +178,10 @@ class CreditMixin:
 
         cur.execute(
             """
-            INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note)
-            VALUES (?, ?, 'DEBT', ?, ?, ?)
+            INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note, date)
+            VALUES (?, ?, 'DEBT', ?, ?, ?, ?)
             """,
-            (customer_id, sell_id, amount_due, user_id, note),
+            (customer_id, sell_id, amount_due, user_id, note, localDate()),
         )
 
     def register_payment(self, customer_id, amount, user_id, note=None):
@@ -144,10 +200,10 @@ class CreditMixin:
         with self._cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note)
-                VALUES (?, NULL, 'PAYMENT', ?, ?, ?)
+                INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note, date)
+                VALUES (?, NULL, 'PAYMENT', ?, ?, ?, ?)
                 """,
-                (customer_id, amount, user_id, note),
+                (customer_id, amount, user_id, note, localDate()),
             )
             logger.info(f"[Credit] Pago registrado | cliente={customer_id} | monto={amount}")
             return cur.lastrowid
@@ -163,9 +219,9 @@ class CreditMixin:
         with self._cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note)
-                VALUES (?, NULL, 'ADJUSTMENT', ?, ?, ?)
+                INSERT INTO account_movements (customer_id, sell_id, type, amount, user_id, note, date)
+                VALUES (?, NULL, 'ADJUSTMENT', ?, ?, ?, ?)
                 """,
-                (customer_id, amount, user_id, note),
+                (customer_id, amount, user_id, note, localDate()),
             )
             return cur.lastrowid

@@ -157,7 +157,7 @@
         <div id="kpi-vendor-revenue" style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--success); font-weight: 600;">
           $0.00
         </div>
-        <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">Dinero total</span>
+        <span class="text-muted" style="font-size: 0.75rem; white-space: nowrap;">Cobrado</span>
       </div>
       <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, #ec4899, #db2777); padding: 0.75rem; border-radius: 12px;">
         <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +191,7 @@
   <div class="card kpi-card" style="padding: 1.25rem;">
     <div class="kpi-card-inner">
       <div class="kpi-text-wrap">
-        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Ingresos Totales</p>
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Cobro real</p>
         <h2 id="kpi-revenue" class="mono kpi-value-top" style="color: var(--success);">$0.00</h2>
         <div id="kpi-revenue-change" class="kpi-change positive" style="margin-top: 0.5rem;">
           <span class="change-icon">↑</span>
@@ -202,6 +202,23 @@
       <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 70%, #000)); padding: 1rem; border-radius: 14px;">
         <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="card kpi-card" style="padding: 1.25rem;">
+    <div class="kpi-card-inner">
+      <div class="kpi-text-wrap">
+        <p class="text-muted" style="margin: 0 0 0.5rem 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Deuda pendiente</p>
+        <h2 id="kpi-debt" class="mono kpi-value-top" style="color: var(--warning);">$0.00</h2>
+        <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+          <span id="kpi-debtors-count">0 clientes</span>
+        </div>
+      </div>
+      <div class="kpi-icon" style="flex-shrink: 0; background: linear-gradient(135deg, #f59e0b, #d97706); padding: 1rem; border-radius: 14px;">
+        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
       </div>
     </div>
@@ -348,7 +365,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <div>
         <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Productos Más Rentables</h3>
-        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Por ingresos generados</p>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Por valor facturado</p>
       </div>
       <button class="btn btn-ghost" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;" id="export-products">
         <svg style="width: 14px; height: 14px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,7 +381,7 @@
             <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">#</th>
             <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Producto</th>
             <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Unidades</th>
-            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ingresos</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Valor vendido</th>
             <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">%</th>
           </tr>
         </thead>
@@ -387,12 +404,44 @@
             <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">#</th>
             <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Vendedor</th>
             <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ventas</th>
-            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ingresos</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Cobrado</th>
             <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Ticket Promedio</th>
             <th style="text-align: center; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Cambio</th>
           </tr>
         </thead>
         <tbody id="vendors-ranking-table"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" style="padding: 1.5rem; grid-column: 1/-1;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+      <div>
+        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; font-weight: 600;">Clientes deudores</h3>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">Saldo pendiente real por cuenta corriente</p>
+      </div>
+      <div style="text-align: right;">
+        <p class="text-muted" style="margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Deuda total</p>
+        <p id="debtors-total" class="mono" style="margin: 0.15rem 0 0 0; font-size: 1.25rem; font-weight: 700; color: var(--warning);">$0.00</p>
+        <p id="debtors-count" class="text-muted" style="margin: 0.2rem 0 0 0; font-size: 0.8rem;">0 clientes</p>
+      </div>
+    </div>
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Cliente</th>
+            <th style="text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Teléfono</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Límite</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Deuda</th>
+            <th style="text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Uso</th>
+          </tr>
+        </thead>
+        <tbody id="debtors-table">
+          <tr style="height: 60px;">
+            <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </section>
@@ -616,19 +665,22 @@ function applySalesChartMode() {
   if (!salesChart || !_salesOverTimeData) return;
   if (_currentChartMode === 'revenue') {
     salesChart.data.datasets[0].data   = _salesOverTimeData.revenue;
-    salesChart.data.datasets[0].label  = 'Ingresos';
+    salesChart.data.datasets[0].label  = 'Cobros';
     salesChart.data.datasets[0].borderColor     = chartColors.success;
     salesChart.data.datasets[0].backgroundColor = chartColors.successLight;
     salesChart.options.scales.y.ticks.callback  = (v) => formatCurrency(v, true);
   } else {
-    salesChart.data.datasets[0].data   = _salesOverTimeData.count;
+    salesChart.data.datasets[0].data   = _salesOverTimeData.count || _salesOverTimeData.sales || [];
     salesChart.data.datasets[0].label  = 'Cantidad de ventas';
     salesChart.data.datasets[0].borderColor     = chartColors.indigo;
     salesChart.data.datasets[0].backgroundColor = chartColors.indigoLight;
     salesChart.options.scales.y.ticks.callback  = (v) => formatNumber(v);
   }
   const values = salesChart.data.datasets[0].data;
-  salesChart.data.datasets[1].data = computeTrendLine(values);
+  salesChart.data.datasets[1].label = _currentChartMode === 'revenue' ? 'Media móvil de cobros' : 'Media móvil de ventas';
+  salesChart.data.datasets[1].data = _currentChartMode === 'revenue'
+    ? (_salesOverTimeData.trendRevenue || computeTrendLine(values))
+    : (_salesOverTimeData.trendCount || computeTrendLine(values));
   salesChart.update();
 }
 
@@ -649,6 +701,7 @@ async function loadMetricsData(dateFrom = null, dateTo = null) {
     updateHeatmap(data.heatmap);
     updateInventoryForecast(data.inventoryForecast);
     updateVendorsTable(data.vendors);
+    updateDebtorsTable(data.debtors);
   } catch (error) {
     console.error('Error cargando métricas:', error);
     if(typeof Notify !== 'undefined') Notify.error('Error al cargar las métricas');
@@ -674,6 +727,8 @@ function updateKPIs(kpis, vendors = []) {
   document.getElementById('kpi-sales').textContent      = formatNumber(kpis.totalSales || 0);
   document.getElementById('kpi-avg-ticket').textContent = formatCurrency(kpis.avgTicket || 0);
   document.getElementById('kpi-units').textContent      = formatNumber(kpis.unitsSold || 0);
+  document.getElementById('kpi-debt').textContent       = formatCurrency(kpis.outstandingDebt || 0);
+  document.getElementById('kpi-debtors-count').textContent = `${formatNumber(kpis.debtorsCount || 0)} cliente${(kpis.debtorsCount || 0) === 1 ? '' : 's'}`;
   updateChangeIndicator('kpi-revenue-change', kpis.revenueChange);
   updateChangeIndicator('kpi-sales-change',   kpis.salesChange);
   updateChangeIndicator('kpi-ticket-change',  kpis.ticketChange);
@@ -736,8 +791,8 @@ function initCharts() {
     salesChart = new Chart(salesCtx, {
       type: 'line',
       data: { labels: [], datasets: [
-          { label: 'Ingresos', data: [], borderColor: chartColors.success, backgroundColor: chartColors.successLight, fill: true, tension: 0.4, pointRadius: 4 },
-          { label: 'Tendencia', data: [], borderColor: '#ff6b6b', borderDash: [5, 5], borderWidth: 2, fill: false, tension: 0, pointRadius: 0, type: 'line' }
+          { label: 'Cobros', data: [], borderColor: chartColors.success, backgroundColor: chartColors.successLight, fill: true, tension: 0.4, pointRadius: 4 },
+          { label: 'Media móvil de cobros', data: [], borderColor: '#ff6b6b', borderDash: [5, 5], borderWidth: 2, fill: false, tension: 0, pointRadius: 0, type: 'line' }
       ]},
       options: {
         responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
@@ -816,7 +871,11 @@ function initCharts() {
 function updateCharts(data) {
   if (!data) return;
   if (salesChart && data.salesOverTime) {
-    _salesOverTimeData = data.salesOverTime; 
+    _salesOverTimeData = {
+      ...data.salesOverTime,
+      trendRevenue: data.trendLine?.revenue || [],
+      trendCount: data.trendLine?.count || [],
+    };
     salesChart.data.labels = data.salesOverTime.labels;
     applySalesChartMode(); 
   }
@@ -950,11 +1009,44 @@ function updateAlerts(alerts) {
 
 function updateInsights(insights, fullData) {
   if (!insights) return;
-  document.getElementById('insight-best-day').textContent = insights.bestDay ? `${insights.bestDay.name} con ${formatCurrency(insights.bestDay.revenue)} en ventas` : 'Sin datos suficientes';
+  document.getElementById('insight-best-day').textContent = insights.bestDay ? `${insights.bestDay.name} con ${formatCurrency(insights.bestDay.revenue)} cobrados` : 'Sin datos suficientes';
   document.getElementById('insight-peak-hour').textContent = insights.peakHour != null ? `${insights.peakHour}:00 - ${insights.peakHour + 1}:00 es tu hora pico` : 'Sin datos suficientes';
   document.getElementById('insight-top-product').textContent = insights.topProduct ? `"${insights.topProduct.name}" (${insights.topProduct.units} uds.)` : 'Sin datos suficientes';
   document.getElementById('insight-trend').textContent = insights.trend || 'Necesitás más datos';
   renderSmartAlerts(fullData);
+}
+
+function updateDebtorsTable(debtorsData) {
+  const tbody = document.getElementById('debtors-table');
+  const total = document.getElementById('debtors-total');
+  const count = document.getElementById('debtors-count');
+  if (!tbody || !total || !count) return;
+
+  const summary = debtorsData?.summary || {};
+  const items = debtorsData?.items || [];
+  const debtorCount = summary.count || items.length || 0;
+  total.textContent = formatCurrency(summary.totalDebt || 0);
+  count.textContent = `${formatNumber(debtorCount)} cliente${debtorCount === 1 ? '' : 's'}`;
+
+  if (!items.length) {
+    tbody.innerHTML = `<tr style="height: 60px;"><td colspan="5" style="text-align: center; color: var(--success);">No hay clientes con deuda pendiente</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.map((customer) => {
+    const limit = customer.creditLimit ?? customer.credit_limit ?? 0;
+    const balance = customer.balance || 0;
+    const usage = limit > 0 ? Math.min(100, (balance / limit) * 100) : null;
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem; font-weight: 500;">${escapeHtml(customer.name)}</td>
+        <td style="padding: 0.75rem; color: var(--text-muted);">${escapeHtml(customer.phone || '—')}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${limit ? formatCurrency(limit) : '—'}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--warning);">${formatCurrency(balance)}</td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; color: var(--text-muted);">${usage === null ? 'Sin límite' : `${usage.toFixed(1)}%`}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderSmartAlerts(data) {
@@ -1055,7 +1147,7 @@ function initExportButtons() {
     if (!_topProductsData || _topProductsData.length === 0) return typeof Notify !== 'undefined' && Notify.warning('No hay datos');
     const totalRevenue = _topProductsData.reduce((s, p) => s + (p.revenue || 0), 0);
     downloadCSV([
-      ['#', 'Producto', 'SKU', 'Unidades Vendidas', 'Ingresos (ARS)', '% del Total'],
+      ['#', 'Producto', 'SKU', 'Unidades Vendidas', 'Valor vendido (ARS)', '% del Total'],
       ..._topProductsData.slice(0, 10).map((p, i) => [ i + 1, `"${(p.name || '').replace(/"/g, '""')}"`, `"${(p.sku || '').replace(/"/g, '""')}"`, p.units || 0, (p.revenue || 0).toFixed(2), totalRevenue > 0 ? (((p.revenue / totalRevenue) * 100).toFixed(2) + '%') : '0%' ])
     ], `productos_rentables_${new Date().toISOString().slice(0, 10)}.csv`);
   });

@@ -235,11 +235,15 @@ def get_metrics():
     
     data = db.get_metrics_data(start_date, end_date, prev_start_date, prev_end_date)
     vendors_data = db.get_vendors_metrics(start_date, end_date, prev_start_date, prev_end_date)
+    debtors_data = data.get("debtors", {"items": [], "count": 0, "totalDebt": 0})
     
     revenue = float(data["kpis"][0])
     total_sales = int(data["kpis"][1])
     units_sold = int(data["kpis"][2])
+    gross_revenue = float(data["kpis"][3]) if len(data["kpis"]) > 3 else revenue
     avg_ticket = round(revenue / total_sales, 2) if total_sales > 0 else 0
+    collected_from_sales = float(data["kpis"][4]) if len(data["kpis"]) > 4 else revenue
+    payments_received = float(data["kpis"][5]) if len(data["kpis"]) > 5 else 0
     
     prev_revenue = float(data["prev_kpis"][0])
     prev_total_sales = int(data["prev_kpis"][1])
@@ -270,11 +274,18 @@ def get_metrics():
     
     days_es = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
     labels, revenues, sales_counts = [], [], []
+    weekday_revenue = [0] * 7
     for date_str in sorted(date_range):
         dt = datetime.strptime(date_str, '%Y-%m-%d')
         labels.append(days_es[dt.weekday()] if period_days <= 7 else dt.strftime('%d/%m'))
-        revenues.append(date_range[date_str]["revenue"])
-        sales_counts.append(date_range[date_str]["sales"])
+        day_revenue = date_range[date_str]["revenue"]
+        day_sales = date_range[date_str]["sales"]
+        revenues.append(day_revenue)
+        sales_counts.append(day_sales)
+        weekday_revenue[dt.weekday()] += day_revenue
+
+    best_weekday_idx = weekday_revenue.index(max(weekday_revenue)) if any(weekday_revenue) else None
+    best_day_revenue = weekday_revenue[best_weekday_idx] if best_weekday_idx is not None else 0
     
     top_products = [
         {"id": r[0], "name": r[1], "sku": r[2] or "Sin SKU", "units": int(r[3]), "revenue": float(r[4])}
@@ -298,10 +309,10 @@ def get_metrics():
     days_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     
     best_day = None
-    if data["best_weekday_idx"] is not None:
+    if best_weekday_idx is not None:
         best_day = {
-            "name": days_names[data["best_weekday_idx"]],
-            "revenue": data["best_day_revenue"]
+            "name": days_names[best_weekday_idx],
+            "revenue": best_day_revenue
         }
     
     peak_hour = sales_by_hour.index(max(sales_by_hour)) if any(sales_by_hour) else None
@@ -309,15 +320,15 @@ def get_metrics():
     
     if prev_revenue > 0:
         if revenue_change > 10:
-            trend = f"Las ventas aumentaron {revenue_change}% respecto al período anterior. ¡Excelente trabajo!"
+            trend = f"Los ingresos cobrados aumentaron {revenue_change}% respecto al período anterior. ¡Excelente trabajo!"
         elif revenue_change > 0:
-            trend = f"Las ventas aumentaron {revenue_change}% respecto al período anterior. Buen progreso."
+            trend = f"Los ingresos cobrados aumentaron {revenue_change}% respecto al período anterior. Buen progreso."
         elif revenue_change > -10:
-            trend = f"Las ventas disminuyeron {abs(revenue_change)}% respecto al período anterior. Considera revisar tu estrategia."
+            trend = f"Los ingresos cobrados disminuyeron {abs(revenue_change)}% respecto al período anterior. Considera revisar tu estrategia."
         else:
-            trend = f"Las ventas cayeron {abs(revenue_change)}% respecto al período anterior. Se recomienda tomar acción."
+            trend = f"Los ingresos cobrados cayeron {abs(revenue_change)}% respecto al período anterior. Se recomienda tomar acción."
     else:
-        trend = "No hay datos del período anterior para comparar."
+        trend = "No hay datos del período anterior para comparar ingresos cobrados."
     
     # ============================================
     # CALCULAR DATOS AVANZADOS
@@ -329,6 +340,7 @@ def get_metrics():
     
     # Línea de tendencia (moving average)
     trend_line = calculate_trend_line(revenues, window=min(7, max(1, len(revenues)//2)))
+    trend_line_sales = calculate_trend_line(sales_counts, window=min(7, max(1, len(sales_counts)//2)))
     
     # Heatmap de ventas
     heatmap = generate_sales_heatmap(sales_by_weekday, sales_by_hour)
@@ -342,18 +354,24 @@ def get_metrics():
     return jsonify({
         "kpis": {
             "revenue": round(revenue, 2),
+            "grossRevenue": round(gross_revenue, 2),
             "totalSales": total_sales,
             "avgTicket": avg_ticket,
             "unitsSold": units_sold,
             "revenueChange": revenue_change,
             "salesChange": sales_change,
             "ticketChange": ticket_change,
-            "unitsChange": units_change
+            "unitsChange": units_change,
+            "outstandingDebt": round(float(debtors_data.get("totalDebt", 0) or 0), 2),
+            "debtorsCount": int(debtors_data.get("count", 0) or 0),
+            "cashFromSales": round(collected_from_sales, 2),
+            "paymentsReceived": round(payments_received, 2)
         },
         "salesOverTime": {
             "labels": labels,
             "revenue": revenues,
-            "sales": sales_counts
+            "sales": sales_counts,
+            "count": sales_counts
         },
         "topProducts": top_products,
         "salesByWeekday": sales_by_weekday,
@@ -385,7 +403,8 @@ def get_metrics():
         },
         "trendLine": {
             "labels": labels,
-            "values": trend_line
+            "revenue": trend_line,
+            "count": trend_line_sales
         },
         "heatmap": {
             "data": heatmap,
@@ -393,7 +412,23 @@ def get_metrics():
             "hours": list(range(24))
         },
         "inventoryForecast": inventory_forecast,
-        "criticalStocks": critical_stocks
+        "criticalStocks": critical_stocks,
+        "debtors": {
+            "summary": {
+                "count": int(debtors_data.get("count", 0) or 0),
+                "totalDebt": round(float(debtors_data.get("totalDebt", 0) or 0), 2),
+            },
+            "items": [
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "phone": row[2],
+                    "creditLimit": row[3],
+                    "balance": float(row[4] or 0),
+                }
+                for row in debtors_data.get("items", [])
+            ],
+        }
     }), 200
 
 @metrics_api.route('/never-sold', methods=['GET'])
