@@ -103,13 +103,14 @@ def change_password():
     except Exception as e:
         return {"error": str(e)}, 500
 
+EXCLUDED_KEYS = ["app", "ui"]
 
 @settings_api.route("/settings/actual", methods=["GET"])
 @require_auth
 def get_all_settings():
     """Obtener todas las configuraciones actuales."""
     try:
-        config_data = config.get_all()  
+        config_data = config.get_all(exclude=EXCLUDED_KEYS)  
         return jsonify(config_data), 200
     except Exception as e:
         return {"success": False, "error": str(e)}, 500
@@ -119,7 +120,7 @@ def get_all_settings():
 def get_setting(key):
     """Obtener una configuración específica por clave."""
     try:
-        value = config.get(key)
+        value = config.get(key, exclude=EXCLUDED_KEYS)
         if value is None:
             return jsonify({"success": False, "error": f"Configuración '{key}' no encontrada"}), 404
         return jsonify({key: value}), 200

@@ -3,6 +3,8 @@ from miscellaneous.local_time import localDate
 
 from server.bd.bdErrors import DatabaseError
 
+from server.services import cache_service
+from miscellaneous import get_data_path
 
 class ItemsMixin:
     """Métodos de gestión de productos/inventario."""
@@ -198,6 +200,46 @@ class ItemsMixin:
             )
         except Exception as e:
             raise DatabaseError(f"Error al actualizar código de barras: {e}")
+        
+    def get_barcode_image_cache(self, barrs_code):
+        """
+        Obtiene la imagen del código de barras desde cache.
+        
+        Args:
+            barrs_code: El código a codificar
+        """
+        if cache_service.get(key=f"barcodes.{barrs_code}"):
+            logger.info(f"Obteniendo imagen de código de barras desde cache: {barrs_code}")
+            return cache_service.get(key=f"barcodes.{barrs_code}")
+        else:
+            logger.debug(f"No se encontró imagen de código de barras en cache: {barrs_code}")
+            return None
+        
+    def save_image(self, image_bytes, filename):
+        """
+        Guarda bytes de imagen en un archivo PNG.
+        
+        Args:
+            image_bytes: Bytes de la imagen
+            filename: Nombre del archivo (ej: "barcode.png")
+        """
+        path = get_data_path(f"images/{filename}")
+        with open(path, "wb") as f:
+            f.write(image_bytes)
+        logger.info(f"Imagen guardada en: {path}")
+        return path
+        
+    def save_barcode_image_cache(self, barrs_code, image_bytes):
+        """
+        Guarda el path de la imagen del código de barras en cache.
+        
+        Args:
+            barrs_code: El código a codificar
+            image_bytes: Bytes de la imagen PNG
+        """
+        cache_service.set(f"barcodes.{barrs_code}", 
+                  self.save_image(image_bytes, f"{barrs_code}.png"))
+        logger.info(f"Imagen de código de barras guardada en cache: {barrs_code}")
 
     def generate_barcode_image(self, barrs_code):
         """
@@ -210,25 +252,31 @@ class ItemsMixin:
         Returns:
             BytesIO: Imagen PNG del código de barras
         """
-        from io import BytesIO
-        try:
-            import barcode
-        except ImportError:
-            raise DatabaseError("Librería 'python-barcode' no instalada. Ejecuta: pip install python-barcode pillow")
-        
-        barcode_type = self._detect_barcode_type(barrs_code)
-        
-        try:
-            BarcodeClass = barcode.get_barcode_class(barcode_type)
-            bc = BarcodeClass(barrs_code, writer=barcode.writer.ImageWriter())
+        if image:=self.get_barcode_image_cache(barrs_code):
+            return image
+        else:
+            from io import BytesIO
+            try:
+                import barcode
+            except ImportError:
+                raise DatabaseError("Librería 'python-barcode' no instalada. Ejecuta: pip install python-barcode pillow")
             
-            img_io = BytesIO()
-            bc.write(img_io, options={"write_text": False})
-            img_io.seek(0)
+            barcode_type = self._detect_barcode_type(barrs_code)
             
-            return img_io
-        except Exception as e:
-            raise DatabaseError(f"Error generando barcode ({barcode_type}): {str(e)}")
+            try:
+                BarcodeClass = barcode.get_barcode_class(barcode_type)
+                bc = BarcodeClass(barrs_code, writer=barcode.writer.ImageWriter())
+                
+                img_io = BytesIO()
+                bc.write(img_io, options={"write_text": False})
+                img_io.seek(0)
+                
+                self.save_barcode_image_cache(barrs_code, img_io.getvalue())
+                logger.info(f"Imagen de código de barras generada y guardada en cache: {barrs_code}")
+                
+                return img_io
+            except Exception as e:
+                raise DatabaseError(f"Error generando barcode ({barcode_type}): {str(e)}")
 
     def _detect_barcode_type(self, code):
         """
@@ -294,3 +342,27 @@ class ItemsMixin:
             }
             for row in rows
         ]
+    
+    def add_weight_item(self, name, weight, price, price_per_gram, description=None):
+        """
+        Crea un producto vendido por peso (ej: jamón, pan).
+ 
+        Args:
+            name (str): nombre del producto
+            weight (float): peso de referencia en stock (si aplica)
+            price (float): precio para 'price_per_gram' gramos
+            price_per_gram (float): base de gramos para el precio (ej: 500)
+            description (str|None)
+ 
+        Returns:
+            int: id del weight_item creado
+        """
+        with self._cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO weight_items (name, weight, price, price_per_gram, description)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (name, weight, price, price_per_gram, description),
+            )
+            return cur.lastrowid

@@ -7,6 +7,8 @@ import threading
 import time
 import socket
 from time import perf_counter
+from miscellaneous import logger, SCHEDULER
+logger.info("BOOT:start", source="ROOT")
 
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
@@ -14,7 +16,6 @@ from server.api import api_bp
 from miscellaneous import Var
 from server.routes import all_blueprints
 from miscellaneous import Limits
-from miscellaneous import logger, SCHEDULER
 from server.bd.bdInstance import db
 from waitress import create_server
 from miscellaneous import ROLES
@@ -23,7 +24,6 @@ from client.config import config  # Asegura que se carguen los módulos de confi
 from server.services import backup_service
 
 t0 = perf_counter()
-logger.info("boot:start", source="ROOT")
 
 load_dotenv()
 
@@ -134,6 +134,9 @@ def cleanup():
         _server = None
 
     db.close_conn()
+    
+    from server.services import cache_service
+    cache_service.flush()
 
 def signal_handler(sig, frame):
     logger.info("Señal de terminación recibida, cerrando servidor...", source=APP_LOGGER_NAME)
@@ -236,7 +239,7 @@ if __name__ == "__main__":
             raise RuntimeError("Waitress no respondió en 15 segundos.")
 
         logger.info("Servidor listo, abriendo ventana...", source=APP_LOGGER_NAME)
-        logger.info(f"boot:server_ready {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
+        logger.info(f"BOOT:server_ready {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         window = webview.create_window(
             "Stockly",
@@ -246,7 +249,7 @@ if __name__ == "__main__":
             min_size=(800, 600),
         )
         
-        logger.info(f"boot:window_created {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
+        logger.info(f"BOOT:window_created {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         # Iniciar webview
         if sys.platform == "linux" and os.path.exists(icon_path):

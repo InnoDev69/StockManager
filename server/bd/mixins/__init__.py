@@ -6,6 +6,7 @@ from server.bd.mixins.password_reset import PasswordResetMixin
 from server.bd.mixins.applications import ApplicationsMixin
 from server.bd.mixins.audit import AuditMixin
 from server.bd.mixins.credit import CreditMixin
+from server.bd.mixins.weight_items import WeightItemsMixin
 
 __all__ = [
     "UsersMixin",
@@ -16,4 +17,5 @@ __all__ = [
     "ApplicationsMixin",
     "AuditMixin",
     "CreditMixin",
+    "WeightItemsMixin",
 ]

@@ -2,22 +2,27 @@ import time
 import sqlite3
 import threading
 import contextlib
-from server.bd.bdErrors import *
+from .bdErrors import *
 from miscellaneous import ROLES
 from miscellaneous import Var
 from miscellaneous import logger
 
-from server.bd.mixins.users import UsersMixin
-from server.bd.mixins.items import ItemsMixin
-from server.bd.mixins.sales import SalesMixin
-from server.bd.mixins.metrics import MetricsMixin
-from server.bd.mixins.password_reset import PasswordResetMixin
-from server.bd.mixins.notifications import NotificationsMixin
-from server.bd.mixins.applications import ApplicationsMixin
-from server.bd.mixins.audit import AuditMixin
-from server.bd.mixins.credit import CreditMixin
+from .mixins.users import UsersMixin
+from .mixins.items import ItemsMixin
+from .mixins.sales import SalesMixin
+from .mixins.metrics import MetricsMixin
+from .mixins.password_reset import PasswordResetMixin
+from .mixins.notifications import NotificationsMixin
+from .mixins.applications import ApplicationsMixin
+from .mixins.audit import AuditMixin
+from .mixins.credit import CreditMixin
+from .mixins.weight_items import WeightItemsMixin
 
 from werkzeug.security import generate_password_hash
+
+from .tables import tables
+from .migrations import migrations
+from .indexes import indexes
 
 _thread_local = threading.local()
 
@@ -32,6 +37,7 @@ class BDConector(
     ApplicationsMixin,
     AuditMixin,
     CreditMixin,
+    WeightItemsMixin,
 ):
     """
     Conector de base de datos SQLite con gestión automática de transacciones.
@@ -43,6 +49,10 @@ class BDConector(
     - MetricsMixin: métricas y reportes
     - PasswordResetMixin: recuperación de contraseña
     - NotificationsMixin: gestión de notificaciones
+    - ApplicationsMixin: gestión de solicitudes de aplicación
+    - AuditMixin: registro de auditoría
+    - CreditMixin: gestión de clientes y movimientos de cuenta
+    - WeightItemsMixin: gestión de productos por peso
     Attributes:
         db_path (str): Ruta al archivo de base de datos SQLite
     """
@@ -50,7 +60,7 @@ class BDConector(
     def __init__(self, db_path):
         self.db_path = db_path
 
-    def _get_conn(self):
+    def _get_conn(self)-> sqlite3.Connection:
         """
         Retorna la conexión SQLite del hilo actual, creándola si no existe.
 
@@ -84,7 +94,7 @@ class BDConector(
                 raise DatabaseError(f"Error connecting to database: {e}")
         return conn
 
-    def close_conn(self):
+    def close_conn(self)-> None:
         """
         Cierra la conexión del hilo actual y la elimina del pool.
 
@@ -129,202 +139,38 @@ class BDConector(
         finally:
             cur.close()
 
-    def init_db(self):
+    def init_db(self)-> None:
         """
         Inicializa la base de datos creando todas las tablas e índices necesarios
         en una única transacción, y luego aplica migraciones incrementales.
         """
-        users_table_query = """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-            username TEXT NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            role TEXT NOT NULL,
-            status INTEGER NOT NULL DEFAULT 1,
-            application TEXT NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            history TEXT
-        )
-        """
-        items_table_query = """
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY NOT NULL,
-            barrs_code TEXT UNIQUE,
-            description TEXT,
-            name TEXT NOT NULL,
-            quantity INTEGER NOT NULL DEFAULT 0,
-            min_quantity INTEGER NOT NULL DEFAULT 5,
-            price REAL NOT NULL,
-            expiration_date TEXT,
-            status INTEGER NOT NULL DEFAULT 1,
-            notified_low_stock INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT,
-            updated_at TEXT
-        )
-        """
-        sells_table_query = """
-        CREATE TABLE IF NOT EXISTS sells (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            item_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            vendor_id INTEGER NOT NULL REFERENCES users(id),
-            payment_method TEXT NOT NULL DEFAULT 'Efectivo',
-            FOREIGN KEY (item_id) REFERENCES items (id)
-        )
-        """
-        sells_details_table_query = """
-        CREATE TABLE IF NOT EXISTS details (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sell_id INTEGER NOT NULL,
-            item_id INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
-            price REAL NOT NULL,
-            vendor_id INTEGER NOT NULL REFERENCES users(id),
-            payment_method TEXT NOT NULL DEFAULT 'Efectivo',
-            FOREIGN KEY (sell_id) REFERENCES sells (id),
-            FOREIGN KEY (item_id) REFERENCES items (id)
-        )
-        """
-        reset_codes_table_query = """
-        CREATE TABLE IF NOT EXISTS password_resets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT NOT NULL,
-            code TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-        item_attributes_table_query = """
-        CREATE TABLE IF NOT EXISTS item_attributes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            code TEXT NOT NULL UNIQUE,
-            data_type TEXT NOT NULL,
-            required INTEGER NOT NULL DEFAULT 0,
-            status INTEGER NOT NULL DEFAULT 1
-        )
-        """
-        item_attribute_values_table_query = """
-        CREATE TABLE IF NOT EXISTS item_attribute_values (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            item_id INTEGER NOT NULL,
-            attribute_id INTEGER NOT NULL,
-            value TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(item_id, attribute_id),
-            FOREIGN KEY (item_id) REFERENCES items(id),
-            FOREIGN KEY (attribute_id) REFERENCES item_attributes(id)
-        )
-        """
-
-        notifications_table_query = """
-        CREATE TABLE IF NOT EXISTS notifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            message TEXT,
-            type TEXT DEFAULT 'info' CHECK(type IN ('info', 'warning', 'success', 'error')),
-            action_url TEXT,
-            is_read INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-        """
-
-        audit_log_table_query = """
-            CREATE TABLE IF NOT EXISTS audit_log (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id     INTEGER NOT NULL,
-                action      TEXT    NOT NULL,
-                entity_type TEXT    NOT NULL,
-                entity_id   INTEGER,
-                old_value   TEXT,
-                new_value   TEXT,
-                description TEXT,
-                ip_address  TEXT,
-                timestamp   TEXT    DEFAULT CURRENT_TIMESTAMP,
-                status      TEXT    DEFAULT 'success',
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """
         
-        customers_table_query = """
-        CREATE TABLE IF NOT EXISTS customers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            phone TEXT,
-            credit_limit REAL,
-            status INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-
-        account_movements_table_query = """
-        CREATE TABLE IF NOT EXISTS account_movements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_id INTEGER NOT NULL,
-            sell_id INTEGER,
-            type TEXT NOT NULL CHECK(type IN ('DEBT', 'PAYMENT', 'ADJUSTMENT')),
-            amount REAL NOT NULL,
-            date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            user_id INTEGER NOT NULL,
-            note TEXT,
-            FOREIGN KEY (customer_id) REFERENCES customers (id),
-            FOREIGN KEY (sell_id) REFERENCES sells (id),
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-        """
 
         with self._cursor() as cur:
-            cur.execute(users_table_query)
-            cur.execute(items_table_query)
-            cur.execute(sells_table_query)
-            cur.execute(sells_details_table_query)
-            cur.execute(reset_codes_table_query)
-            cur.execute(item_attributes_table_query)
-            cur.execute(item_attribute_values_table_query)
-            cur.execute(notifications_table_query)
-            cur.execute(audit_log_table_query)
-            
-            cur.execute(account_movements_table_query)
-            cur.execute(customers_table_query)
+            for table_name, table_query in tables.items():
+                logger.info(f"[DB] Creando tabla '{table_name}'...")
+                cur.execute(table_query)
             logger.info("[DB] Creando índices para optimizar consultas...")
-
-            # Índice compuesto para las queries de ventas filtradas por fecha y vendedor
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_sells_date_vendor_id
-                ON sells(date, vendor_id)
-            """)
-            # Índice individual de fecha para queries sin filtro de vendedor
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_date ON sells(date)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_vendor_id ON sells(vendor_id)")
-            # Índice para consultas de ventas filtradas por producto
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_sells_item_id ON sells(item_id)")
-
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_details_sell_id ON details(sell_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_details_item_id ON details(item_id)")
-
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_items_name ON items(name)")
-            # Índice para listados de inventario filtrados por status y ordenados por nombre
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_items_status_name ON items(status, name)")
-
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)")
-
-            # Índices para la página de auditoría: filtros por usuario, entidad y orden por fecha
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp DESC)")
-            
-            # Índices para consultas de clientes y movimientos de cuenta
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_movements_customer_date ON account_movements(customer_id, date)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_movements_sell_id ON account_movements(sell_id)")
+        
+        self._create_index()
 
         self.__create_default_root_user()
         self.__run_migrations()
+        self.__migrate_sells_item_id_nullable()
         self._check_unique_root_user()
 
+    def _create_index(self) -> None:
+        """
+        Crea todos los índices definidos en indexes.py.
+        Se ejecuta dentro de la misma transacción de init_db.
+        """
+        with self._cursor() as cur:
+            for index_name, table_name, columns in indexes:
+                cur.execute(
+                    f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({columns})"
+                )
+        logger.info(f"[DB] {len(indexes)} índices verificados/creados")
+    
     def _check_unique_root_user(self):
         """
         Verifica que solo exista un usuario con rol ROOT.
@@ -362,6 +208,53 @@ class BDConector(
             )
         except DatabaseError as e:
             logger.error(f"Error al crear usuario root: {e}", source="DB")
+            
+    def __migrate_sells_item_id_nullable(self):
+        """
+        Saca el NOT NULL de sells.item_id: es vestigial (la info real de
+        qué se vendió vive en 'details'), y bloquea ventas 100% por peso.
+        Idempotente vía PRAGMA table_info.
+        """
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        cur = conn.cursor()
+        try:
+            cur.execute("PRAGMA table_info(sells)")
+            col = next((c for c in cur.fetchall() if c[1] == "item_id"), None)
+            if col is None or col[3] == 0:  # col[3] = notnull flag
+                logger.debug("[Migration] 'sells.item_id' ya es nullable, skip")
+                return
+
+            cur.execute("PRAGMA foreign_keys = OFF")
+            cur.execute("BEGIN")
+            cur.execute("""
+                CREATE TABLE sells_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    item_id INTEGER,
+                    date TEXT NOT NULL,
+                    vendor_id INTEGER NOT NULL REFERENCES users(id),
+                    payment_method TEXT NOT NULL DEFAULT 'Efectivo',
+                    customer_id INTEGER DEFAULT NULL,
+                    amount_paid REAL DEFAULT NULL,
+                    FOREIGN KEY (item_id) REFERENCES items (id)
+                )
+            """)
+            cur.execute("""
+                INSERT INTO sells_new
+                    (id, item_id, date, vendor_id, payment_method, customer_id, amount_paid)
+                SELECT id, item_id, date, vendor_id, payment_method, customer_id, amount_paid
+                FROM sells
+            """)
+            cur.execute("DROP TABLE sells")
+            cur.execute("ALTER TABLE sells_new RENAME TO sells")
+            conn.commit()
+            cur.execute("PRAGMA foreign_keys = ON")
+            logger.info("[Migration] ✓ 'sells.item_id' ahora es nullable")
+        except sqlite3.Error as e:
+            conn.rollback()
+            raise DatabaseError(f"Migration error (sells.item_id nullable): {e}")
+        finally:
+            cur.close()
+            conn.close()
 
     def __run_migrations(self):
         """
@@ -371,32 +264,7 @@ class BDConector(
         de hilos. Si la migración falla por una razón distinta a "columna ya
         existe", se loggea como warning y se continúa con las demás.
         """
-        migrations = [
-            ("sells",   "vendedor",       "TEXT NOT NULL DEFAULT 'unknown'"),
-            ("sells",   "payment_method", "TEXT NOT NULL DEFAULT 'Efectivo'"),
-            ("details", "vendedor",       "TEXT NOT NULL DEFAULT 'unknown'"),
-            ("details", "payment_method", "TEXT NOT NULL DEFAULT 'Efectivo'"),
-            ("users",   "status",         "INTEGER NOT NULL DEFAULT 1"),
-            ("users",   "created_at",     "TEXT DEFAULT NULL"),
-            ("sells",   "date",           "TEXT NOT NULL"),
-            ("items", "expiration_date", "TEXT"),
-            ("items", "id", "INTEGER PRIMARY KEY NOT NULL"),
-            ("items", "notified_low_stock", "INTEGER NOT NULL DEFAULT 0"),
-            ("items", "created_at", "TEXT"),
-            ("items", "updated_at", "TEXT"),
-            ("sells",   "vendor_id",       "INTEGER DEFAULT NULL"),
-            ("details", "vendor_id",       "INTEGER DEFAULT NULL"),
-            ("users",   "history",         "TEXT"),
-            ("users",   "application",     "TEXT NOT NULL DEFAULT 'accepted'"),
-            ("users", "application", "TEXT NOT NULL DEFAULT 'accepted'"),
-            ("users", "username", "TEXT NOT NULL"),
-            ("users", "id", "INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE"),
-            ("users", "email", "TEXT NOT NULL UNIQUE"),
-            ("sells", "customer_id", "INTEGER DEFAULT NULL"),
-            ("sells", "amount_paid", "REAL DEFAULT NULL"),
-            ("sells", "customer_id",  "INTEGER DEFAULT NULL"),
-            ("sells", "amount_paid",  "REAL DEFAULT NULL"),
-        ]
+    
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cur = conn.cursor()
         try:
@@ -405,7 +273,7 @@ class BDConector(
                     cur.execute(
                         f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
                     )
-                    logger.info(f"[Migration] ✓ Columna '{column}' agregada a '{table}'")
+                    logger.info(f"[Migration] Columna '{column}' agregada a '{table}'")
                 except sqlite3.OperationalError as e:
                     if "duplicate column name" in str(e).lower():
                         logger.debug(
@@ -440,18 +308,15 @@ class BDConector(
                 cur.execute("UPDATE items SET quantity ...")
         """
         conn = self._get_conn()
-        start = time.perf_counter()
         cur = conn.cursor()
         try:
             yield cur
             conn.commit()
-            elapsed = (time.perf_counter() - start) * 1000
-            logger.debug(f"[DB] Transaction commit | tiempo={elapsed:.2f}ms")
+            logger.debug(f"[DB] Transaction commit | filas={cur.rowcount} | last_id={cur.lastrowid}")
         except Exception as e:
             conn.rollback()
-            elapsed = (time.perf_counter() - start) * 1000
             logger.error(
-                f"[DB] Transaction rollback | error={e} | tiempo={elapsed:.2f}ms",
+                f"[DB] Transaction rollback | error={e}",
                 exc_info=True,
             )
             raise

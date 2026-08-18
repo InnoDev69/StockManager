@@ -52,6 +52,7 @@ class SalesMixin:
                 for row in cur
             ]
 
+        # NOTA: no contempla weight_items todavía (ver checklist).
         return {
             "products": products,
             "low_stock": low_stock,
@@ -110,27 +111,11 @@ class SalesMixin:
         force_credit=False,
     ):
         """
+        DEPRECATED para nuevo código: usar create_mixed_sale, que cubre el
+        mismo caso (solo unit_lines) y además soporta weight_lines.
+        Se deja intacta por compatibilidad con quien todavía la llame.
+
         Registra una venta con múltiples productos en una sola transacción.
-
-        Args:
-            items (list): Lista de dicts con {item_id, quantity}
-            vendor_id (int): ID del vendedor
-            payment_method (str): 'Efectivo', 'Fiado' o 'Mixto'
-            customer_id (int|None): Requerido si payment_method es 'Fiado' o 'Mixto'
-            amount_paid (float|None): Monto abonado en el momento.
-                - Efectivo: se ignora, se asume pago total.
-                - Fiado: se asume 0 si no se especifica.
-                - Mixto: obligatorio, debe ser menor al total.
-            force_credit (bool): Si True, permite superar el límite de crédito
-                del cliente (uso reservado a roles admin en el endpoint).
-
-        Returns:
-            int: ID de la venta creada
-
-        Raises:
-            ValueError: Si la lista está vacía, no hay stock suficiente,
-                o los datos de fiado son inconsistentes.
-            DatabaseError: Si algún producto no existe.
         """
         if not items:
             raise ValueError("La lista de items no puede estar vacía")
@@ -176,15 +161,7 @@ class SalesMixin:
                     (current_qty - quantity, item_id),
                 )
 
-            # --- Lógica de fiado ---
-            if payment_method == "Fiado":
-                paid = 0.0
-            elif payment_method == "Mixto":
-                if amount_paid is None or amount_paid <= 0 or amount_paid >= total:
-                    raise ValueError("Mixto requiere un amount_paid mayor a 0 y menor al total")
-                paid = amount_paid
-            else:  # Efectivo u otro método de contado
-                paid = total
+            paid = self.__resolve_paid_amount(payment_method, amount_paid, total)
 
             cur.execute(
                 "UPDATE sells SET amount_paid = ? WHERE id = ?",
@@ -203,42 +180,61 @@ class SalesMixin:
                 )
 
             return sell_id
-        
+
     def get_sale_by_id(self, sale_id):
+        """
+        Obtiene una venta con todas sus líneas (unidad y peso) para edición.
+        """
         with self._cursor() as cur:
             cur.execute("""
                 SELECT s.id, s.date, s.vendor_id, s.payment_method, u.username,
-                    s.customer_id, s.amount_paid,
-                    d.item_id, d.quantity, d.price, i.name
+                    s.customer_id, s.amount_paid
                 FROM sells s
-                JOIN details d ON s.id = d.sell_id
-                JOIN items i ON d.item_id = i.id
                 LEFT JOIN users u ON s.vendor_id = u.id
                 WHERE s.id = ?
             """, (sale_id,))
-            rows = cur.fetchall()
+            header = cur.fetchone()
 
-            if not rows:
+            if not header:
                 return None
 
-            first = rows[0]
-            total = sum(r[8] * r[9] for r in rows)  # quantity * price
-            amount_paid = first[6] if first[6] is not None else total
+            cur.execute("""
+                SELECT d.item_id, d.quantity, d.price, i.name
+                FROM details d
+                JOIN items i ON d.item_id = i.id
+                WHERE d.sell_id = ?
+            """, (sale_id,))
+            unit_rows = cur.fetchall()
 
-            return {
-                "id": first[0],
-                "date": first[1],
-                "vendor_id": first[2],
-                "vendedor": self.get_username_by_id(first[2]) if self.get_username_by_id(first[2]) else "unknown",
-                "payment_method": first[3],
-                "customer_id": first[5],
-                "amount_paid": amount_paid,
-                "pending": round(total - amount_paid, 2),
-                "items": [
-                    {"item_id": r[7], "quantity": r[8], "price": r[9], "name": r[10]}
-                    for r in rows
-                ]
-            }
+            cur.execute("""
+                SELECT wd.weight_item_id, wd.weight, wd.price, wi.name
+                FROM weight_details wd
+                JOIN weight_items wi ON wd.weight_item_id = wi.id
+                WHERE wd.sell_id = ?
+            """, (sale_id,))
+            weight_rows = cur.fetchall()
+
+        total = sum(r[1] * r[2] for r in unit_rows) + sum(r[2] for r in weight_rows)
+        amount_paid = header[6] if header[6] is not None else total
+
+        return {
+            "id": header[0],
+            "date": header[1],
+            "vendor_id": header[2],
+            "vendedor": header[4] or "unknown",
+            "payment_method": header[3],
+            "customer_id": header[5],
+            "amount_paid": amount_paid,
+            "pending": round(total - amount_paid, 2),
+            "items": [
+                {"item_id": r[0], "quantity": r[1], "price": r[2], "name": r[3]}
+                for r in unit_rows
+            ],
+            "weight_items": [
+                {"weight_item_id": r[0], "weight": r[1], "price": r[2], "name": r[3]}
+                for r in weight_rows
+            ],
+        }
 
     def update_sale(self, sale_id, items, vendor_id, payment_method, user_id=None):
         """
@@ -250,6 +246,10 @@ class SalesMixin:
            RECALCULATE_CREDIT_ON_SALE_EDIT está en True, ajusta el
            pendiente de cuenta corriente con un movimiento ADJUSTMENT.
            Si está en False, el pendiente fiado original no se toca.
+
+        NOTA: por ahora solo maneja líneas por unidad ('items'/'details').
+        Editar líneas por peso ('weight_items'/'weight_details') no está
+        soportado todavía (ver checklist).
         """
         with self.transaction() as cur:
             cur.execute(
@@ -304,7 +304,7 @@ class SalesMixin:
                 (vendor_id, payment_method, sale_id)
             )
 
-            if old_customer_id and config.get("RECALCULATE_CREDIT_ON_SALE_EDIT", False):
+            if old_customer_id and config.get("features.RECALCULATE_CREDIT_ON_SALE_EDIT", False):
                 cur.execute(
                     "SELECT COALESCE(SUM(amount), 0) FROM account_movements "
                     "WHERE sell_id = ? AND type = 'DEBT'",
@@ -334,3 +334,235 @@ class SalesMixin:
             # Si RECALCULATE_CREDIT_ON_SALE_EDIT es False (default),
             # no se toca account_movements: el pendiente fiado original
             # queda fijo aunque los productos/precios hayan cambiado.
+
+    # ------------------------------------------------------------------
+    # Venta combinada: items normales + items por peso, con fiado/mixto
+    # ------------------------------------------------------------------
+    def create_mixed_sale(
+        self,
+        date,
+        vendor_id,
+        unit_lines=None,
+        weight_lines=None,
+        payment_method="Efectivo",
+        customer_id=None,
+        amount_paid=None,
+        force_credit=False,
+    ):
+        """
+        Crea una venta que puede combinar líneas por unidad y por peso,
+        todo en una sola transacción atómica, con soporte de fiado/mixto.
+
+        El precio y el stock de cada línea se vuelven a leer de la DB
+        dentro de esta transacción: 'price' que venga en unit_lines /
+        weight_lines se ignora, para no confiar en un valor calculado
+        fuera de la transacción (posible carrera con otra venta).
+
+        Args:
+            date (str)
+            vendor_id (int)
+            unit_lines (list[dict]): cada dict con item_id, quantity
+            weight_lines (list[dict]): cada dict con weight_item_id, weight
+            payment_method (str): 'Efectivo', 'Fiado' o 'Mixto'
+            customer_id (int|None): requerido si payment_method es Fiado/Mixto
+            amount_paid (float|None): monto abonado (ver record_bulk_sale)
+            force_credit (bool): permite superar el límite de crédito
+
+        Returns:
+            int: id de la venta creada
+
+        Raises:
+            ValueError: sin líneas, stock insuficiente, o datos de fiado
+                inconsistentes.
+            DatabaseError: producto no encontrado, o venta 100% por peso
+                (limitación legacy de 'sells.item_id', ver nota abajo).
+        """
+        unit_lines = unit_lines or []
+        weight_lines = weight_lines or []
+
+        if not unit_lines and not weight_lines:
+            raise ValueError("La venta necesita al menos una línea (unit_lines o weight_lines)")
+
+        if payment_method in ("Fiado", "Mixto") and not customer_id:
+            raise ValueError(f"payment_method '{payment_method}' requiere customer_id")
+
+        logger.debug(
+            f"Registrando venta mixta: {len(unit_lines)} unit_lines, "
+            f"{len(weight_lines)} weight_lines, vendor_id={vendor_id}"
+        )
+
+        with self.transaction() as cur:
+            if unit_lines:
+                head_item_id = unit_lines[0]["item_id"]
+            else:
+                # 'sells.item_id' es NOT NULL en el esquema legacy: una
+                # venta 100% por peso no tiene forma de cumplir esa
+                # restricción hoy. Requiere migración (ver checklist:
+                # "sells.item_id nullable"). Falla explícito en vez de
+                # dejar que SQLite tire un IntegrityError críptico.
+                raise DatabaseError(
+                    "No se puede registrar una venta sin ningún producto por unidad: "
+                    "'sells.item_id' todavía es NOT NULL en este esquema. "
+                    "Aplicar la migración de 'sells.item_id nullable' primero."
+                )
+
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO sells (item_id, date, vendor_id, payment_method, customer_id, amount_paid)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (head_item_id, date, vendor_id, payment_method, customer_id, amount_paid),
+                )
+                sell_id = cur.lastrowid
+            except Exception as e:
+                raise DatabaseError(f"Error al registrar venta: {e}")
+
+            total = 0.0
+
+            for line in unit_lines:
+                item_id = line["item_id"]
+                quantity = line["quantity"]
+
+                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise DatabaseError(f"Producto con ID {item_id} no encontrado")
+
+                price, current_qty = row
+                if current_qty < quantity:
+                    raise ValueError(f"Stock insuficiente para producto ID {item_id}")
+
+                total += price * quantity
+
+                cur.execute(
+                    """
+                    INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (sell_id, item_id, quantity, price, vendor_id, payment_method),
+                )
+                cur.execute(
+                    "UPDATE items SET quantity = ? WHERE id = ?",
+                    (current_qty - quantity, item_id),
+                )
+
+            for line in weight_lines:
+                weight_item_id = line["weight_item_id"]
+                weight = line["weight"]
+
+                cur.execute(
+                    "SELECT price, weight, price_per_gram FROM weight_items WHERE id = ?",
+                    (weight_item_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise DatabaseError(f"Producto (por peso) con ID {weight_item_id} no encontrado")
+
+                unit_price, current_weight, price_per_gram = row
+                if current_weight < weight:
+                    raise ValueError(f"Stock insuficiente para producto (por peso) ID {weight_item_id}")
+
+                line_price = round((weight / price_per_gram) * unit_price, 2)
+                total += line_price
+
+                cur.execute(
+                    """
+                    INSERT INTO weight_details
+                        (sell_id, weight_item_id, weight, price, vendor_id, payment_method)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (sell_id, weight_item_id, weight, line_price, vendor_id, payment_method),
+                )
+                cur.execute(
+                    "UPDATE weight_items SET weight = ? WHERE id = ?",
+                    (current_weight - weight, weight_item_id),
+                )
+
+            paid = self.__resolve_paid_amount(payment_method, amount_paid, total)
+
+            cur.execute(
+                "UPDATE sells SET amount_paid = ? WHERE id = ?",
+                (paid, sell_id),
+            )
+
+            due = round(total - paid, 2)
+            if due > 0:
+                self.record_credit_sale(
+                    cur,
+                    customer_id=customer_id,
+                    sell_id=sell_id,
+                    amount_due=due,
+                    user_id=vendor_id,
+                    force=force_credit,
+                )
+
+            return sell_id
+
+    @staticmethod
+    def __resolve_paid_amount(payment_method, amount_paid, total):
+        """
+        Resuelve cuánto se considera abonado según el método de pago.
+        Compartido entre record_bulk_sale y create_mixed_sale para no
+        duplicar (y desincronizar) esta lógica.
+        """
+        if payment_method == "Fiado":
+            return 0.0
+        elif payment_method == "Mixto":
+            if amount_paid is None or amount_paid <= 0 or amount_paid >= total:
+                raise ValueError("Mixto requiere un amount_paid mayor a 0 y menor al total")
+            return amount_paid
+        else:  # Efectivo u otro método de contado
+            return total
+
+    # ------------------------------------------------------------------
+    # Lectura combinada: todas las líneas de una venta, normalizadas
+    # ------------------------------------------------------------------
+    def get_sale_lines(self, sell_id):
+        """
+        Devuelve todas las líneas de una venta (por unidad y por peso)
+        en un formato unificado, listo para armar un ticket o reporte.
+
+        Returns:
+            list[tuple]: (sell_id, product_name, sale_type, amount, price)
+                sale_type: 'unit' | 'weight'
+                amount: cantidad (unidades) o gramos, según sale_type
+        """
+        query = """
+            SELECT
+                d.sell_id,
+                i.name AS product_name,
+                'unit' AS sale_type,
+                d.quantity AS amount,
+                d.price AS price
+            FROM details d
+            JOIN items i ON i.id = d.item_id
+            WHERE d.sell_id = ?
+
+            UNION ALL
+
+            SELECT
+                wd.sell_id,
+                wi.name AS product_name,
+                'weight' AS sale_type,
+                wd.weight AS amount,
+                wd.price AS price
+            FROM weight_details wd
+            JOIN weight_items wi ON wi.id = wd.weight_item_id
+            WHERE wd.sell_id = ?
+        """
+        return self.execute_query(query, (sell_id, sell_id))
+
+    # ------------------------------------------------------------------
+    # Total de una venta, sumando ambas tablas
+    # ------------------------------------------------------------------
+    def get_sale_total(self, sell_id):
+        """Suma el total de una venta contemplando líneas por unidad y por peso."""
+        query = """
+            SELECT COALESCE(SUM(price), 0) FROM (
+                SELECT price FROM details WHERE sell_id = ?
+                UNION ALL
+                SELECT price FROM weight_details WHERE sell_id = ?
+            )
+        """
+        return self.get_count(query, (sell_id, sell_id))

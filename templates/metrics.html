@@ -357,6 +357,14 @@
       </tbody>
     </table>
   </div>
+  <div id="inventory-pagination" style="display: none; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <div id="inventory-pagination-info" class="text-muted" style="font-size: 0.85rem;"></div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button type="button" class="btn btn-ghost" id="inventory-prev-page" style="padding: 0.4rem 0.75rem;">Anterior</button>
+      <span id="inventory-page-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text);"></span>
+      <button type="button" class="btn btn-ghost" id="inventory-next-page" style="padding: 0.4rem 0.75rem;">Siguiente</button>
+    </div>
+  </div>
 </section>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -411,6 +419,14 @@
         </thead>
         <tbody id="vendors-ranking-table"></tbody>
       </table>
+    </div>
+    <div id="vendors-pagination" style="display: none; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <div id="vendors-pagination-info" class="text-muted" style="font-size: 0.85rem;"></div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <button type="button" class="btn btn-ghost" id="vendors-prev-page" style="padding: 0.4rem 0.75rem;">Anterior</button>
+        <span id="vendors-page-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text);"></span>
+        <button type="button" class="btn btn-ghost" id="vendors-next-page" style="padding: 0.4rem 0.75rem;">Siguiente</button>
+      </div>
     </div>
   </section>
 
@@ -540,6 +556,14 @@
       <p id="never-sold-total-capital" class="mono" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--danger);">$0.00</p>
     </div>
   </div>
+  <div id="never-sold-pagination" style="display: none; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--border); justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+    <div id="never-sold-pagination-info" class="text-muted" style="font-size: 0.85rem;"></div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button type="button" class="btn btn-ghost" id="never-sold-prev-page" style="padding: 0.4rem 0.75rem;">Anterior</button>
+      <span id="never-sold-page-label" style="font-size: 0.85rem; font-weight: 600; color: var(--text);"></span>
+      <button type="button" class="btn btn-ghost" id="never-sold-next-page" style="padding: 0.4rem 0.75rem;">Siguiente</button>
+    </div>
+  </div>
 </section>
 
 <section class="card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -613,6 +637,13 @@ let _topProductsData = [];
 let _neverSoldData = [];
 let _vendorsData = [];
 let _currentChartMode = 'revenue';
+let _inventoryForecastData = [];
+
+const tablePagination = {
+  vendors: { page: 1, pageSize: 5 },
+  neverSold: { page: 1, pageSize: 8 },
+  inventory: { page: 1, pageSize: 8 },
+};
 
 const ICONS = {
     'trending-down': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17l-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>',
@@ -629,6 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCharts();
   initChartToggle();       
   initExportButtons();     
+  bindPagedTableControls();
   await loadMetricsData();
   await loadNeverSoldData(); 
 });
@@ -941,63 +973,66 @@ function updateTables(products) {
 function updateVendorsTable(vendors) {
   _vendorsData = vendors || [];
   const tbody = document.getElementById('vendors-ranking-table');
-  if (!tbody || !vendors || vendors.length === 0) {
-    if (tbody) tbody.innerHTML = `<tr style="height: 60px;"><td colspan="6" style="text-align: center; color: var(--text-muted);">Sin datos de vendedores</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = vendors.map((vendor, index) => {
-    const changeColor = vendor.revenueChange > 0 ? 'var(--success)' : vendor.revenueChange < 0 ? 'var(--danger)' : 'var(--text-muted)';
-    const changeIcon = vendor.revenueChange > 0 ? '↑' : vendor.revenueChange < 0 ? '↓' : '→';
-    return `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 0.75rem; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
-        <td style="padding: 0.75rem; font-weight: 500;">${escapeHtml(vendor.name)}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(vendor.salesCount)}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--success);">${formatCurrency(vendor.revenue)}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(vendor.avgTicket)}</td>
-        <td style="padding: 0.75rem; text-align: center; color: ${changeColor}; font-weight: 600;">
-          ${changeIcon} ${Math.abs(vendor.revenueChange).toFixed(1)}%
-        </td>
-      </tr>
-    `;
-  }).join('');
+  renderPagedTable({
+    container: tbody,
+    data: _vendorsData,
+    state: tablePagination.vendors,
+    emptyMessage: 'Sin datos de vendedores',
+    renderRow: (vendor, index) => {
+      const changeColor = vendor.revenueChange > 0 ? 'var(--success)' : vendor.revenueChange < 0 ? 'var(--danger)' : 'var(--text-muted)';
+      const changeIcon = vendor.revenueChange > 0 ? '↑' : vendor.revenueChange < 0 ? '↓' : '→';
+      return `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.75rem; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
+          <td style="padding: 0.75rem; font-weight: 500;">${escapeHtml(vendor.name)}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(vendor.salesCount)}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--success);">${formatCurrency(vendor.revenue)}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(vendor.avgTicket)}</td>
+          <td style="padding: 0.75rem; text-align: center; color: ${changeColor}; font-weight: 600;">
+            ${changeIcon} ${Math.abs(vendor.revenueChange).toFixed(1)}%
+          </td>
+        </tr>
+      `;
+    },
+    paginationPrefix: 'vendors',
+  });
 }
 
 function updateNeverSoldTable(products) {
   const tbody = document.getElementById('never-sold-table');
   const badge = document.getElementById('never-sold-badge');
+  _neverSoldData = products || [];
   if (!tbody) return;
 
-  if (!products || products.length === 0) {
-    tbody.innerHTML = `<tr style="height: 60px;"><td colspan="6" style="text-align: center; color: var(--success);">¡Todos los productos tienen al menos una venta!</td></tr>`;
-    badge.textContent = '0 productos';
-    document.getElementById('never-sold-total-capital').textContent = '$0.00';
-    return;
-  }
-
-  badge.textContent = `${products.length} producto${products.length !== 1 ? 's' : ''}`;
-  const totalCapital = products.reduce((sum, p) => sum + (p.stock * p.price), 0);
+  badge.textContent = `${_neverSoldData.length} producto${_neverSoldData.length !== 1 ? 's' : ''}`;
+  const totalCapital = _neverSoldData.reduce((sum, p) => sum + (p.stock * p.price), 0);
   document.getElementById('never-sold-total-capital').textContent = formatCurrency(totalCapital);
 
-  tbody.innerHTML = products.map(p => {
-    const capital = p.stock * p.price;
-    return `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 0.75rem;">
-          <div style="font-weight: 500;">${escapeHtml(p.name)}</div>
-          ${p.category ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(p.category)}</div>` : ''}
-        </td>
-        <td style="padding: 0.75rem; font-family: monospace; color: var(--text-muted);">${escapeHtml(p.sku || '—')}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">${formatNumber(p.stock)}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(p.price)}</td>
-        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--danger);">${formatCurrency(capital)}</td>
-        <td style="padding: 0.75rem; text-align: center;">
-          <a href="/product_management?id=${p.id}" class="btn btn-ghost" style="font-size: 0.75rem; display: none; padding: 0.3rem 0.6rem;">Ver</a>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  renderPagedTable({
+    container: tbody,
+    data: _neverSoldData,
+    state: tablePagination.neverSold,
+    emptyMessage: '¡Todos los productos tienen al menos una venta!',
+    renderRow: (p) => {
+      const capital = p.stock * p.price;
+      return `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.75rem;">
+            <div style="font-weight: 500;">${escapeHtml(p.name)}</div>
+            ${p.category ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(p.category)}</div>` : ''}
+          </td>
+          <td style="padding: 0.75rem; font-family: monospace; color: var(--text-muted);">${escapeHtml(p.sku || '—')}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">${formatNumber(p.stock)}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatCurrency(p.price)}</td>
+          <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600; color: var(--danger);">${formatCurrency(capital)}</td>
+          <td style="padding: 0.75rem; text-align: center;">
+            <a href="/product_management?id=${p.id}" class="btn btn-ghost" style="font-size: 0.75rem; display: none; padding: 0.3rem 0.6rem;">Ver</a>
+          </td>
+        </tr>
+      `;
+    },
+    paginationPrefix: 'never-sold',
+  });
 }
 
 function updateAlerts(alerts) {
@@ -1123,23 +1158,80 @@ function updateHeatmap(heatmapData) {
 
 function updateInventoryForecast(forecast) {
   const tbody = document.getElementById('inventory-forecast-table');
-  if (!tbody || !forecast) return;
-  if (forecast.length === 0) {
-    tbody.innerHTML = `<tr style="height:60px;"><td colspan="6" style="text-align:center;color:var(--text-muted);">No hay productos con ventas en este período</td></tr>`;
-    return;
+  _inventoryForecastData = forecast || [];
+  if (!tbody) return;
+
+  renderPagedTable({
+    container: tbody,
+    data: _inventoryForecastData,
+    state: tablePagination.inventory,
+    emptyMessage: 'No hay productos con ventas en este período',
+    renderRow: (item) => {
+      const sc = item.status === 'danger' ? 'var(--danger)' : item.status === 'warning' ? 'var(--warning)' : 'var(--success)';
+      const st = item.status === 'danger' ? '🔴 Crítico' : item.status === 'warning' ? '🟡 Bajo' : '🟢 Normal';
+      return `<tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 0.75rem;"><div style="font-weight: 500;">${escapeHtml(item.name)}</div><div style="font-size: 0.75rem; color: var(--text-muted);">${item.sku}</div></td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">${formatNumber(item.currentStock)}<div style="font-size:0.7rem;color:var(--text-muted);">/${formatNumber(item.minStock)}</div></td>
+        <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(item.dailyAverage)} ud/día</td>
+        <td style="padding: 0.75rem; text-align: center; font-family: monospace; font-weight: 600; color: ${sc};">${item.daysRemaining !== null ? `${item.daysRemaining} días` : '∞'}</td>
+        <td style="padding: 0.75rem; text-align: center; font-family: monospace;">${item.rotation}x</td>
+        <td style="padding: 0.75rem; text-align: center;"><span style="display:inline-block;padding:0.3rem 0.6rem;border-radius:4px;background:${sc}22;color:${sc};font-size:0.75rem;font-weight:600;">${st}</span></td>
+      </tr>`;
+    },
+    paginationPrefix: 'inventory',
+  });
+}
+
+function renderPagedTable({ container, data, state, emptyMessage, renderRow, paginationPrefix }) {
+  const pagination = document.getElementById(`${paginationPrefix}-pagination`);
+  const infoEl = document.getElementById(`${paginationPrefix}-pagination-info`);
+  const labelEl = document.getElementById(`${paginationPrefix}-page-label`);
+  const prevBtn = document.getElementById(`${paginationPrefix}-prev-page`);
+  const nextBtn = document.getElementById(`${paginationPrefix}-next-page`);
+
+  const totalItems = Array.isArray(data) ? data.length : 0;
+  const pageSize = state.pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  state.page = Math.min(state.page, totalPages);
+  const start = totalItems === 0 ? 0 : (state.page - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
+
+  if (!container) return;
+
+  if (totalItems === 0) {
+    container.innerHTML = `<tr style="height: 60px;"><td colspan="6" style="text-align: center; color: var(--text-muted);">${emptyMessage}</td></tr>`;
+  } else {
+    container.innerHTML = data.slice(start, end).map((item, index) => renderRow(item, start + index)).join('');
   }
-  tbody.innerHTML = forecast.slice(0, 15).map(item => {
-    const sc = item.status === 'danger' ? 'var(--danger)' : item.status === 'warning' ? 'var(--warning)' : 'var(--success)';
-    const st = item.status === 'danger' ? '🔴 Crítico' : item.status === 'warning' ? '🟡 Bajo' : '🟢 Normal';
-    return `<tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.75rem;"><div style="font-weight: 500;">${escapeHtml(item.name)}</div><div style="font-size: 0.75rem; color: var(--text-muted);">${item.sku}</div></td>
-      <td style="padding: 0.75rem; text-align: right; font-family: monospace; font-weight: 600;">${formatNumber(item.currentStock)}<div style="font-size:0.7rem;color:var(--text-muted);">/${formatNumber(item.minStock)}</div></td>
-      <td style="padding: 0.75rem; text-align: right; font-family: monospace;">${formatNumber(item.dailyAverage)} ud/día</td>
-      <td style="padding: 0.75rem; text-align: center; font-family: monospace; font-weight: 600; color: ${sc};">${item.daysRemaining !== null ? `${item.daysRemaining} días` : '∞'}</td>
-      <td style="padding: 0.75rem; text-align: center; font-family: monospace;">${item.rotation}x</td>
-      <td style="padding: 0.75rem; text-align: center;"><span style="display:inline-block;padding:0.3rem 0.6rem;border-radius:4px;background:${sc}22;color:${sc};font-size:0.75rem;font-weight:600;">${st}</span></td>
-    </tr>`;
-  }).join('');
+
+  if (pagination && infoEl && labelEl && prevBtn && nextBtn) {
+    const show = totalItems > pageSize;
+    pagination.style.display = show ? 'flex' : 'none';
+    if (show) {
+      infoEl.textContent = `Mostrando ${start + 1}–${end} de ${totalItems} registros`;
+      labelEl.textContent = `Página ${state.page} de ${totalPages}`;
+      prevBtn.disabled = state.page <= 1;
+      nextBtn.disabled = state.page >= totalPages;
+    }
+  }
+}
+
+function bindPagedTableControls() {
+  const bind = (prefix, state, rerender) => {
+    document.getElementById(`${prefix}-prev-page`)?.addEventListener('click', () => {
+      state.page = Math.max(1, state.page - 1);
+      rerender();
+    });
+
+    document.getElementById(`${prefix}-next-page`)?.addEventListener('click', () => {
+      state.page += 1;
+      rerender();
+    });
+  };
+
+  bind('vendors', tablePagination.vendors, () => updateVendorsTable(_vendorsData));
+  bind('never-sold', tablePagination.neverSold, () => updateNeverSoldTable(_neverSoldData));
+  bind('inventory', tablePagination.inventory, () => updateInventoryForecast(_inventoryForecastData));
 }
 
 function initExportButtons() {

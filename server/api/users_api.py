@@ -176,6 +176,9 @@ def update_user(target_user_id):
             params.append(new_email)
     
     if "role" in data:
+        if data["role"] not in [ROLES.ADMIN, ROLES.VENDOR, ROLES.ROOT]:
+            logger.warning(f"Intento de asignar rol inválido: {data['role']} por admin ID {session.get('user_id')}")
+            data["role"] = current_role  # Mantener el rol actual si es inválido
         new_role = data["role"]
         if new_role != current_role:
             updates.append("role = ?")

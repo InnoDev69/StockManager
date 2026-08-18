@@ -239,14 +239,73 @@ def barcode_management():
     Panel de gestión de códigos de barras.
     Solo visible para administradores.
     """
-    products = db.get_all_items()
-    
-    # Contar productos sin código
-    without_barcode = [p for p in products if not p.get('barrs_code')]
+    page = max(1, request.args.get("page", 1, type=int))
+    limit = min(50, max(1, request.args.get("limit", 20, type=int)))
+    offset = (page - 1) * limit
+
+    total_rows = db.execute_query(
+        "SELECT COUNT(*) FROM items WHERE status = 1",
+        fetch=True,
+    )
+    total_products = total_rows[0][0] if total_rows else 0
+    total_pages = max(1, (total_products + limit - 1) // limit)
+    page = min(page, total_pages)
+    offset = (page - 1) * limit
+
+    rows = db.execute_query(
+        """
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date
+        FROM items
+        WHERE status = 1
+        ORDER BY name ASC
+        LIMIT ? OFFSET ?
+        """,
+        (limit, offset),
+        fetch=True,
+    )
+
+    products = [
+        {
+            "id": row[0],
+            "barrs_code": row[1],
+            "name": row[2],
+            "description": row[3],
+            "quantity": row[4],
+            "min_quantity": row[5],
+            "price": row[6],
+            "expiration_date": row[7],
+        }
+        for row in rows
+    ]
+
+    without_barcode = [
+        {
+            "id": row[0],
+            "name": row[1],
+        }
+        for row in db.execute_query(
+            """
+            SELECT id, name
+            FROM items
+            WHERE status = 1 AND (barrs_code IS NULL OR TRIM(barrs_code) = '')
+            ORDER BY name ASC
+            """,
+            fetch=True,
+        )
+    ]
+
+    start_item = 0 if total_products == 0 else offset + 1
+    end_item = min(offset + limit, total_products)
     
     return render_template("barcode_management.html", 
                          products=products,
                          without_barcode=without_barcode,
+                         page=page,
+                         limit=limit,
+                         total_products=total_products,
+                         total_pages=total_pages,
+                         start_item=start_item,
+                         end_item=end_item,
                          role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/<int:product_id>/barcode/image", methods=["GET"])
