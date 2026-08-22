@@ -685,11 +685,13 @@
         <span class="cc-field__error" id="newCusNameError"></span>
 
         <!-- FIX: type='text' en vez de 'number' — un teléfono no es aritmético, y 'number'
-             habilita input ilimitado en algunos navegadores además de no aceptar '+' -->
-        {{ comp.form_field('Teléfono', 'new_cus_phone', maxlength='30', pattern='[0-9+\\-\\s()]*', placeholder='Opcional') }}
+             habilita input ilimitado en algunos navegadores además de no aceptar '+'.
+             El formato (solo dígitos/+/-/espacios/paréntesis) se valida en JS
+             (PHONE_PATTERN), ya que el macro form_field no soporta el kwarg 'pattern'. -->
+        {{ comp.form_field('Teléfono', 'new_cus_phone', maxlength='30', placeholder='Opcional', type='number') }}
         <span class="cc-field__error" id="newCusPhoneError"></span>
 
-        {{ comp.form_field('Límite de Crédito ($)', 'new_cus_limit', type='number', min='0', max='10000000', placeholder='Vacío = ilimitado') }}
+        {{ comp.form_field('Límite de Crédito ($)', 'new_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
         <span class="cc-field__error" id="newCusLimitError"></span>
       </div>
 
@@ -722,10 +724,10 @@
         {{ comp.form_field('Nombre del Cliente *', 'edit_cus_name', required=true, maxlength='60', placeholder='Ej: Juan Pérez') }}
         <span class="cc-field__error" id="editCusNameError"></span>
 
-        {{ comp.form_field('Teléfono', 'edit_cus_phone', maxlength='30', pattern='[0-9+\\-\\s()]*', placeholder='Opcional') }}
+        {{ comp.form_field('Teléfono', 'edit_cus_phone', maxlength='30', placeholder='Opcional', type='number') }}
         <span class="cc-field__error" id="editCusPhoneError"></span>
 
-        {{ comp.form_field('Límite de Crédito ($)', 'edit_cus_limit', type='number', min='0', max='10000000', placeholder='Vacío = ilimitado') }}
+        {{ comp.form_field('Límite de Crédito ($)', 'edit_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
         <span class="cc-field__error" id="editCusLimitError"></span>
       </div>
 

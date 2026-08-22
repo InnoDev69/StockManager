@@ -1,0 +1,55 @@
+name: "Sync TODOs to Issues"
+# ayuda de claudio
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      MANUAL_COMMIT_REF:
+        description: "SHA del commit a re-escanear (para TODOs ya existentes en el repo)"
+        required: true
+      MANUAL_BASE_REF:
+        description: "SHA base para comparar (opcional, por defecto usa el commit anterior)"
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  todo-to-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v5
+        env:
+          MANUAL_COMMIT_REF: ${{ inputs.MANUAL_COMMIT_REF }}
+          MANUAL_BASE_REF: ${{ inputs.MANUAL_BASE_REF }}
+        with:
+          # Reconoce TODO, FIXME y HACK como identificadores (como pedías originalmente)
+          IDENTIFIERS: '[{"name": "TODO", "labels": []}, {"name": "FIXME", "labels": ["bug"]}, {"name": "HACK", "labels": ["tech-debt"]}]'
+          # Cierra el issue cuando el comentario se borra del código
+          CLOSE_ISSUES: "true"
+          # Inserta la URL del issue en el propio comentario (mejora precisión al cerrar)
+          INSERT_ISSUE_URLS: "true"
+          # Carpetas/archivos a ignorar
+          IGNORE: "node_modules/.*,vendor/.*,dist/.*,build/.*"
+
+      - name: Commit y push de las URLs insertadas
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if [[ `git status --porcelain` ]]; then
+            git commit -m "chore: agregar URLs de issues a TODOs [skip ci]"
+            git push origin main
+          else
+            echo "Sin cambios para commitear"
+          fi
