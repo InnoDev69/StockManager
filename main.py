@@ -8,9 +8,10 @@ import time
 import socket
 from time import perf_counter
 from miscellaneous import logger, SCHEDULER
+from miscellaneous.permissions import PERMS
 logger.info("BOOT:start", source="ROOT")
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
 from dotenv import load_dotenv
 from server.api import api_bp
 from miscellaneous import Var
@@ -21,7 +22,7 @@ from waitress import create_server
 from miscellaneous import ROLES
 
 from client.config import config  # Asegura que se carguen los módulos de configuración
-from server.services import backup_service
+from server.services import backup_service, permissions_service
 
 t0 = perf_counter()
 
@@ -57,7 +58,9 @@ def inject_globals():
         "Var": Var,
         "ROLES": ROLES,
         'IS_EXECUTABLE': IS_EXECUTABLE,
-        'APP_MODE': 'Ejecutable' if IS_EXECUTABLE else 'Desarrollo'
+        'APP_MODE': 'Ejecutable' if IS_EXECUTABLE else 'Desarrollo',
+        "has_permission": lambda perm: permissions_service.has_permission(session.get("role"), perm),
+        "PERMS": PERMS,
     }
 
 # ── Blueprints ────────────────────────────────────────────────────────────────

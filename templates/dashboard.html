@@ -26,7 +26,7 @@
       </div>
     </a>
 
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+    {% if has_permission(PERMS.PRODUCTS_MANAGE) %}
     <!-- Nuevo Producto -->
     <a href="{{ url_for('products.product_new') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, var(--brand), var(--brand-2));">
@@ -42,6 +42,7 @@
     {% endif %}
 
     <!-- Historial de Ventas -->
+    {% if has_permission(PERMS.SALES_VIEW_ALL) %}
     <a href="/sales" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,8 +57,9 @@
       <span class="quick-access-badge" style="background: var(--success); color: white;">{{ stats.sales_today }}</span>
       {% endif %}
     </a>
+    {% endif %}
 
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+    {% if has_permission(PERMS.PRODUCTS_MANAGE) %}
     <!-- Importar CSV -->
     <a href="/import" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
@@ -72,6 +74,7 @@
     </a>
 
     <!-- Configuración -->
+    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <a href="/settings" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,9 +88,10 @@
       </div>
     </a>
     {% endif %}
+    {% endif %}
 
     <!-- Ver Productos GENERALES -->
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+    {% if has_permission(PERMS.PRODUCTS_MANAGE) %}
     <a href="/product_management" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +106,7 @@
     {% endif %}
 
     <!-- Ver métricas-->
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+    {% if has_permission(PERMS.METRICS_VIEW) %}
     <a href="{{ url_for('metrics.metrics') }}" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -120,7 +124,7 @@
     {% endif %}
 
     <!-- Gestion de usuarios-->
-    {% if role == ROLES.ROOT %}
+    {% if has_permission(PERMS.USERS_MANAGE) %}
     <a href="/users" class="quick-access-item" style="text-decoration: none;">
       <div class="quick-access-icon" style="background: linear-gradient(135deg, #64748b, #475569);">
         <svg style="width: 24px; height: 24px; stroke-width: 2;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -210,14 +214,14 @@
         <option value="all">Todos</option>
         <option value="in_stock">En stock</option>
         <option value="out_of_stock">Agotados</option>
-        {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+        {% if has_permission(PERMS.PRODUCTS_MANAGE) %}
         <option value="discontinued">Descatalogados</option>
         {% endif %}
       </select>
     </div>
 
     <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-      {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+      {% if has_permission(PERMS.PRODUCTS_MANAGE) %}
       <a href="{{ url_for('products.product_new') }}" class="btn" style="white-space: nowrap;">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -229,6 +233,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
         </svg>
       </a>
+      {% endif %}
+      {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
       <a href="/settings" class="btn btn-ghost" title="Configuración">
         <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -236,13 +242,18 @@
         </svg>
       </a>
       {% endif %}
+
+      {% if has_permission(PERMS.SALES_CREATE) %}
       <a href="/sales/new" class="btn" style="white-space: nowrap;">
         <svg style="width: 16px; height: 16px; margin-right: 0.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
         Nueva venta
       </a>
+      {% endif %}
+      {% if has_permission(PERMS.SALES_VIEW_ALL) %}
       <a href="/sales" class="btn btn-ghost">Historial</a>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -363,7 +374,7 @@
       </svg>
       <h3 style="margin: 1.5rem 0 0.5rem 0; font-weight: 600;">No se encontraron productos</h3>
       <p class="text-muted" style="margin: 0 0 1.5rem 0;">Intenta ajustar los filtros o agrega un nuevo producto.</p>
-      {% if role == ROLES.ADMIN or role == ROLES.ROOT %}<a href="/products/new" class="btn">Agregar primer producto</a>{% endif %}
+      {% if has_permission(PERMS.PRODUCTS_MANAGE) %}<a href="/products/new" class="btn">Agregar primer producto</a>{% endif %}
     </div>
   </div>
 

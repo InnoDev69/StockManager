@@ -8,6 +8,7 @@ from .roles import ROLES
 from .variables import Var
 from .limits import Limits
 from .validators import ValidationError, Validator,UserValidator, ItemValidator
+from .permissions import PERMS
 
 __all__ = [
     "get_data_path",
@@ -24,4 +25,5 @@ __all__ = [
     "Validator",
     "UserValidator",
     "ItemValidator",
+    "PERMS"
 ]

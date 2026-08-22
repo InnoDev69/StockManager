@@ -3,6 +3,7 @@ from server.api.auth_utils import require_auth
 from werkzeug.security import generate_password_hash, check_password_hash
 from server.bd.bdInstance import db
 from client.config import config
+from miscellaneous.security import encode_text, decode_text, safe_decode, safe_encode
 
 settings_api = Blueprint('settings_api', __name__)
 
@@ -110,7 +111,13 @@ EXCLUDED_KEYS = ["app", "ui"]
 def get_all_settings():
     """Obtener todas las configuraciones actuales."""
     try:
-        config_data = config.get_all(exclude=EXCLUDED_KEYS)  
+        config_data = config.get_all(exclude=EXCLUDED_KEYS)
+        
+        if "roles" in config_data:
+            decoded_roles = safe_decode(config_data["roles"])
+            
+            config_data["roles"] = decoded_roles
+            
         return jsonify(config_data), 200
     except Exception as e:
         return {"success": False, "error": str(e)}, 500
@@ -121,11 +128,16 @@ def get_setting(key):
     """Obtener una configuración específica por clave."""
     try:
         value = config.get(key, exclude=EXCLUDED_KEYS)
+        
         if value is None:
             return jsonify({"success": False, "error": f"Configuración '{key}' no encontrada"}), 404
+        if key == "roles":
+            value = safe_decode(value)
+            
         return jsonify({key: value}), 200
+        
     except Exception as e:
-        return {"success": False, "error": str(e)}, 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @settings_api.route("/settings/actual/<string:key>", methods=["PUT"])
 @require_auth
@@ -138,7 +150,11 @@ def update_setting(key):
         if value is None:
             return jsonify({"success": False, "error": "El valor es requerido"}), 400
         
-        config.set(key, value)
+        if "roles" in key:
+            config.set(key, safe_encode(value))
+        else:
+            config.set(key, value)
+            
         return jsonify({
             "success": True,
             "message": f"Configuración '{key}' actualizada correctamente",

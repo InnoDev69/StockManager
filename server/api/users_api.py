@@ -2,9 +2,10 @@ import sqlite3
 from miscellaneous import Var
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
+from miscellaneous.permissions import PERMS
 from server.api.error_handlers import handle_db_error
 from server.bd.bdInstance import db
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_permission, require_role
 from miscellaneous.validators import RoleValidator, UserValidator, ValidationError
 from miscellaneous import logger, email_sender
 from miscellaneous.audit_decorator import audit_action
@@ -18,8 +19,7 @@ def generate_reset_code():
     return f"{secrets.randbelow(10**6):06d}"
 
 @users_api.route("/users", methods=["GET"])
-@require_auth
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 def get_users():
     """Lista todos los usuarios con paginación."""
 
@@ -75,7 +75,7 @@ def get_users():
 
 
 @users_api.route("/users/<int:user_id>", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 def get_user(user_id):
     """Obtiene un usuario específico."""
 
@@ -98,7 +98,7 @@ def get_user(user_id):
 
 
 @users_api.route("/users", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("user", "create")
 def create_user():
     """Crea un nuevo usuario."""
@@ -145,7 +145,7 @@ def create_user():
         return handle_db_error(e, "create_user")
 
 @users_api.route("/users/<int:target_user_id>", methods=["PUT"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("user", "update", "target_user_id")
 def update_user(target_user_id):
     """Actualiza un usuario existente (solo si hay cambios reales)."""
@@ -224,7 +224,7 @@ def update_user(target_user_id):
         return jsonify({"error": "Error al actualizar el usuario"}), 500
 
 @users_api.route("/users/<int:target_user_id>", methods=["DELETE"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("user", "delete", "target_user_id")
 def delete_user(target_user_id):
     """Deshabilita un usuario (baja lógica)."""
@@ -240,8 +240,9 @@ def delete_user(target_user_id):
     
     logger.info(f"Usuario ID {target_user_id} dado de baja por admin ID {session.get('user_id')}")
     return jsonify({"message": "Usuario dado de baja"}), 200
-    
+
 @users_api.route("/users/reset-password", methods=["POST"])
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("user", "reset_password")
 def restore_password():
     """

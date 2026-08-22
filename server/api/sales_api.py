@@ -1,9 +1,9 @@
-from miscellaneous import ROLES
+from miscellaneous import ROLES, PERMS
 from flask import Blueprint, jsonify, request, session
 from miscellaneous.local_time import localDate
 from server.api.notifications_api import notify_user
 from server.bd.bdInstance import db
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_permission
 from miscellaneous import logger
 from miscellaneous.audit_decorator import audit_action
 from server.api.error_handlers import handle_db_error
@@ -17,6 +17,7 @@ ALLOWED_PAYMENT_METHODS = {"Efectivo", "Fiado", "Mixto"}
 
 @sales_api.route("/sales", methods=["POST"])
 @require_auth
+@require_permission(PERMS.SALES_CREATE)
 @audit_action("sale", "create")
 def create_sale():
     """
@@ -652,7 +653,7 @@ def get_sale_detail(sale_id):
 
 
 @sales_api.route("/sales/<int:sale_id>/edit", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.SALES_EDIT)
 def get_sale_for_edit(sale_id):
     """Obtiene detalles de una venta para editar (solo admins)"""
     try:
@@ -666,7 +667,7 @@ def get_sale_for_edit(sale_id):
 
 
 @sales_api.route("/sales/<int:sale_id>", methods=["PUT"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.SALES_EDIT)
 @audit_action("sale", "update", "sale_id")
 def update_sale(sale_id):
     """Actualiza una venta existente"""

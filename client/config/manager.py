@@ -59,6 +59,7 @@ class ConfigManager:
         self._initialized = True
         self.reload()
         logger.info(f"ConfigManager initialized with config path: {self.config_path}", source=LOGGER_NAME)
+        logger.debug(f"JSON in memory: {json.dumps(self._data, indent=2, ensure_ascii=False)}", source=LOGGER_NAME)
 
     # ---------- registro modular ----------
 
