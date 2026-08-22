@@ -16,7 +16,7 @@ Registrar en la app:
 
 from flask import Blueprint, jsonify, request
 
-from client.config import config  # ajustar el import a tu path real
+from client.config import config
 
 config.register_defaults("ui", {"seen_highlights": []})
 

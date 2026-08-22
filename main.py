@@ -7,23 +7,24 @@ import threading
 import time
 import socket
 from time import perf_counter
+from miscellaneous import logger, SCHEDULER
+from miscellaneous.permissions import PERMS
+logger.info("BOOT:start", source="ROOT")
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
 from dotenv import load_dotenv
 from server.api import api_bp
 from miscellaneous import Var
 from server.routes import all_blueprints
 from miscellaneous import Limits
-from miscellaneous import logger, SCHEDULER
 from server.bd.bdInstance import db
 from waitress import create_server
 from miscellaneous import ROLES
 
 from client.config import config  # Asegura que se carguen los módulos de configuración
-from server.services import backup_service
+from server.services import backup_service, permissions_service
 
 t0 = perf_counter()
-logger.info("boot:start", source="ROOT")
 
 load_dotenv()
 
@@ -57,7 +58,9 @@ def inject_globals():
         "Var": Var,
         "ROLES": ROLES,
         'IS_EXECUTABLE': IS_EXECUTABLE,
-        'APP_MODE': 'Ejecutable' if IS_EXECUTABLE else 'Desarrollo'
+        'APP_MODE': 'Ejecutable' if IS_EXECUTABLE else 'Desarrollo',
+        "has_permission": lambda perm: permissions_service.has_permission(session.get("role"), perm),
+        "PERMS": PERMS,
     }
 
 # ── Blueprints ────────────────────────────────────────────────────────────────
@@ -134,6 +137,9 @@ def cleanup():
         _server = None
 
     db.close_conn()
+    
+    from server.services import cache_service
+    cache_service.flush()
 
 def signal_handler(sig, frame):
     logger.info("Señal de terminación recibida, cerrando servidor...", source=APP_LOGGER_NAME)
@@ -236,7 +242,7 @@ if __name__ == "__main__":
             raise RuntimeError("Waitress no respondió en 15 segundos.")
 
         logger.info("Servidor listo, abriendo ventana...", source=APP_LOGGER_NAME)
-        logger.info(f"boot:server_ready {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
+        logger.info(f"BOOT:server_ready {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         window = webview.create_window(
             "Stockly",
@@ -246,7 +252,7 @@ if __name__ == "__main__":
             min_size=(800, 600),
         )
         
-        logger.info(f"boot:window_created {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
+        logger.info(f"BOOT:window_created {(perf_counter() - t0) * 1000} ms", source=APP_LOGGER_NAME)
 
         # Iniciar webview
         if sys.platform == "linux" and os.path.exists(icon_path):

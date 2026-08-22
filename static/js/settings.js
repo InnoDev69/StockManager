@@ -6,12 +6,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTA DE CONFIGURACIONES EXCLUIDAS
 // Agregá aquí las claves que NO querés mostrar en el panel de Sistema.
+// Soporta notación de puntos para excluir sub-claves, ej. "backup.destination_path"
+// o "roles.root" para excluir un rol entero de la matriz.
 // ─────────────────────────────────────────────────────────────────────────────
 const EXCLUDED_SETTINGS = [
   // "secret_key",
   // "db_url",
   // "internal_token",
 ];
+
+// Sufijos de clave que indican "esto es una ruta de archivo/carpeta" → se les
+// agrega un botón "Explorar…" que abre el selector nativo del SO vía pywebview.
+const PATH_KEY_REGEX = /(^|_)(path|dir|directory|folder)$/i;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API HELPERS
@@ -71,7 +77,7 @@ function initTabs() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DETECCIÓN DE TIPO DE VALOR
+// DETECCIÓN DE TIPO DE VALOR (para campos escalares finales)
 // ─────────────────────────────────────────────────────────────────────────────
 function detectType(value) {
   if (typeof value === "boolean") return "boolean";
@@ -82,6 +88,10 @@ function detectType(value) {
     if (!isNaN(value) && value.trim() !== "") return "number-string";
   }
   return "string";
+}
+
+function isPathField(name) {
+  return PATH_KEY_REGEX.test(name);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,46 +106,85 @@ function keyToLabel(key) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AGRUPADO DE CLAVES POR PREFIJO
+// ÁRBOL DE CONFIGURACIONES
 // ─────────────────────────────────────────────────────────────────────────────
 function isPlainObject(val) {
   return val !== null && typeof val === "object" && !Array.isArray(val);
 }
 
+function deepClone(val) {
+  return val === undefined ? val : JSON.parse(JSON.stringify(val));
+}
+
 /**
- * Convierte el JSON de la API (que puede tener objetos anidados, ej. "backup": {...})
- * en una lista de grupos: { groupName: [{ key, subKey, value }, ...] }
- *
- * - Si el valor de primer nivel es un objeto, sus propiedades se vuelven los campos
- *   del grupo, y el "key" para guardar es la clave padre (porque la API actualiza
- *   por clave de primer nivel: PUT /settings/actual/<key>).
- * - Si el valor de primer nivel es escalar, se agrupa solo bajo "General".
- * - Cualquier clave de primer nivel que empiece con "_" se considera metadata
- *   interna (ej. "_version") y se descarta automáticamente.
+ * Clasifica un valor de nivel superior:
+ * - "scalar": string/number/boolean/array → va a la tarjeta "General"
+ * - "flat":   objeto cuyas propiedades son todas escalares (o vacío) → tarjeta normal de campos
+ * - "nested": objeto que contiene al menos una propiedad que es a su vez un objeto
+ *             (ej. "roles": { admin: {...}, root: {...} }) → tarjeta de matriz
  */
-function groupSettings(settingsObj) {
+function classifyValue(val) {
+  if (!isPlainObject(val)) return "scalar";
+  const entries = Object.entries(val);
+  if (!entries.length) return "flat";
+  const hasNestedObject = entries.some(([, v]) => isPlainObject(v));
+  return hasNestedObject ? "nested" : "flat";
+}
+
+/**
+ * Convierte el JSON de la API en una lista de grupos:
+ *   groups[name] = { type: "fields", fields: [{ topKey, path, value }] }
+ *   groups[name] = { type: "sections", sections: { subName: [{ topKey, path, value }] } }
+ *
+ * "topKey" es siempre la clave de primer nivel (la que acepta el endpoint PUT).
+ * "path" es la ruta de claves dentro de ese objeto hasta llegar al valor editable,
+ * ej. path=["frequency_days"] para backup.frequency_days,
+ *     path=["admin", "barcode.manage"] para roles.admin["barcode.manage"].
+ *
+ * Cualquier clave de primer nivel que empiece con "_" se considera metadata
+ * interna (ej. "_version") y se descarta automáticamente.
+ */
+function buildConfigTree(settingsObj) {
   const groups = {};
 
   for (const [topKey, topValue] of Object.entries(settingsObj)) {
-    if (topKey.startsWith("_")) continue; // metadata interna, ej. _version
+    if (topKey.startsWith("_")) continue;
     if (EXCLUDED_SETTINGS.includes(topKey)) continue;
 
-    if (isPlainObject(topValue)) {
+    const kind = classifyValue(topValue);
+
+    if (kind === "scalar") {
+      if (!groups.general) groups.general = { type: "fields", fields: [] };
+      groups.general.fields.push({ topKey, path: [], value: topValue });
+      continue;
+    }
+
+    if (kind === "flat") {
       const fields = Object.entries(topValue)
         .filter(([subKey]) => !EXCLUDED_SETTINGS.includes(`${topKey}.${subKey}`))
-        .map(([subKey, subValue]) => ({
-          key: topKey,   // clave a usar en el PUT (nivel superior)
-          subKey,         // clave real del campo dentro del objeto
-          value: subValue,
-        }));
-      if (fields.length) {
-        if (!groups[topKey]) groups[topKey] = [];
-        groups[topKey].push(...fields);
-      }
-    } else {
-      if (!groups.general) groups.general = [];
-      groups.general.push({ key: topKey, subKey: null, value: topValue });
+        .map(([subKey, subValue]) => ({ topKey, path: [subKey], value: subValue }));
+      if (fields.length) groups[topKey] = { type: "fields", fields };
+      continue;
     }
+
+    // kind === "nested" → tarjeta de matriz (ej. roles)
+    const sections = {};
+    for (const [midKey, midValue] of Object.entries(topValue)) {
+      if (EXCLUDED_SETTINGS.includes(`${topKey}.${midKey}`)) continue;
+
+      if (isPlainObject(midValue)) {
+        sections[midKey] = Object.entries(midValue).map(([leafKey, leafValue]) => ({
+          topKey,
+          path: [midKey, leafKey],
+          value: leafValue,
+        }));
+      } else {
+        // valor escalar mezclado al mismo nivel que las sub-secciones: lo agrupamos aparte
+        if (!sections.__general) sections.__general = [];
+        sections.__general.push({ topKey, path: [midKey], value: midValue });
+      }
+    }
+    groups[topKey] = { type: "sections", sections };
   }
 
   return groups;
@@ -199,7 +248,16 @@ const GROUP_ICONS = {
       { tag: "line", attrs: { x1: "16", y1: "17", x2: "8", y2: "17" } },
     ],
   },
+  backup: {
+    viewBox: "0 0 24 24",
+    elements: [
+      { tag: "path", attrs: { d: "M21 12a9 9 0 1 1-2.64-6.36" } },
+      { tag: "polyline", attrs: { points: "21 3 21 9 15 9" } },
+    ],
+  },
 };
+GROUP_ICONS.roles = GROUP_ICONS.auth;
+GROUP_ICONS.experimental_features = GROUP_ICONS.app;
 
 function createSvgElement(tag, attrs = {}) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -226,17 +284,18 @@ function getGroupIcon(groupName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RENDER DE UN CAMPO INDIVIDUAL
+// RENDER DE UN CAMPO INDIVIDUAL (usado en tarjetas de tipo "fields")
 // ─────────────────────────────────────────────────────────────────────────────
-function renderField({ key, subKey, value }) {
+function renderField({ topKey, path, value }) {
   const type = detectType(value);
-  const label = keyToLabel(subKey || key);
-  const fieldId = subKey ? `cfg-${key}-${subKey}` : `cfg-${key}`;
+  const leafName = path.length ? path[path.length - 1] : topKey;
+  const label = keyToLabel(leafName);
+  const fieldId = `cfg-${topKey}-${path.join("-")}`;
   const field = document.createElement("div");
   field.className = "config-field";
-  field.dataset.key = key;
+  field.dataset.topkey = topKey;
+  field.dataset.path = JSON.stringify(path);
   field.dataset.type = type;
-  if (subKey) field.dataset.subkey = subKey;
 
   if (type === "boolean" || type === "boolean-string") {
     const checked = value === true || value === "true";
@@ -266,7 +325,7 @@ function renderField({ key, subKey, value }) {
   }
 
   const inputType = type === "number" || type === "number-string" ? "number" : "text";
-  const badgeId = subKey ? `badge-${key}-${subKey}` : `badge-${key}`;
+  const badgeId = `badge-${topKey}-${path.join("-")}`;
 
   const labelEl = document.createElement("label");
   labelEl.className = "config-field__label";
@@ -294,20 +353,46 @@ function renderField({ key, subKey, value }) {
   badge.id = badgeId;
   badge.textContent = "✓";
 
-  row.append(input, button, badge);
+  const rowChildren = [input];
+
+  if (isPathField(leafName)) {
+    input.readOnly = true;
+    const browseBtn = document.createElement("button");
+    browseBtn.type = "button";
+    browseBtn.className = "btn btn--ghost btn-xs config-browse-btn";
+    browseBtn.textContent = "Explorar…";
+    browseBtn.addEventListener("click", async () => {
+      if (!window.pywebview?.api?.select_folder) {
+        showToast("El selector de carpetas no está disponible en este entorno.", true);
+        return;
+      }
+      browseBtn.disabled = true;
+      try {
+        const folder = await window.pywebview.api.select_folder();
+        if (folder) {
+          input.value = folder;
+          button.click(); // reutiliza el flujo de guardado normal
+        }
+      } catch (err) {
+        showToast(`No se pudo abrir el explorador: ${err.message}`, true);
+      } finally {
+        browseBtn.disabled = false;
+      }
+    });
+    rowChildren.push(browseBtn);
+  }
+
+  rowChildren.push(button, badge);
+  row.append(...rowChildren);
   field.append(labelEl, row);
   return field;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RENDER DE UNA TARJETA DE GRUPO
+// RENDER DE UNA TARJETA DE CAMPOS PLANOS
 // ─────────────────────────────────────────────────────────────────────────────
 function renderCard(groupName, fields) {
-  const title =
-    groupName === "general"
-      ? "General"
-      : groupName.charAt(0).toUpperCase() + groupName.slice(1);
-
+  const title = keyToLabel(groupName);
   const icon = getGroupIcon(groupName);
   const card = document.createElement("div");
   card.className = "card config-card";
@@ -328,6 +413,102 @@ function renderCard(groupName, fields) {
   body.append(...fields.map(renderField));
 
   header.append(iconSpan, titleEl);
+  card.append(header, body);
+  return card;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER DE UNA TARJETA DE MATRIZ (grupos anidados, ej. roles → permisos)
+// ─────────────────────────────────────────────────────────────────────────────
+function renderMatrixCard(topKey, sections) {
+  const title = keyToLabel(topKey);
+  const icon = getGroupIcon(topKey);
+  const card = document.createElement("div");
+  card.className = "card config-card config-card--matrix";
+
+  const header = document.createElement("div");
+  header.className = "config-card__header";
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "config-card__icon";
+  iconSpan.appendChild(icon);
+  const titleEl = document.createElement("h3");
+  titleEl.className = "config-card__title";
+  titleEl.textContent = title;
+  header.append(iconSpan, titleEl);
+
+  const body = document.createElement("div");
+  body.className = "config-card__body config-matrix-wrap";
+
+  // Campos escalares sueltos al mismo nivel que las sub-secciones (poco común, pero por las dudas)
+  if (sections.__general?.length) {
+    body.append(...sections.__general.map(renderField));
+  }
+
+  const sectionNames = Object.keys(sections).filter((n) => n !== "__general");
+  const permKeys = [
+    ...new Set(sectionNames.flatMap((name) => sections[name].map((f) => f.path[f.path.length - 1]))),
+  ];
+
+  if (!sectionNames.length || !permKeys.length) {
+    if (!sections.__general?.length) {
+      const empty = document.createElement("p");
+      empty.className = "config-matrix-empty";
+      empty.textContent = "No hay datos para mostrar.";
+      body.append(empty);
+    }
+    card.append(header, body);
+    return card;
+  }
+
+  const table = document.createElement("table");
+  table.className = "config-matrix";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  headRow.appendChild(document.createElement("th"));
+  sectionNames.forEach((name) => {
+    const th = document.createElement("th");
+    th.textContent = keyToLabel(name);
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+  permKeys.forEach((permKey) => {
+    const row = document.createElement("tr");
+    const rowLabel = document.createElement("th");
+    rowLabel.className = "config-matrix__row-label";
+    rowLabel.textContent = keyToLabel(permKey);
+    row.appendChild(rowLabel);
+
+    sectionNames.forEach((name) => {
+      const td = document.createElement("td");
+      const existing = sections[name].find((f) => f.path[f.path.length - 1] === permKey);
+      const value = existing ? existing.value : false;
+
+      const toggle = document.createElement("label");
+      toggle.className = "toggle toggle--sm";
+      toggle.title = `${keyToLabel(name)}: ${keyToLabel(permKey)}`;
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = value === true || value === "true";
+      checkbox.dataset.topkey = topKey;
+      checkbox.dataset.path = JSON.stringify([name, permKey]);
+
+      const rail = document.createElement("span");
+      rail.className = "toggle__rail";
+
+      toggle.append(checkbox, rail);
+      td.appendChild(toggle);
+      row.appendChild(td);
+    });
+
+    tbody.appendChild(row);
+  });
+
+  table.append(thead, tbody);
+  body.appendChild(table);
   card.append(header, body);
   return card;
 }
@@ -407,7 +588,7 @@ const ConfigSection = {
   },
 
   renderSettings(data) {
-    const groups = groupSettings(data);
+    const groups = buildConfigTree(data);
 
     if (!Object.keys(groups).length) {
       const emptyState = document.createElement("div");
@@ -422,7 +603,11 @@ const ConfigSection = {
 
     const grid = document.createElement("div");
     grid.className = "config-grid";
-    grid.append(...Object.entries(groups).map(([name, fields]) => renderCard(name, fields)));
+    grid.append(
+      ...Object.entries(groups).map(([name, group]) =>
+        group.type === "sections" ? renderMatrixCard(name, group.sections) : renderCard(name, group.fields),
+      ),
+    );
     this.container.replaceChildren(grid);
   },
 
@@ -438,54 +623,78 @@ const ConfigSection = {
       const input = field?.querySelector("input");
       if (!input || !field) return;
 
-      const key = field.dataset.key;
-      const subKey = field.dataset.subkey || null;
+      const topKey = field.dataset.topkey;
+      const path = JSON.parse(field.dataset.path);
       const type = field.dataset.type;
       let rawValue = input.value;
 
       if (type === "number") rawValue = Number(rawValue);
       else if (type === "number-string") rawValue = String(rawValue);
 
-      const valueToSend = this.buildValueToSend(key, subKey, rawValue);
+      const valueToSend = this.buildValueToSend(topKey, path, rawValue);
 
       btn.disabled = true;
       btn.textContent = "…";
 
       try {
-        await updateSetting(key, valueToSend);
-        this.updateLocalData(key, subKey, rawValue);
+        await updateSetting(topKey, valueToSend);
+        this.updateLocalData(topKey, path, rawValue);
         input.dataset.original = input.value;
         this.flashBadge(field);
       } catch (err) {
-        showToast(`Error al guardar "${subKey || key}": ${err.message}`, true);
+        showToast(`Error al guardar "${path[path.length - 1] || topKey}": ${err.message}`, true);
+        throw err; 
       } finally {
         btn.disabled = false;
         btn.textContent = "Guardar";
       }
     });
 
-    // Toggles booleanos: guardado automático al cambiar
+    // Checkboxes: toggles de campos simples Y celdas de la matriz (guardado automático)
     this.container.addEventListener("change", async (e) => {
       const checkbox = e.target.closest('input[type="checkbox"]');
       if (!checkbox) return;
 
+      // Caso 1: celda dentro de una tarjeta de matriz (ej. roles)
+      const matrixTable = checkbox.closest(".config-matrix");
+      if (matrixTable) {
+        const topKey = checkbox.dataset.topkey;
+        const path = JSON.parse(checkbox.dataset.path);
+        const rawValue = checkbox.checked;
+        const valueToSend = this.buildValueToSend(topKey, path, rawValue);
+
+        checkbox.disabled = true;
+        try {
+          await updateSetting(topKey, valueToSend);
+          this.updateLocalData(topKey, path, rawValue);
+        } catch (err) {
+          showToast(`Error al guardar "${path.join(" → ")}": ${err.message}`, true);
+          checkbox.checked = !checkbox.checked;
+          throw err;
+        } finally {
+          checkbox.disabled = false;
+        }
+        return;
+      }
+
+      // Caso 2: toggle booleano de un campo simple
       const field = checkbox.closest(".config-field");
       if (!field) return;
 
-      const key = field.dataset.key;
-      const subKey = field.dataset.subkey || null;
+      const topKey = field.dataset.topkey;
+      const path = JSON.parse(field.dataset.path);
       const type = field.dataset.type;
       const rawValue = type === "boolean-string" ? String(checkbox.checked) : checkbox.checked;
 
-      const valueToSend = this.buildValueToSend(key, subKey, rawValue);
+      const valueToSend = this.buildValueToSend(topKey, path, rawValue);
 
       checkbox.disabled = true;
       try {
-        await updateSetting(key, valueToSend);
-        this.updateLocalData(key, subKey, rawValue);
+        await updateSetting(topKey, valueToSend);
+        this.updateLocalData(topKey, path, rawValue);
         this.flashBadge(field);
       } catch (err) {
-        showToast(`Error al guardar "${subKey || key}": ${err.message}`, true);
+        showToast(`Error al guardar "${path[path.length - 1] || topKey}": ${err.message}`, true);
         checkbox.checked = !checkbox.checked; // revertir
       } finally {
         checkbox.disabled = false;
@@ -503,25 +712,39 @@ const ConfigSection = {
   },
 
   /**
-   * Construye el valor a enviar en el PUT. Si el campo es parte de un objeto
-   * anidado (ej. "backup.frequency_days"), hay que mandar el objeto "backup"
-   * completo con esa sub-clave actualizada, porque la API actualiza por
-   * clave de primer nivel únicamente.
+   * Construye el valor a enviar en el PUT. La API solo permite actualizar por
+   * clave de primer nivel (topKey), así que si el campo vive en una ruta más
+   * profunda (path), hay que reconstruir el objeto completo de topKey con esa
+   * ruta actualizada, preservando todo lo demás.
    */
-  buildValueToSend(key, subKey, rawValue) {
-    if (!subKey) return rawValue;
-    const currentGroup = isPlainObject(this.data[key]) ? this.data[key] : {};
-    return { ...currentGroup, [subKey]: rawValue };
+  buildValueToSend(topKey, path, rawValue) {
+    if (!path.length) return rawValue;
+
+    const cloned = isPlainObject(this.data[topKey]) ? deepClone(this.data[topKey]) : {};
+    let cursor = cloned;
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = path[i];
+      if (!isPlainObject(cursor[segment])) cursor[segment] = {};
+      cursor = cursor[segment];
+    }
+    cursor[path[path.length - 1]] = rawValue;
+    return cloned;
   },
 
   /** Refleja el valor recién guardado en la copia local this.data */
-  updateLocalData(key, subKey, rawValue) {
-    if (!subKey) {
-      this.data[key] = rawValue;
-    } else {
-      if (!isPlainObject(this.data[key])) this.data[key] = {};
-      this.data[key][subKey] = rawValue;
+  updateLocalData(topKey, path, rawValue) {
+    if (!path.length) {
+      this.data[topKey] = rawValue;
+      return;
     }
+    if (!isPlainObject(this.data[topKey])) this.data[topKey] = {};
+    let cursor = this.data[topKey];
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = path[i];
+      if (!isPlainObject(cursor[segment])) cursor[segment] = {};
+      cursor = cursor[segment];
+    }
+    cursor[path[path.length - 1]] = rawValue;
   },
 
   flashBadge(field) {

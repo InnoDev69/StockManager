@@ -1,14 +1,14 @@
 from flask import Blueprint, jsonify, request, session
 from server.api.notifications_api import notify_user
 from server.bd.bdInstance import db
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_role, require_permission
 from miscellaneous import ItemValidator, ValidationError
 from miscellaneous import logger, localDate
 from miscellaneous.audit_decorator import audit_action
 from server.bd.bdErrors import DatabaseError
 from server.api.error_handlers import handle_db_error
 import sqlite3
-from miscellaneous import ROLES
+from miscellaneous import ROLES, PERMS
 from server.services import cache_service
 from miscellaneous import Limits
 import requests
@@ -273,7 +273,7 @@ def get_product(product_id):
     return jsonify(product), 200
 
 @products_api.route("/products", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "create")
 def create_product():
     """
@@ -339,7 +339,7 @@ def create_product():
         return jsonify({"error": "Error interno"}), 500
 
 @products_api.route("/products/<int:product_id>", methods=["PUT"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "update", "product_id")
 def update_product(product_id):
     """
@@ -424,7 +424,7 @@ def update_product(product_id):
     return jsonify({"message": "Producto actualizado"}), 200
 
 @products_api.route("/products/<int:product_id>", methods=["DELETE"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "delete", "product_id")
 def delete_product(product_id):
     """
@@ -499,7 +499,7 @@ def search_items():
     return jsonify(items), 200
         
 @products_api.route("/products/<int:product_id>/activate", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "activate", "product_id")
 def activate_product(product_id):
     """
@@ -532,7 +532,7 @@ def activate_product(product_id):
         return jsonify({"error": "Error interno"}), 500
     
 @products_api.route("/products/update_price_bulk", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "update_price_bulk")
 def update_price_bulk():
     """
@@ -668,7 +668,7 @@ def get_product_info(barcode):
     return jsonify(product_json), 200 
 
 @products_api.route("/products/stock_update_bulk", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 @audit_action("product", "stock_update_bulk")
 def stock_update_bulk():
     """

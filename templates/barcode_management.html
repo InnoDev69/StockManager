@@ -75,6 +75,25 @@
         </button>
       </div>
     </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel-2); color: var(--text-muted); font-size: 0.85rem;">
+      <div>
+        Mostrando <strong style="color: var(--text);">{{ start_item }}</strong>–<strong style="color: var(--text);">{{ end_item }}</strong> de <strong style="color: var(--text);">{{ total_products }}</strong> productos
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('products.barcode_management', page=page - 1, limit=limit) }}" class="btn btn-ghost" style="padding: 0.5rem 0.85rem;">
+          Anterior
+        </a>
+        {% endif %}
+        <span style="font-weight: 600; color: var(--text);">Página {{ page }} de {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="{{ url_for('products.barcode_management', page=page + 1, limit=limit) }}" class="btn btn-ghost" style="padding: 0.5rem 0.85rem;">
+          Siguiente
+        </a>
+        {% endif %}
+      </div>
+    </div>
     
     <div style="overflow-x: auto;">
       <table class="barcode-table">
@@ -158,6 +177,25 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem;">
+      <div>
+        Mostrando <strong style="color: var(--text);">{{ start_item }}</strong>–<strong style="color: var(--text);">{{ end_item }}</strong> de <strong style="color: var(--text);">{{ total_products }}</strong> productos
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('products.barcode_management', page=page - 1, limit=limit) }}" class="btn btn-ghost" style="padding: 0.5rem 0.85rem;">
+          Anterior
+        </a>
+        {% endif %}
+        <span style="font-weight: 600; color: var(--text);">Página {{ page }} de {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="{{ url_for('products.barcode_management', page=page + 1, limit=limit) }}" class="btn btn-ghost" style="padding: 0.5rem 0.85rem;">
+          Siguiente
+        </a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </main>

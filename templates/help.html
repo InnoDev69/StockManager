@@ -21,6 +21,7 @@
   <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">
     Este manual completo te guiará paso a paso a través de todas las funcionalidades de nuestro sistema de gestión de inventario y ventas para almacenes. 
     Ya sea que seas un usuario principiante o un administrador experimentado, encontrarás información detallada sobre cómo utilizar cada módulo efectivamente. 
+    Además, esta guía incorpora las funciones más recientes del producto: cuentas corrientes, reposición de stock por escáner, gestión de códigos de barras y seguimiento de novedades del sistema. 
     Haz clic en cualquier sección para expandirla y obtener instrucciones específicas. Si tienes dudas adicionales, consulta la sección de "Preguntas Frecuentes" al final.
   </p>
 
@@ -246,7 +247,6 @@
     </details>
 
     <!-- INVENTARIO (Admin) -->
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Gestión de Inventario - Administración de Productos (Admin)</span>
@@ -426,7 +426,128 @@
         </div>
       </div>
     </details>
-    {% endif %}
+
+    <!-- CUENTAS CORRIENTES -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Cuentas Corrientes - Clientes y Pagos</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Control de clientes con saldo, deuda y pagos parciales</h3>
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          La sección de Cuentas Corrientes sirve para manejar ventas a crédito, clientes con deuda, pagos parciales y saldos a favor. 
+          Es ideal para negocios que necesitan llevar un seguimiento claro del dinero que aún no fue cobrado o que ya fue abonado.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Qué puedes hacer aquí</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.75rem;"><strong>Registrar clientes:</strong> agrega nombres, teléfono y límite de crédito si corresponde.</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Revisar saldos:</strong> verás rápidamente quién tiene deuda, quién está al día y quién tiene saldo a favor.</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Registrar pagos:</strong> puedes cargar pagos parciales o ajustes para mantener el historial actualizado.</li>
+            <li style="margin-bottom: 0.75rem;"><strong>Consultar movimientos:</strong> revisa el detalle de pagos, ajustes y cambios del saldo del cliente.</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Flujo recomendado</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;"><strong>Busca o crea el cliente:</strong> si ya existe, selecciónalo para ver su estado; si no, agrégalo desde la interfaz.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Revisa su detalle:</strong> observa su saldo actual, límite y movimientos recientes antes de tomar decisiones.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Registra el pago o ajuste:</strong> cuando el cliente abona, ingresa el importe correspondiente para actualizar el saldo.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Mantén el historial limpio:</strong> usa esta sección para tener un registro claro de deuda y cobro.</li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Consejos de uso</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Actualiza los pagos de forma frecuente para evitar que las deudas se acumulen.</li>
+            <li style="margin-bottom: 0.5rem;">Revisa el saldo de los clientes antes de aprobar nuevas ventas a crédito.</li>
+            <li style="margin-bottom: 0.5rem;">Usa esta herramienta para mantener una relación más ordenada con los clientes y con el control financiero.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+    <!-- REPOSICIÓN POR ESCÁNER -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Reposición por Escáner - Ajuste Rápido de Stock</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Actualiza stock rápidamente escaneando códigos de barras</h3>
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          La funcionalidad de Reposición por Escáner permite cargar varios productos de forma ágil y aplicar ajustes de stock sin completar un formulario largo. 
+          Es útil cuando recibes mercadería nueva o necesitas incrementar inventario de forma rápida.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo usarla</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;"><strong>Escaneá o escribí el código:</strong> el sistema detecta el producto y lo agrega automáticamente a la lista.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Verifica la cantidad:</strong> cada lectura suma unidades y muestra el stock resultante esperado.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Confirma la operación:</strong> cuando todo esté correcto, presioná confirmar para aplicar los cambios.</li>
+        </ol>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Ventajas</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--warning);">
+          <ul style="color: var(--text); margin: 0; padding-left: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Acelera la carga de productos cuando llegas con varias unidades.</li>
+            <li style="margin-bottom: 0.5rem;">Reduce errores manuales al no tener que escribir cada artículo repetidamente.</li>
+            <li style="margin-bottom: 0.5rem;">Mantiene el inventario actualizado de forma más rápida y ordenada.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+    <!-- GESTIÓN DE CÓDIGOS DE BARRAS -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Gestión de Códigos de Barras - Impresión y Edición</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Administra etiquetas y códigos de barras de tus productos</h3>
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          Desde esta sección puedes visualizar los códigos registrados, generar códigos automáticos cuando faltan, editarlos y descargarlos o imprimirlos.
+          Es especialmente útil para mantener el inventario ordenado y facilitar la operación diaria en el almacén.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Qué puedes hacer</h4>
+        <ul style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.5rem;">Generar códigos automáticos para productos que aún no tienen uno asignado.</li>
+          <li style="margin-bottom: 0.5rem;">Editar códigos existentes si necesitas corregir o cambiar la referencia.</li>
+          <li style="margin-bottom: 0.5rem;">Descargar o imprimir etiquetas para uso en almacén o exhibición.</li>
+        </ul>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Recomendación</h4>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--success);">
+          <p style="color: var(--text); margin: 0;">Mantén los códigos de barras consistentes para evitar duplicados y acelerar la búsqueda y venta de productos.</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- NOVEDADES DEL SISTEMA -->
+    <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+      <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+        <span>Novedades del Sistema - Changelog</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </summary>
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Consulta los cambios y mejoras incorporadas en cada versión</h3>
+        <p style="color: var(--text); margin-bottom: 1.5rem;">
+          La sección de Novedades te permite revisar qué cambios, mejoras o correcciones se incorporaron en Stockly. 
+          Es útil para mantenerse al día cuando se agregan nuevas funciones o se ajustan procesos del sistema.
+        </p>
+
+        <h4 style="margin-bottom: 0.75rem; font-weight: 600; color: var(--text);">Cómo consultarla</h4>
+        <ol style="color: var(--text); padding-left: 1.5rem; margin-bottom: 1.5rem;">
+          <li style="margin-bottom: 0.75rem;"><strong>Entrá a la sección de Novedades:</strong> desde la navegación o el menú correspondiente.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Revisá versión por versión:</strong> podés ver qué cambió en cada entrega del sistema.</li>
+          <li style="margin-bottom: 0.75rem;"><strong>Mantenete informado:</strong> use esta herramienta para aprender nuevas funciones antes de empezar a trabajar con ellas.</li>
+        </ol>
+      </div>
+    </details>
 
     <!-- NOTIFICACIONES -->
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
@@ -549,7 +670,6 @@
     </details>
 
     <!-- MÉTRICAS (Admin) -->
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Métricas y Reportes - Análisis Empresarial (Admin)</span>
@@ -691,7 +811,6 @@
         </div>
       </div>
     </details>
-    {% endif %}
 
     <!-- CONFIGURACIÓN -->
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
@@ -832,7 +951,6 @@
     </details>
 
     <!-- ADMINISTRACIÓN (Admin) -->
-    {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
       <summary style="padding: 1rem; background: var(--card); cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; user-select: none;">
         <span>Administración de Usuarios - Control de Acceso (Admin)</span>
@@ -1036,7 +1154,6 @@
         </div>
       </div>
     </details>
-    {% endif %}
 
     <!-- PREGUNTAS FRECUENTES -->
     <details class="help-section" style="margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">

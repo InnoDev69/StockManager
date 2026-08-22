@@ -1,11 +1,12 @@
 from miscellaneous import ROLES
 from flask import Blueprint, render_template, session
-from server.api.auth_utils import require_role
+from miscellaneous.permissions import PERMS
+from server.api.auth_utils import require_permission
 
 users_bp = Blueprint('users', __name__)
 
 @users_bp.route("/users")
-@require_role(ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 def users():
     """
     Página de gestión de usuarios.

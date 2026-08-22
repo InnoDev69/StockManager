@@ -50,14 +50,20 @@
   .cc-stat__icon--blue  { background: linear-gradient(135deg, #00d4ff, #0099cc); }
   .cc-stat__icon--red   { background: linear-gradient(135deg, #ff6b6b, #cc5555); }
   .cc-stat__icon--amber { background: linear-gradient(135deg, #ffb020, #cc8800); }
-  .cc-stat__body{ display: flex; flex-direction: column; gap: .15rem; position: relative; z-index: 1; }
+  .cc-stat__body{ display: flex; flex-direction: column; gap: .15rem; position: relative; z-index: 1; min-width: 0; }
   .cc-stat__label{
     font-size: .74rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: .06em; color: var(--text-muted);
   }
+  /* FIX: cortar valores numéricos gigantescos en las tarjetas de stats */
   .cc-stat__value{
     font-size: 1.45rem; font-weight: 800;
     color: var(--text); letter-spacing: -0.02em; line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    display: block;
   }
 
   .cc-panel{
@@ -82,6 +88,11 @@
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--text-muted);
+    /* FIX: título del panel también puede recibir texto largo (ej: id de cliente) */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 45%;
   }
   .cc-panel__body{ padding: 1rem; }
 
@@ -112,7 +123,7 @@
   }
 
   /* ---------- Tabla de clientes ---------- */
-  .cc-table{ width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
+  .cc-table{ width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; table-layout: fixed; }
   .cc-table thead th{
     padding: .5rem .75rem;
     font-size: .7rem;
@@ -128,6 +139,8 @@
     padding: .55rem .75rem;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     vertical-align: middle;
+    /* FIX: table-layout fixed + esto evita que una celda con texto largo empuje el layout */
+    overflow: hidden;
   }
   .cc-num{ text-align: right; font-variant-numeric: tabular-nums; }
   .cc-scroll{ max-height: 26rem; overflow-y: auto; }
@@ -140,7 +153,7 @@
   }
 
   /* ---------- Identidad de cliente en la fila ---------- */
-  .cc-identity{ display: flex; align-items: center; gap: .6rem; }
+  .cc-identity{ display: flex; align-items: center; gap: .6rem; min-width: 0; }
   .cc-avatar{
     flex-shrink: 0;
     width: 32px; height: 32px;
@@ -150,8 +163,22 @@
     background: color-mix(in srgb, var(--brand, #00d4ff) 18%, transparent);
     color: var(--brand, #00d4ff);
   }
-  .cc-row__name{ font-weight: 600; color: var(--text); line-height: 1.2; }
-  .cc-row__meta{ color: var(--text-muted); font-size: .78rem; line-height: 1.2; }
+  /* FIX: nombre/teléfono largos truncados con ellipsis en vez de romper el layout */
+  .cc-identity > div{ min-width: 0; overflow: hidden; }
+  .cc-row__name{
+    font-weight: 600; color: var(--text); line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .cc-row__meta{
+    color: var(--text-muted); font-size: .78rem; line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
 
   /* ---------- Badge de saldo ---------- */
   .cc-balance-badge{
@@ -161,6 +188,10 @@
     font-size: .78rem; font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    /* FIX: si el número es gigante, que trunque en vez de desbordar la fila */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .cc-balance-badge--ok{
     background: color-mix(in srgb, var(--success) 12%, transparent);
@@ -196,6 +227,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--panel-2);
+    min-width: 0; /* FIX: permite que el hijo se achique/trunque dentro del grid */
+    overflow: hidden;
   }
   .cc-kpi__label{
     display: block;
@@ -206,6 +239,8 @@
     color: var(--text-muted);
     margin-bottom: .25rem;
   }
+  /* FIX: el valor del KPI (deuda/límite/disponible) es el punto más visible del bug
+     mostrado en la captura — nunca debe desbordar la tarjeta */
   .cc-kpi__value{
     display: block;
     font-size: 1.5rem;
@@ -213,6 +248,10 @@
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
   .cc-kpi--debt{
     border-color: color-mix(in srgb, var(--danger) 40%, transparent);
@@ -234,12 +273,21 @@
     align-items: end;
   }
   @media (max-width: 820px){ .cc-form{ grid-template-columns: 1fr; } }
-  .cc-field{ display: flex; flex-direction: column; gap: .25rem; }
+  .cc-field{ display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
   .cc-field__label{
     font-size: .75rem;
     font-weight: 600;
     color: var(--text-muted);
   }
+  /* FIX: mensaje de error inline por campo (usado por la validación JS) */
+  .cc-field__error{
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--danger);
+    min-height: 1em;
+    display: none;
+  }
+  .cc-field__error.is-visible{ display: block; }
   .cc-input{
     width: 100%;
     padding: .5rem .75rem;
@@ -254,6 +302,11 @@
     outline: none;
     border-color: var(--brand, var(--text));
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand, var(--text)) 18%, transparent);
+  }
+  /* FIX: estado de error visual en el input */
+  .cc-input.is-invalid{
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
   }
   .cc-input--amount{
     font-size: 1.25rem;
@@ -331,15 +384,30 @@
     align-items: center;
     justify-content: space-between;
     gap: .75rem;
+    min-width: 0;
   }
-  .cc-detail-title-row h3{ display: flex; align-items: center; gap: .6rem; }
+  .cc-detail-title-row h3{ display: flex; align-items: center; gap: .6rem; min-width: 0; }
 
   .cc-avatar--lg{
     width: 40px; height: 40px; font-size: .95rem;
+    flex-shrink: 0;
+  }
+
+  /* FIX: nombre del cliente en el detalle — el peor caso de la captura */
+  #accCusName{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 260px;
+    vertical-align: middle;
+  }
+  @media (max-width: 480px){
+    #accCusName{ max-width: 45vw; }
   }
 
   /* ---------- Movimientos: fila con icono ---------- */
-  .cc-mv-row{ display: flex; align-items: center; gap: .5rem; }
+  .cc-mv-row{ display: flex; align-items: center; gap: .5rem; min-width: 0; }
   .cc-mv-icon{
     flex-shrink: 0;
     width: 26px; height: 26px;
@@ -455,7 +523,8 @@
       <div class="cc-panel__body">
         <div class="cc-search">
           <span class="cc-search__icon">{{ comp.icon('search', size='18') }}</span>
-          <input type="text" id="searchInput" class="cc-search__input" autocomplete="off"
+          <!-- FIX: maxlength en el buscador también, evita strings absurdas en el query -->
+          <input type="text" id="searchInput" class="cc-search__input" autocomplete="off" maxlength="60"
                  placeholder="Nombre o teléfono…" aria-label="Buscar cliente">
           <span class="cc-search__kbd"><span class="cc-kbd">F2</span></span>
         </div>
@@ -466,9 +535,9 @@
           <caption class="sr-only">Listado de clientes con cuenta corriente</caption>
           <thead>
             <tr>
-              <th scope="col">Cliente</th>
-              <th scope="col" class="cc-num">Saldo</th>
-              <th scope="col" class="cc-num">Límite</th>
+              <th scope="col" style="width: 55%;">Cliente</th>
+              <th scope="col" class="cc-num" style="width: 25%;">Saldo</th>
+              <th scope="col" class="cc-num" style="width: 20%;">Límite</th>
             </tr>
           </thead>
           <tbody id="customersTableBody">
@@ -525,7 +594,7 @@
 
           <div class="cc-chips mb-lg" role="group" aria-label="Tipo de operación">
             <button type="button" class="cc-chip" id="modePayment" aria-pressed="true">Cobrar abono</button>
-            {% if role == ROLES.ADMIN or role == ROLES.ROOT %}
+            {% if has_permission(PERMS.CREDIT_ADJUST) %}
             <button type="button" class="cc-chip" id="modeAdjustment" aria-pressed="false">Ajuste manual</button>
             {% endif %}
           </div>
@@ -533,14 +602,17 @@
           <div class="cc-form">
             <div class="cc-field">
               <label class="cc-field__label" for="actionAmount" id="actionAmountLabel">Monto a cobrar ($)</label>
-              <input type="number" step="0.01" min="0" id="actionAmount" class="cc-input cc-input--amount"
+              <!-- FIX: max explícito, coincide con el tope validado en JS -->
+              <input type="number" step="0.01" min="0" max="10000000" id="actionAmount" class="cc-input cc-input--amount"
                      autocomplete="off" placeholder="0.00">
+              <span class="cc-field__error" id="actionAmountError"></span>
             </div>
 
             <div class="cc-field">
               <label class="cc-field__label" for="actionNote">Nota / referencia</label>
               <input type="text" id="actionNote" class="cc-input" maxlength="100"
                      autocomplete="off" placeholder="Ej: pago en efectivo">
+              <span class="cc-field__error" id="actionNoteError"></span>
             </div>
 
             <div class="cc-field">
@@ -570,10 +642,10 @@
               <caption class="sr-only">Movimientos de la cuenta corriente del cliente</caption>
               <thead>
                 <tr>
-                  <th scope="col">Movimiento</th>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Detalle</th>
-                  <th scope="col" class="cc-num">Monto</th>
+                  <th scope="col" style="width: 20%;">Movimiento</th>
+                  <th scope="col" style="width: 20%;">Fecha</th>
+                  <th scope="col" style="width: 40%;">Detalle</th>
+                  <th scope="col" class="cc-num" style="width: 20%;">Monto</th>
                 </tr>
               </thead>
               <tbody id="movementsTableBody"></tbody>
@@ -606,11 +678,21 @@
       </button>
     </div>
 
-    <form id="formNewCustomer" class="p-lg">
+    <!-- FIX: novalidate porque el JS ahora hace su propia validación con mensajes consistentes -->
+    <form id="formNewCustomer" class="p-lg" novalidate>
       <div class="cc-stack mb-2xl">
         {{ comp.form_field('Nombre del Cliente *', 'new_cus_name', required=true, maxlength='60', placeholder='Ej: Juan Pérez') }}
-        {{ comp.form_field('Teléfono', 'new_cus_phone', maxlength='30', placeholder='Opcional') }}
+        <span class="cc-field__error" id="newCusNameError"></span>
+
+        <!-- FIX: type='text' en vez de 'number' — un teléfono no es aritmético, y 'number'
+             habilita input ilimitado en algunos navegadores además de no aceptar '+'.
+             El formato (solo dígitos/+/-/espacios/paréntesis) se valida en JS
+             (PHONE_PATTERN), ya que el macro form_field no soporta el kwarg 'pattern'. -->
+        {{ comp.form_field('Teléfono', 'new_cus_phone', maxlength='30', placeholder='Opcional', type='number') }}
+        <span class="cc-field__error" id="newCusPhoneError"></span>
+
         {{ comp.form_field('Límite de Crédito ($)', 'new_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
+        <span class="cc-field__error" id="newCusLimitError"></span>
       </div>
 
       {{ comp.form_actions(cancel_text='Cancelar', submit_text='Crear Cliente', cancel_id='cancelNewCusBtn2') }}
@@ -637,11 +719,16 @@
       </button>
     </div>
 
-    <form id="formEditCustomer" class="p-lg">
+    <form id="formEditCustomer" class="p-lg" novalidate>
       <div class="cc-stack mb-2xl">
         {{ comp.form_field('Nombre del Cliente *', 'edit_cus_name', required=true, maxlength='60', placeholder='Ej: Juan Pérez') }}
-        {{ comp.form_field('Teléfono', 'edit_cus_phone', maxlength='30', placeholder='Opcional') }}
+        <span class="cc-field__error" id="editCusNameError"></span>
+
+        {{ comp.form_field('Teléfono', 'edit_cus_phone', maxlength='30', placeholder='Opcional', type='number') }}
+        <span class="cc-field__error" id="editCusPhoneError"></span>
+
         {{ comp.form_field('Límite de Crédito ($)', 'edit_cus_limit', type='number', min='0', placeholder='Vacío = ilimitado') }}
+        <span class="cc-field__error" id="editCusLimitError"></span>
       </div>
 
       <div style="display: flex; gap: 10px;">
@@ -666,6 +753,14 @@
   const API_BASE = '/api';
   const HIDDEN = 'cc-hidden';
 
+  // FIX: límites centralizados, deben reflejar lo que valida el backend
+  const MAX_NAME_LENGTH = 60;
+  const MAX_PHONE_LENGTH = 30;
+  const MAX_NOTE_LENGTH = 100;
+  const MAX_CREDIT_LIMIT = 10000000;
+  const MAX_AMOUNT = 10000000;
+  const PHONE_PATTERN = /^[0-9+\-\s()]*$/;
+
   let currentCustomerId = null;
   let currentBalance = 0;
   let currentCustomerData = null;
@@ -684,6 +779,52 @@
     if (!parts.length) return '?';
     return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
   };
+
+  // FIX: helpers de error inline por campo
+  function setFieldError(inputEl, errorEl, message) {
+    if (errorEl) {
+      errorEl.textContent = message || '';
+      errorEl.classList.toggle('is-visible', !!message);
+    }
+    if (inputEl) inputEl.classList.toggle('is-invalid', !!message);
+  }
+  function clearFieldErrors(pairs) {
+    pairs.forEach(([inputEl, errorEl]) => setFieldError(inputEl, errorEl, ''));
+  }
+
+  // FIX: validación de cliente (nombre / teléfono / límite de crédito), reutilizada
+  // entre el modal de "Nuevo Cliente" y el de "Editar Cliente".
+  // Devuelve { ok: bool, errors: { name, phone, credit_limit } }
+  function validateCustomerFields({ name, phone, creditLimitRaw }) {
+    const errors = {};
+
+    if (!name) {
+      errors.name = 'El nombre es requerido';
+    } else if (name.length > MAX_NAME_LENGTH) {
+      errors.name = `Máximo ${MAX_NAME_LENGTH} caracteres`;
+    }
+
+    if (phone) {
+      if (phone.length > MAX_PHONE_LENGTH) {
+        errors.phone = `Máximo ${MAX_PHONE_LENGTH} caracteres`;
+      } else if (!PHONE_PATTERN.test(phone)) {
+        errors.phone = 'Solo números, espacios, +, - y paréntesis';
+      }
+    }
+
+    if (creditLimitRaw) {
+      const val = parseFloat(creditLimitRaw);
+      if (Number.isNaN(val)) {
+        errors.credit_limit = 'Debe ser un número';
+      } else if (val < 0) {
+        errors.credit_limit = 'No puede ser negativo';
+      } else if (val > MAX_CREDIT_LIMIT) {
+        errors.credit_limit = `No puede superar ${MAX_CREDIT_LIMIT.toLocaleString('es-AR')}`;
+      }
+    }
+
+    return { ok: Object.keys(errors).length === 0, errors };
+  }
 
   /* ── MODAL ─────────────────────────────────────────────── */
   function openModal(id) {
@@ -709,7 +850,12 @@
   /* ── BUSCADOR ──────────────────────────────────────────── */
   $('searchInput').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
-    const q = e.target.value;
+    // FIX: cortar el query en el largo máximo, por si el navegador no respeta maxlength (paste)
+    let q = e.target.value;
+    if (q.length > MAX_NAME_LENGTH) {
+      q = q.slice(0, MAX_NAME_LENGTH);
+      e.target.value = q;
+    }
     searchTimeout = setTimeout(() => loadCustomers(q), 250);
   });
 
@@ -772,13 +918,15 @@
           badgeText = money(balance);
         }
 
+        // FIX: title con el valor completo para que, aunque el CSS trunque, el dato
+        // siga disponible al pasar el mouse.
         return '<tr class="cc-row" data-id="' + c.id + '" data-index="' + i + '" tabindex="0" role="button" aria-selected="' + (c.id === currentCustomerId) + '">'
           + '<td><div class="cc-identity">'
             + '<span class="cc-avatar">' + esc(initials(c.name)) + '</span>'
-            + '<div><div class="cc-row__name">' + esc(c.name) + '</div><div class="cc-row__meta">' + (c.phone ? esc(c.phone) : '#' + c.id) + '</div></div>'
+            + '<div><div class="cc-row__name" title="' + esc(c.name) + '">' + esc(c.name) + '</div><div class="cc-row__meta" title="' + esc(c.phone || '') + '">' + (c.phone ? esc(c.phone) : '#' + c.id) + '</div></div>'
           + '</div></td>'
-          + '<td class="cc-num"><span class="cc-balance-badge ' + badgeClass + '">' + badgeText + '</span></td>'
-          + '<td class="cc-num cc-row__meta">' + limit + '</td>'
+          + '<td class="cc-num"><span class="cc-balance-badge ' + badgeClass + '" title="' + esc(badgeText) + '">' + badgeText + '</span></td>'
+          + '<td class="cc-num cc-row__meta" title="' + esc(limit) + '">' + limit + '</td>'
           + '</tr>';
       }).join('');
 
@@ -818,12 +966,32 @@
     const phoneInput = document.querySelector('[name="new_cus_phone"]');
     const limitInput = document.querySelector('[name="new_cus_limit"]');
 
+    const errPairs = [
+      [nameInput, $('newCusNameError')],
+      [phoneInput, $('newCusPhoneError')],
+      [limitInput, $('newCusLimitError')],
+    ];
+    clearFieldErrors(errPairs);
+
+    const name = nameInput.value.trim();
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const creditLimitRaw = limitInput ? limitInput.value : '';
+
+    // FIX: validación real antes de armar el payload / hacer el fetch
+    const { ok, errors } = validateCustomerFields({ name, phone, creditLimitRaw });
+    if (!ok) {
+      if (errors.name) setFieldError(nameInput, $('newCusNameError'), errors.name);
+      if (errors.phone) setFieldError(phoneInput, $('newCusPhoneError'), errors.phone);
+      if (errors.credit_limit) setFieldError(limitInput, $('newCusLimitError'), errors.credit_limit);
+      (errors.name ? nameInput : errors.phone ? phoneInput : limitInput).focus();
+      return;
+    }
+
     const payload = {
-      name: nameInput.value.trim(),
-      phone: phoneInput ? phoneInput.value.trim() : null,
-      credit_limit: (limitInput && limitInput.value) ? parseFloat(limitInput.value) : null
+      name: name,
+      phone: phone || null,
+      credit_limit: creditLimitRaw ? parseFloat(creditLimitRaw) : null
     };
-    if (!payload.name) { nameInput.focus(); return; }
 
     try {
       const res = await fetch(API_BASE + '/customers', {
@@ -837,6 +1005,7 @@
         if (typeof Notify !== 'undefined') Notify.success('Cliente registrado');
         closeModal('newCustomerModal');
         $('formNewCustomer').reset();
+        clearFieldErrors(errPairs);
         $('searchInput').value = payload.name;
         await loadCustomers(payload.name);
         if (customers.length === 1) selectCustomer(customers[0].id);
@@ -870,13 +1039,31 @@
     const phoneInput = document.querySelector('[name="edit_cus_phone"]');
     const limitInput = document.querySelector('[name="edit_cus_limit"]');
 
+    const errPairs = [
+      [nameInput, $('editCusNameError')],
+      [phoneInput, $('editCusPhoneError')],
+      [limitInput, $('editCusLimitError')],
+    ];
+    clearFieldErrors(errPairs);
+
     const name = nameInput.value.trim();
-    if (!name) { nameInput.focus(); return; }
+    const phone = phoneInput.value.trim();
+    const creditLimitRaw = limitInput.value;
+
+    // FIX: misma validación que en "Nuevo Cliente"
+    const { ok, errors } = validateCustomerFields({ name, phone, creditLimitRaw });
+    if (!ok) {
+      if (errors.name) setFieldError(nameInput, $('editCusNameError'), errors.name);
+      if (errors.phone) setFieldError(phoneInput, $('editCusPhoneError'), errors.phone);
+      if (errors.credit_limit) setFieldError(limitInput, $('editCusLimitError'), errors.credit_limit);
+      (errors.name ? nameInput : errors.phone ? phoneInput : limitInput).focus();
+      return;
+    }
 
     const payload = {
       name: name,
-      phone: phoneInput.value.trim(),
-      credit_limit: limitInput.value ? parseFloat(limitInput.value) : null
+      phone: phone,
+      credit_limit: creditLimitRaw ? parseFloat(creditLimitRaw) : null
     };
 
     const submitBtn = $('submitEditCusBtn');
@@ -895,6 +1082,7 @@
       if (res.ok) {
         if (typeof Notify !== 'undefined') Notify.success('Cliente actualizado');
         closeModal('editCustomerModal');
+        clearFieldErrors(errPairs);
         await selectCustomer(currentCustomerId);
         await loadCustomers($('searchInput').value);
       } else if (typeof Notify !== 'undefined') {
@@ -926,10 +1114,15 @@
 
       $('accCusAvatar').textContent = initials(d.name);
       $('accCusName').textContent = d.name;
+      $('accCusName').title = d.name; // FIX: tooltip con el nombre completo aunque se trunque visualmente
       $('accCusId').textContent = '#' + id;
       $('accBalance').textContent = money(currentBalance);
+      $('accBalance').title = money(currentBalance);
       $('accLimit').textContent = limit != null ? money(limit) : 'Ilimitado';
-      $('accAvailable').textContent = limit != null ? money(Math.max(limit - currentBalance, 0)) : 'Sin tope';
+      $('accLimit').title = limit != null ? money(limit) : 'Ilimitado';
+      const available = limit != null ? money(Math.max(limit - currentBalance, 0)) : 'Sin tope';
+      $('accAvailable').textContent = available;
+      $('accAvailable').title = available;
 
       $('accEmptyState').classList.add(HIDDEN);
       $('accDetail').classList.remove(HIDDEN);
@@ -976,11 +1169,12 @@
       tbody.innerHTML = rows.map((m) => {
         const v = movementVisual(m.type);
         const ref = m.sell_id ? ' <span class="cc-row__meta">#' + m.sell_id + '</span>' : '';
+        const noteText = m.note ? esc(m.note) : '—';
         return '<tr>'
           + '<td><div class="cc-mv-row"><span class="cc-mv-icon cc-mv-icon--' + v.tone + '">' + v.icon + '</span>'
             + '<span class="badge badge-' + v.tone + '">' + v.label + '</span>' + ref + '</div></td>'
           + '<td class="cc-row__meta">' + esc(m.date) + '</td>'
-          + '<td class="cc-row__meta">' + (m.note ? esc(m.note) : '—') + '</td>'
+          + '<td class="cc-row__meta" title="' + noteText + '">' + noteText + '</td>'
           + '<td class="cc-num text-' + v.tone + '">' + v.sign + money(m.amount) + '</td>'
           + '</tr>';
       }).join('');
@@ -1002,6 +1196,8 @@
     $('actionAmountLabel').textContent = isPayment ? 'Monto a cobrar ($)' : 'Monto del ajuste ($)';
     $('actionNote').placeholder = isPayment ? 'Ej: pago en efectivo' : 'Motivo del ajuste (obligatorio)';
     $('actionNote').required = !isPayment;
+    setFieldError($('actionAmount'), $('actionAmountError'), '');
+    setFieldError($('actionNote'), $('actionNoteError'), '');
   }
 
   $('modePayment').addEventListener('click', () => setMode('payment'));
@@ -1010,7 +1206,9 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-amount]'), (btn) => {
     btn.addEventListener('click', () => {
       const current = parseFloat($('actionAmount').value) || 0;
-      $('actionAmount').value = (current + parseFloat(btn.dataset.amount)).toFixed(2);
+      // FIX: no dejar que los chips de monto rápido empujen el valor más allá del tope
+      const next = Math.min(current + parseFloat(btn.dataset.amount), MAX_AMOUNT);
+      $('actionAmount').value = next.toFixed(2);
       $('actionAmount').focus();
     });
   });
@@ -1034,25 +1232,52 @@
     e.preventDefault();
     if (!currentCustomerId) return;
 
-    const amount = parseFloat($('actionAmount').value);
+    const amountInput = $('actionAmount');
+    const noteInput = $('actionNote');
+    setFieldError(amountInput, $('actionAmountError'), '');
+    setFieldError(noteInput, $('actionNoteError'), '');
+
+    const amount = parseFloat(amountInput.value);
     if (!amount || amount <= 0) {
-      if (typeof Notify !== 'undefined') Notify.error('Ingresá un monto válido');
-      $('actionAmount').focus();
+      const msg = 'Ingresá un monto válido';
+      setFieldError(amountInput, $('actionAmountError'), msg);
+      if (typeof Notify !== 'undefined') Notify.error(msg);
+      amountInput.focus();
+      return;
+    }
+
+    // FIX: tope máximo también en el formulario de cobro/ajuste
+    if (amount > MAX_AMOUNT) {
+      const msg = `El monto no puede superar ${MAX_AMOUNT.toLocaleString('es-AR')}`;
+      setFieldError(amountInput, $('actionAmountError'), msg);
+      if (typeof Notify !== 'undefined') Notify.error(msg);
+      amountInput.focus();
       return;
     }
 
     const type = $('actionType').value;
 
     if (type === 'payment' && amount > currentBalance) {
-      if (typeof Notify !== 'undefined') Notify.error('El monto supera la deuda pendiente (' + money(currentBalance) + ')');
-      $('actionAmount').focus();
+      const msg = 'El monto supera la deuda pendiente (' + money(currentBalance) + ')';
+      setFieldError(amountInput, $('actionAmountError'), msg);
+      if (typeof Notify !== 'undefined') Notify.error(msg);
+      amountInput.focus();
       return;
     }
 
-    const note = $('actionNote').value.trim();
+    const note = noteInput.value.trim();
     if (type !== 'payment' && !note) {
-      if (typeof Notify !== 'undefined') Notify.error('El ajuste requiere una nota');
-      $('actionNote').focus();
+      const msg = 'El ajuste requiere una nota';
+      setFieldError(noteInput, $('actionNoteError'), msg);
+      if (typeof Notify !== 'undefined') Notify.error(msg);
+      noteInput.focus();
+      return;
+    }
+    if (note.length > MAX_NOTE_LENGTH) {
+      const msg = `Máximo ${MAX_NOTE_LENGTH} caracteres`;
+      setFieldError(noteInput, $('actionNoteError'), msg);
+      if (typeof Notify !== 'undefined') Notify.error(msg);
+      noteInput.focus();
       return;
     }
 

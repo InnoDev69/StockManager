@@ -185,3 +185,20 @@
     {% endif %}
 </div>
 {% endmacro %}
+
+
+{# ============== TABLE PAGINATION ============== #}
+
+{% macro table_pagination(current_page, total_pages, base_url) %}
+  <div class="table-pagination">
+    {% if current_page > 1 %}
+      <a href="{{ base_url }}?page={{ current_page - 1 }}" class="btn btn-ghost">Anterior</a>
+    {% endif %}
+    
+    <span>Página {{ current_page }} de {{ total_pages }}</span>
+    
+    {% if current_page < total_pages %}
+      <a href="{{ base_url }}?page={{ current_page + 1 }}" class="btn btn-ghost">Siguiente</a>
+    {% endif %}
+  </div>
+{% endmacro %}

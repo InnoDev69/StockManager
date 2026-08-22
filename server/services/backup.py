@@ -11,6 +11,7 @@ class BackupService:
         self.db = db
         self.db_path = getattr(db, "db_path", db)
         self.logger_name = "BACKUP_MODULE"
+        self.max_backups_archives = 5
         if config.get("backup.auto_enabled"):
             self._start_service()
             logger.info(f"BackupService initialized with database: {self.db_path}", source=self.logger_name)
@@ -40,7 +41,8 @@ class BackupService:
             return
 
         logger.info(f"Performing backup for {self.db_path} to {backup_dir}", source=self.logger_name)
-        self.backup_database(backup_dir)
+        if self.count_backups(backup_dir) < self.max_backups_archives: 
+            self.backup_database(backup_dir)
         self._cleanup_old_backups(backup_dir)
 
     def backup_database(self, backup_dir):
@@ -96,3 +98,9 @@ class BackupService:
                     logger.info(f"Deleted expired backup: {fpath}", source=self.logger_name)
             except Exception as e:
                 logger.error(f"Failed to check/delete backup {fpath}: {e}", source=self.logger_name)
+    
+    def count_backups(self, backup_dir):
+        """Cuenta la cantidad de archivos de backup en el directorio."""
+        if not os.path.isdir(backup_dir):
+            return 0
+        return len([f for f in os.listdir(backup_dir) if f.endswith(".bak")])

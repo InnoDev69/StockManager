@@ -6,4 +6,3 @@ class Var:
     USER_APPLICATION_REJECTED = "rejected"
     USER_APPLICATION_PENDING = "pending"
     USER_APPLICATION_ACCEPTED = "accepted"
-    

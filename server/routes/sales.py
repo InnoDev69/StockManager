@@ -1,12 +1,13 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_permission
 from server.bd.bdInstance import db
-from miscellaneous import ROLES
+from miscellaneous import ROLES, PERMS
 
 sales_bp = Blueprint('sales', __name__)
 
 @sales_bp.route("/sales/new", methods=["GET", "POST"])
 @require_auth
+@require_permission(PERMS.SALES_CREATE)
 def sale_new():
     """
     Crear una nueva venta.
@@ -108,7 +109,7 @@ def sales():
     return render_template("sales.html", sales=sales, role=session.get("role", ROLES.VENDOR))
 
 @sales_bp.route("/sales/<int:sale_id>/edit", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.SALES_EDIT)
 def edit_sale_form(sale_id):
     """
     Muestra formulario para editar una venta.

@@ -102,3 +102,5 @@ desktop.ini
 run-dev.py
 *.json
 data/config.json
+data/*
+backup/*

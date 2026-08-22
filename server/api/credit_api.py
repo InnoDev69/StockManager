@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request, session
 from miscellaneous import ROLES
 from miscellaneous.audit_decorator import audit_action
+from miscellaneous.permissions import PERMS
 from server.bd.bdInstance import db
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_permission, require_role
 from server.api.error_handlers import handle_db_error
 from server.bd.bdErrors import DatabaseError, InsufficientBalanceError
 
@@ -10,31 +11,30 @@ credit_api = Blueprint("credit_api", __name__)
 
 
 @credit_api.route("/customers", methods=["POST"])
-@require_auth
 @audit_action("customer", "create")
+@require_permission(PERMS.CREDIT_MANAGE)
 def create_customer():
-    """
-    Crea un cliente para cuenta corriente.
-
-    Request Body (JSON):
-        name (str): Nombre del cliente (requerido)
-        phone (str, optional)
-        credit_limit (float, optional)
-
-    Status Codes:
-        201: Cliente creado
-        400: Falta el nombre
-    """
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"error": "El nombre es requerido"}), 400
 
+    phone = (data.get("phone") or "").strip() or None
+
+    credit_limit = data.get("credit_limit")
+    if credit_limit is not None:
+        try:
+            credit_limit = float(credit_limit)
+            if credit_limit < 0:
+                return jsonify({"error": "El límite de crédito no puede ser negativo"}), 400
+        except (TypeError, ValueError):
+            return jsonify({"error": "credit_limit debe ser un número"}), 400
+
     try:
         customer_id = db.create_customer(
             name=name,
-            phone=data.get("phone"),
-            credit_limit=data.get("credit_limit"),
+            phone=phone,
+            credit_limit=credit_limit,
         )
         return jsonify({"ok": True, "customer_id": customer_id}), 201
     except DatabaseError as e:
@@ -102,8 +102,8 @@ def get_customer_movements(customer_id):
 
 
 @credit_api.route("/customers/<int:customer_id>/payments", methods=["POST"])
-@require_auth
 @audit_action("customer_payment", "create")
+@require_permission(PERMS.CREDIT_MANAGE)
 def register_payment(customer_id):
     """
     Registra un abono a la cuenta corriente del cliente.
@@ -137,7 +137,7 @@ def register_payment(customer_id):
 
 
 @credit_api.route("/customers/<int:customer_id>/adjustments", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.CREDIT_MANAGE)
 @audit_action("customer_adjustment", "create")
 def register_adjustment(customer_id):
     """
@@ -171,9 +171,8 @@ def register_adjustment(customer_id):
     except DatabaseError as e:
         return handle_db_error(e, "register_adjustment")
 
-
 @credit_api.route("/customers/<int:customer_id>", methods=["POST"])
-@require_auth
+@require_permission(PERMS.CREDIT_MANAGE)
 @audit_action("customer", "update")
 def update_customer(customer_id):
     """

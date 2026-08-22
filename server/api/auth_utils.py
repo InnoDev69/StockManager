@@ -2,6 +2,28 @@
 from functools import wraps
 from flask import jsonify, render_template, request, session
 from miscellaneous import ROLES
+from server.services import permissions_service
+
+def require_permission(*permissions):
+    """
+    Autoriza si el usuario tiene AL MENOS UNO de los permisos dados.
+    Uso:
+        @require_permission(PERMS.PRODUCTS_MANAGE)
+        @require_permission(PERMS.SALES_EDIT, PERMS.SALES_VIEW_ALL)  # OR
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get("user_id"):
+                return _unauthorized()
+            role = session.get("role")
+            if role == ROLES.ROOT:
+                return f(*args, **kwargs)  # root siempre tiene todo
+            if not any(permissions_service.has_permission(role, perm) for perm in permissions):
+                return _forbidden()
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 def _is_api_request() -> bool:
     """

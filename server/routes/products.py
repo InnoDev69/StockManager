@@ -2,8 +2,8 @@ import csv
 import io
 import time
 import uuid
-from server.api.auth_utils import require_auth, require_role
-from miscellaneous import ROLES
+from server.api.auth_utils import require_auth, require_permission
+from miscellaneous import ROLES, PERMS
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify, send_file
 from server.bd.bdInstance import db
 from miscellaneous import logger
@@ -40,12 +40,12 @@ def cleanup_temp_imports():
             del temp_imports[k]
 
 @products_bp.route("/products/new", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def product_new():
     """
     Muestra el formulario para crear un nuevo producto.
     
-    Solo usuarios con rol 'admin' pueden acceder.
+    Solo usuarios con permiso 'PRODUCTS_MANAGE' pueden acceder.
     La creación se realiza via API JSON (POST /api/products).
     
     Requiere login: True.
@@ -60,7 +60,7 @@ def legacy_product_form():
     return redirect(url_for("products.product_new"))
 
 @products_bp.route("/product_management")
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def product_management():
     """
     Página de administración de productos.
@@ -77,7 +77,7 @@ def product_management():
     return render_template("product_management.html", role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/import", methods=["GET", "POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def import_preview():
     """
     Vista previa de importación CSV.
@@ -129,7 +129,7 @@ def import_preview():
     }
     
 @products_bp.route("/import/confirm", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def confirm_import():
     """
     Confirmar e importar productos desde CSV.
@@ -198,7 +198,7 @@ def product_detail(product_id):
     Solo usuarios autenticados pueden acceder.
     
     Requiere login: True.
-    
+    Requiere permiso: PRODUCTS_VIEW.
         Args:
                 product_id (int): ID del producto a mostrar
     
@@ -207,16 +207,16 @@ def product_detail(product_id):
     return render_template("product_detail.html", product=product, role=session.get("role", ROLES.VENDOR),show_back=False)
 
 @products_bp.route("/products/<int:product_id>/edit")
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def product_edit(product_id):
     """
     Página de edición de un producto existente.
     
     Permite modificar todos los campos de un producto excepto el código de barras.
-    Solo accesible para usuarios con rol 'admin'.
+    Solo accesible para usuarios con permiso 'PRODUCTS_MANAGE'.
     
     Requiere login: True.
-    Requiere rol: admin.
+    Requiere permiso: PRODUCTS_MANAGE.
     
     Args:
         product_id (int): ID del producto a editar
@@ -233,20 +233,79 @@ def product_edit(product_id):
     return render_template("product_edit.html", product=product, role=session.get("role", ROLES.VENDOR), show_back=False)
 
 @products_bp.route("/products/barcodes", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.BARCODE_MANAGE)
 def barcode_management():
     """
     Panel de gestión de códigos de barras.
-    Solo visible para administradores.
+    Solo visible para usuarios con permiso 'BARCODE_MANAGE'.
     """
-    products = db.get_all_items()
-    
-    # Contar productos sin código
-    without_barcode = [p for p in products if not p.get('barrs_code')]
+    page = max(1, request.args.get("page", 1, type=int))
+    limit = min(50, max(1, request.args.get("limit", 20, type=int)))
+    offset = (page - 1) * limit
+
+    total_rows = db.execute_query(
+        "SELECT COUNT(*) FROM items WHERE status = 1",
+        fetch=True,
+    )
+    total_products = total_rows[0][0] if total_rows else 0
+    total_pages = max(1, (total_products + limit - 1) // limit)
+    page = min(page, total_pages)
+    offset = (page - 1) * limit
+
+    rows = db.execute_query(
+        """
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date
+        FROM items
+        WHERE status = 1
+        ORDER BY name ASC
+        LIMIT ? OFFSET ?
+        """,
+        (limit, offset),
+        fetch=True,
+    )
+
+    products = [
+        {
+            "id": row[0],
+            "barrs_code": row[1],
+            "name": row[2],
+            "description": row[3],
+            "quantity": row[4],
+            "min_quantity": row[5],
+            "price": row[6],
+            "expiration_date": row[7],
+        }
+        for row in rows
+    ]
+
+    without_barcode = [
+        {
+            "id": row[0],
+            "name": row[1],
+        }
+        for row in db.execute_query(
+            """
+            SELECT id, name
+            FROM items
+            WHERE status = 1 AND (barrs_code IS NULL OR TRIM(barrs_code) = '')
+            ORDER BY name ASC
+            """,
+            fetch=True,
+        )
+    ]
+
+    start_item = 0 if total_products == 0 else offset + 1
+    end_item = min(offset + limit, total_products)
     
     return render_template("barcode_management.html", 
                          products=products,
                          without_barcode=without_barcode,
+                         page=page,
+                         limit=limit,
+                         total_products=total_products,
+                         total_pages=total_pages,
+                         start_item=start_item,
+                         end_item=end_item,
                          role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/<int:product_id>/barcode/image", methods=["GET"])
@@ -269,7 +328,7 @@ def get_barcode_image(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/<int:product_id>/barcode/regenerate", methods=["POST"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.BARCODE_MANAGE)
 def regenerate_barcode(product_id):
     """
     Regenera/asigna un nuevo código de barras automático a un producto.
@@ -289,7 +348,7 @@ def regenerate_barcode(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/<int:product_id>/barcode/update", methods=["PUT"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.BARCODE_MANAGE)
 def update_barcode_manual(product_id):
     """
     Actualiza manualmente el código de barras de un producto.
@@ -314,7 +373,7 @@ def update_barcode_manual(product_id):
         return jsonify({"error": str(e)}), 500
 
 @products_bp.route("/products/barcodes/pdf", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.BARCODE_MANAGE)
 def download_barcodes_pdf():
     """
     Descarga un PDF con los códigos de barras seleccionados.
@@ -415,7 +474,7 @@ def download_barcodes_pdf():
         return jsonify({"error": str(e)}), 500
     
 @products_bp.route("/products/barcodes/print", methods=["GET"])
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.PRODUCTS_MANAGE)
 def stock_scan():
     """
     Vista para escanear códigos de barras y actualizar stock.

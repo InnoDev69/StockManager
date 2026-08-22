@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify
+from miscellaneous.permissions import PERMS
 from server.bd.bdInstance import db
 from miscellaneous import ROLES
-from server.api.auth_utils import require_auth, require_role
+from server.api.auth_utils import require_auth, require_permission, require_role
 from miscellaneous.audit_decorator import audit_action
 
 applications_api = Blueprint('applications_api', __name__, url_prefix='')
 
 @applications_api.route('/applications', methods=['GET'])
-@require_auth
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 def get_applications():
     """
     Obtiene solicitudes de registro pendientes.
@@ -28,8 +28,7 @@ def get_applications():
         return jsonify({'error': str(e)}), 500
 
 @applications_api.route('/applications/<int:user_id>/approve', methods=['POST'])
-@require_auth
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("application", "approve", "user_id")
 def approve_application(user_id):
     """
@@ -46,8 +45,7 @@ def approve_application(user_id):
         return jsonify({'error': str(e)}), 500
 
 @applications_api.route('/applications/<int:user_id>/reject', methods=['POST'])
-@require_auth
-@require_role(ROLES.ADMIN, ROLES.ROOT)
+@require_permission(PERMS.USERS_MANAGE)
 @audit_action("application", "reject", "user_id")
 def reject_application(user_id):
     """
