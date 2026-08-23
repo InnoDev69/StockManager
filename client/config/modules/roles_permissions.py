@@ -27,7 +27,4 @@ ConfigManager.register_defaults("roles", {
         PERMS.SETTINGS_MANAGE:encode_text("True"),
         PERMS.DEBUG_PANEL:encode_text("True"),
     },
-    "root": {
-        # root tiene todo — lo resolvemos aparte, ver más abajo
-    },
 })

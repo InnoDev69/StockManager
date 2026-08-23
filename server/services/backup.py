@@ -11,7 +11,7 @@ class BackupService:
         self.db = db
         self.db_path = getattr(db, "db_path", db)
         self.logger_name = "BACKUP_MODULE"
-        self.max_backups_archives = 5
+        self.max_backups_archives = 5 # TODO: incorporar max_backups_archives desde config.json
         if config.get("backup.auto_enabled"):
             self._start_service()
             logger.info(f"BackupService initialized with database: {self.db_path}", source=self.logger_name)
@@ -22,7 +22,7 @@ class BackupService:
         SCHEDULER.add_task(
             config.get("backup.frequency_days") * 86400,
             self._perform_backup
-        )  # Schedule daily backups
+        )
         logger.info(
             f"Started backup service for {self.db_path} interval: {config.get('backup.frequency_days')}",
             source=self.logger_name
@@ -32,6 +32,7 @@ class BackupService:
         self._start_backup_service()
 
     def _perform_backup(self):
+        """Genera un backup nuevo siempre, y luego rota (pisa) los mas viejos por encima del cupo."""
         backup_dir = config.get("backup.destination_path")
         if not backup_dir:
             logger.error(
@@ -41,8 +42,14 @@ class BackupService:
             return
 
         logger.info(f"Performing backup for {self.db_path} to {backup_dir}", source=self.logger_name)
-        if self.count_backups(backup_dir) < self.max_backups_archives: 
+
+        try:
             self.backup_database(backup_dir)
+        except Exception:
+            return
+
+        self._rotate_backups(backup_dir)
+
         self._cleanup_old_backups(backup_dir)
 
     def backup_database(self, backup_dir):
@@ -54,7 +61,7 @@ class BackupService:
         os.makedirs(backup_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{os.path.splitext(os.path.basename(self.db_path))[0]}_{timestamp}.bak"
+        filename = f"{self._db_prefix()}_{timestamp}.bak"
         dest_path = os.path.join(backup_dir, filename)
 
         try:
@@ -76,31 +83,54 @@ class BackupService:
         shutil.copy2(backup_path, self.db_path)
         logger.info(f"Database restored from {backup_path}", source=self.logger_name)
 
+    def _db_prefix(self):
+        """Prefijo de archivo para esta base de datos especifica."""
+        return os.path.splitext(os.path.basename(self.db_path))[0]
+
+    def _list_own_backups(self, backup_dir):
+        """Backups de ESTA base de datos (por prefijo de nombre), ordenados de mas viejo a mas nuevo."""
+        if not os.path.isdir(backup_dir):
+            return []
+
+        prefix = self._db_prefix()
+        files = [
+            os.path.join(backup_dir, f)
+            for f in os.listdir(backup_dir)
+            if f.startswith(prefix + "_") and f.endswith(".bak")
+        ]
+        return sorted(files, key=os.path.getmtime)
+
+    def _rotate_backups(self, backup_dir):
+        """Mantiene solo los `max_backups_archives` mas recientes de esta db, pisando el resto."""
+        backups = self._list_own_backups(backup_dir)
+        excess = len(backups) - self.max_backups_archives
+
+        if excess <= 0:
+            return
+
+        for fpath in backups[:excess]:
+            try:
+                os.remove(fpath)
+                logger.info(f"Rotated out old backup: {fpath}", source=self.logger_name)
+            except Exception as e:
+                logger.error(f"Failed to delete backup {fpath}: {e}", source=self.logger_name)
+
     def _cleanup_old_backups(self, backup_dir):
-        """Elimina backups con más días de antigüedad que backup.retention_days."""
+        """Elimina backups (de esta db) con mas dias de antiguedad que backup.retention_days."""
         retention_days = config.get("backup.retention_days")
         if not retention_days:
             return
 
         cutoff = time.time() - (retention_days * 86400)
 
-        if not os.path.isdir(backup_dir):
-            return
-
-        for fname in os.listdir(backup_dir):
-            if not fname.endswith(".bak"):
-                continue
-
-            fpath = os.path.join(backup_dir, fname)
+        for fpath in self._list_own_backups(backup_dir):
             try:
                 if os.path.getmtime(fpath) < cutoff:
                     os.remove(fpath)
                     logger.info(f"Deleted expired backup: {fpath}", source=self.logger_name)
             except Exception as e:
                 logger.error(f"Failed to check/delete backup {fpath}: {e}", source=self.logger_name)
-    
+
     def count_backups(self, backup_dir):
-        """Cuenta la cantidad de archivos de backup en el directorio."""
-        if not os.path.isdir(backup_dir):
-            return 0
-        return len([f for f in os.listdir(backup_dir) if f.endswith(".bak")])
+        """Cuenta la cantidad de archivos de backup de esta base de datos en el directorio."""
+        return len(self._list_own_backups(backup_dir))

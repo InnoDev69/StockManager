@@ -356,7 +356,7 @@ function renderField({ topKey, path, value }) {
   const rowChildren = [input];
 
   if (isPathField(leafName)) {
-    input.readOnly = true;
+    input.readOnly = false; 
     const browseBtn = document.createElement("button");
     browseBtn.type = "button";
     browseBtn.className = "btn btn--ghost btn-xs config-browse-btn";
