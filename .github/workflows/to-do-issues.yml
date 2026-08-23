@@ -1,5 +1,5 @@
 name: "Sync TODOs to Issues"
-# ayuda de claudio
+
 on:
   push:
     branches:
@@ -46,7 +46,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -A -- . ':!.github/workflows'
           if [[ `git status --porcelain` ]]; then
             git commit -m "chore: agregar URLs de issues a TODOs [skip ci]"
             git push origin main
