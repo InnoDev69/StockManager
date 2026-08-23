@@ -12,6 +12,7 @@ class BackupService:
         self.db_path = getattr(db, "db_path", db)
         self.logger_name = "BACKUP_MODULE"
         self.max_backups_archives = 5 # TODO: incorporar max_backups_archives desde config.json
+                                      # Issue URL: https://github.com/InnoDev69/StockManager/issues/42
         if config.get("backup.auto_enabled"):
             self._start_service()
             logger.info(f"BackupService initialized with database: {self.db_path}", source=self.logger_name)
