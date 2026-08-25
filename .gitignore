@@ -104,3 +104,4 @@ run-dev.py
 data/config.json
 data/*
 backup/*
+tests/*

@@ -304,7 +304,7 @@ class SalesMixin:
                 (vendor_id, payment_method, sale_id)
             )
 
-            if old_customer_id and config.get("features.RECALCULATE_CREDIT_ON_SALE_EDIT", False):
+            if old_customer_id and config.get("features.RECALCULATE_CREDIT_ON_SALE_EDIT", default=False):
                 cur.execute(
                     "SELECT COALESCE(SUM(amount), 0) FROM account_movements "
                     "WHERE sell_id = ? AND type = 'DEBT'",

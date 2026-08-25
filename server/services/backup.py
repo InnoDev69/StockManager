@@ -11,8 +11,6 @@ class BackupService:
         self.db = db
         self.db_path = getattr(db, "db_path", db)
         self.logger_name = "BACKUP_MODULE"
-        self.max_backups_archives = 5 # TODO: incorporar max_backups_archives desde config.json
-                                      # Issue URL: https://github.com/InnoDev69/StockManager/issues/42
         if config.get("backup.auto_enabled"):
             self._start_service()
             logger.info(f"BackupService initialized with database: {self.db_path}", source=self.logger_name)
@@ -104,7 +102,7 @@ class BackupService:
     def _rotate_backups(self, backup_dir):
         """Mantiene solo los `max_backups_archives` mas recientes de esta db, pisando el resto."""
         backups = self._list_own_backups(backup_dir)
-        excess = len(backups) - self.max_backups_archives
+        excess = len(backups) - config.get("backup.max_backups_archives", default=5)
 
         if excess <= 0:
             return
