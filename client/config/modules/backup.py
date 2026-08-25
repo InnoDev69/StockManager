@@ -5,6 +5,7 @@ ConfigManager.register_defaults("backup", {
     "frequency_days": 7,
     "retention_days": 5,
     "destination_path": "sync_folder",
+    "max_backups_archives": 5,
     })
 
 # Ejemplo de migración: si en el futuro renombrás retention_count -> retention_days
