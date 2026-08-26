@@ -37,6 +37,14 @@ APP_LOGGER_NAME = "ROOT"
 
 # ── App Flask ─────────────────────────────────────────────────────────────────
 
+def generate_UUID():
+    if config.get("app.uuid") is None:
+        new_uuid = str(uuid.uuid4())
+        config.set("app.uuid", new_uuid)
+        logger.info(f"Generado nuevo UUID de la aplicación: {new_uuid}", source=APP_LOGGER_NAME)
+        
+generate_UUID()
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "a")
 

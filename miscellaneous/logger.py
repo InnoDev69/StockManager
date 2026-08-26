@@ -15,6 +15,16 @@ def get_current_log_file():
         return log_file
     return None
 
+def get_log_files():
+    """
+    Retorna una lista de rutas de archivos de log existentes.
+    """
+    log_dir = get_log_dir()
+    if not os.path.exists(log_dir):
+        return []
+    
+    return [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.startswith("app_") and f.endswith(".log")]
+
 def get_log_dir():
     """
     Retorna el directorio de logs:
