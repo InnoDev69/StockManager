@@ -14,6 +14,8 @@ ENTITY_LABELS = {
     "product":     "Producto",
     "sale":        "Venta",
     "application": "Aplicación",
+    "customer":    "Deudor",
+    "approve":     "Aprobación",
 }
 
 FIELD_LABELS = {
@@ -22,11 +24,16 @@ FIELD_LABELS = {
     "email":        "Email",
     "role":         "Rol",
     "status":       "Estado",
+    "password":     "Contraseña",
+    "phone":        "Teléfono",
+    "credit_limit":  "Límite de crédito",
     # items / products
     "name":         "Nombre",
     "price":        "Precio",
     "quantity":     "Cantidad",
     "min_quantity": "Stock mínimo",
+    "expiration_date": "Fecha de vencimiento",
+    "payment_method": "Método de pago",
     # sales
     "item_id":      "Producto (ID)",
     "total_price":  "Total",
@@ -42,12 +49,14 @@ ACTION_LABELS = {
     "delete": "Eliminación",
     "get":    "Consulta",
     "post":   "Acción",
+    "login":  "Inicio de sesión",
+    "approve": "Aprobación",
 }
 
 
 def _get_db():
     """Importa la instancia de BD en forma diferida para evitar imports circulares."""
-    from server.bd.bdInstance import db
+    from core.bd.bdInstance import db
 
     return db
 

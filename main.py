@@ -13,16 +13,16 @@ logger.info("BOOT:start", source="ROOT")
 
 from flask import Flask, render_template, request, session
 from dotenv import load_dotenv
-from server.api import api_bp
+from core.api import api_bp
 from miscellaneous import Var
-from server.routes import all_blueprints
+from core.routes import all_blueprints
 from miscellaneous import Limits
-from server.bd.bdInstance import db
+from core.bd.bdInstance import db
 from waitress import create_server
 from miscellaneous import ROLES
 
-from client.config import config  # Asegura que se carguen los módulos de configuración
-from server.services import backup_service, permissions_service
+from core.config import config  # Asegura que se carguen los módulos de configuración
+from core.services import backup_service, permissions_service
 
 t0 = perf_counter()
 
@@ -138,7 +138,7 @@ def cleanup():
 
     db.close_conn()
     
-    from server.services import cache_service
+    from core.services import cache_service
     cache_service.flush()
 
 def signal_handler(sig, frame):
