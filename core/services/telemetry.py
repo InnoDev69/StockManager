@@ -1,6 +1,7 @@
 import requests
 
 class TelemetryService: # TODO: Finish this class to send telemetry data to the server
+                        # Issue URL: https://github.com/InnoDev69/StockManager/issues/46
     def __init__(self, config):
         self.config = config
 
