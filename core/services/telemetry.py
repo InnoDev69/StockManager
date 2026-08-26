@@ -49,7 +49,7 @@ class TelemetryService:
             response = requests.post(endpoint, json=data, timeout=5)
         
             if response.status_code == 200:
-                print("Telemetría enviada con éxito.")
+                logger.info("Telemetría enviada con éxito.")
         except requests.RequestException as e:
             logger.error(f"Error sending telemetry data: {e}")
     
