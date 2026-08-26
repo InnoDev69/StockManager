@@ -18,21 +18,20 @@ class TelemetryService:
         return self.endpoint
     
     def _get_log(self):
-        """Obtiene el log SOLO DEL DIA ACTUAL, si no existe retorna None"""
+        """Obtiene las líneas WARNING/ERROR/CRITICAL del log del día actual. Retorna [] si no hay o falla la lectura."""
         for log_file in get_log_files():
             if log_file.endswith(f"app_{datetime.now().strftime('%Y%m%d')}.log"):
                 try:
                     with open(log_file, 'r') as f:
-                        if line := f.readline():
-                            if "WARNING" in line or "ERROR" in line or "CRITICAL" in line:
-                                logs = [line.strip()]
-                            else:
-                                logs = []
-                        else:
-                            logs = []
-                    return logs
+                        return [
+                            line.strip()
+                            for line in f
+                            if "WARNING" in line or "ERROR" in line or "CRITICAL" in line
+                        ]
                 except Exception as e:
                     logger.error(f"Error reading log file {log_file}: {e}")
+                    return []
+        return []
         
     def send_logs(self, logs):
         if not self.enabled:
