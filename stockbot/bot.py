@@ -218,7 +218,7 @@ class StocklyBot:
     @staticmethod
     def _is_affirmative(text: str) -> bool:
         t = normalize(text)
-        return any(w in t for w in ["si", "dale", "correcto", "exacto", "asi es", "yes"])
+        return t in ["si", "dale", "correcto", "exacto", "asi es", "yes"]
 
     @staticmethod
     def _is_negative(text: str) -> bool:
