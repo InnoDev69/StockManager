@@ -100,6 +100,7 @@ class IntentClassifier:
 
     def add_example(self, intent_name: str, phrase: str):
         """Agrega un ejemplo nuevo sin recalcular todo (aprendizaje incremental barato:
+        Issue URL: https://github.com/InnoDev69/StockManager/issues/49
         solo se embebe la frase nueva y se concatena)."""
         self._ensure_model()
         clean = normalize(re.sub(r"\{[^}]+\}", " ", phrase))
