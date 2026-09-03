@@ -1,7 +1,10 @@
-from flask import Blueprint, jsonify, request, session
+import os
+import tempfile
+
+from flask import Blueprint, jsonify, request, send_file, session
 from core.api.notifications_api import notify_user
 from core.bd.bdInstance import db
-from core.api.auth_utils import require_auth, require_role, require_permission
+from core.api.auth_utils import require_auth, require_permission
 from miscellaneous import ItemValidator, ValidationError
 from miscellaneous import logger, localDate
 from miscellaneous.audit_decorator import audit_action
@@ -12,6 +15,8 @@ from miscellaneous import ROLES, PERMS
 from core.services import cache_service
 from miscellaneous import Limits
 import requests
+
+from datetime import datetime
 
 ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
 
@@ -726,4 +731,55 @@ def stock_update_bulk():
     
     except Exception as e:
         logger.exception(f"Error al actualizar stock en bulk: {str(e)}")
+        return jsonify({"error": "Error interno"}), 500
+
+@products_api.route("/products/export", methods=["GET", "POST"])
+@require_permission(PERMS.PRODUCTS_MANAGE)
+@audit_action("product", "export")
+def export_products():
+    """
+    Exporta todos los productos del inventario en formato CSV para su descarga.
+ 
+    POST: guarda los filtros elegidos en sesión (para la descarga que sigue).
+    GET: genera el CSV y lo devuelve como attachment — el navegador/webview
+         dispara su propio diálogo nativo de "guardar como", sin usar
+         tkinter desde el backend.
+    """
+    if request.method == "POST":
+        filters = request.get_json() or {}
+        session['export_filters'] = filters
+        return jsonify({"message": "Filtros guardados para exportación"}), 200
+ 
+    tmp_path = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(suffix=".csv")
+        os.close(fd)
+ 
+        filters = session.get('export_filters', {})
+        db.export_csv(
+            tmp_path,
+            search=filters.get('search'),
+            view_mode=filters.get('view_mode'),
+            sort=filters.get('sort'),
+            order=filters.get('order', 'asc'),
+        )
+ 
+        filename = f"stockly_productos_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+ 
+        response = send_file(
+            tmp_path,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=filename,  # Flask >= 2.0. En versiones viejas: attachment_filename=filename
+        )
+        # Borra el temporal recién cuando Flask terminó de mandar la
+        # respuesta, no antes (si lo borrás antes de send_file terminar
+        # de leerlo, la descarga sale vacía o falla).
+        response.call_on_close(lambda: os.path.exists(tmp_path) and os.remove(tmp_path))
+        return response
+ 
+    except Exception as e:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        logger.exception(f"Error al exportar productos: {str(e)}")
         return jsonify({"error": "Error interno"}), 500

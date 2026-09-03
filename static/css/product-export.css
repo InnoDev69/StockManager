@@ -1,0 +1,156 @@
+/* product-export.css — usa exclusivamente tokens de _variables.css. */
+
+/* Mismo bug que en stock-scan.css: .alert trae display:flex, que le
+   gana en especificidad al [hidden] nativo del navegador. Sin esto,
+   #export-error / #export-success se ven como cajas vacías aunque
+   tengan el atributo hidden. */
+[hidden] {
+  display: none !important;
+}
+
+
+.export-filters {
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr);
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 900px) {
+  .export-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .export-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.export-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--brand) 6%, var(--panel-2));
+}
+
+.export-preview-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: white;
+}
+
+.export-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-preview-count {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+#export-preview-label {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.export-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+#export-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+#export-confirm-btn:disabled {
+  cursor: not-allowed;
+}
+
+.export-preview-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.export-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.export-preview-table thead th {
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.export-preview-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.export-preview-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.export-preview-table tbody tr:hover {
+  background: color-mix(in srgb, var(--brand) 4%, transparent);
+}
+
+.export-cell-code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.export-cell-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.export-cell-stock,
+.export-cell-price {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#export-preview-table-empty td {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.export-preview-more {
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background: var(--panel-2);
+}

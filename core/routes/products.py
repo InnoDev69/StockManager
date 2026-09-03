@@ -489,3 +489,9 @@ def stock_scan():
         Template: stock_scan.html con interfaz de escaneo
     """
     return render_template("stock_scan.html", role=session.get("role", ROLES.VENDOR))
+
+@products_bp.route("/products/export-view", methods=["GET"])
+@require_permission(PERMS.PRODUCTS_MANAGE)
+def product_export_view():
+    """Vista para armar filtros y descargar el CSV de productos."""
+    return render_template("product_export.html", role=session.get("role", ROLES.VENDOR))

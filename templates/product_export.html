@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Exportar productos{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Exportar productos</h1>
+    <p class="page-subtitle">Elegí qué productos incluir y descargá el CSV.</p>
+  </div>
+
+  <div class="card" style="display: grid; gap: var(--spacing-xl);">
+
+    <div class="export-filters">
+      <div class="field">
+        <label class="label" for="export-search">Buscar</label>
+        <input
+          type="text"
+          id="export-search"
+          placeholder="Nombre o código de barras…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="field">
+        <label class="label" for="export-view-mode">Estado de stock</label>
+        <select id="export-view-mode">
+          <option value="all">Todos los productos</option>
+          <option value="in_stock">Solo con stock</option>
+          <option value="out_of_stock">Solo sin stock</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="label" for="export-sort">Ordenar por</label>
+        <select id="export-sort">
+          <option value="name">Nombre</option>
+          <option value="stock">Stock</option>
+          <option value="price">Precio</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="label" for="export-order">Orden</label>
+        <select id="export-order">
+          <option value="asc">Ascendente</option>
+          <option value="desc">Descendente</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="export-preview">
+      <div class="export-preview-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4h16v4H4zM4 10h16M4 14h16M4 18h10" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="export-preview-text">
+        <span id="export-preview-count" class="export-preview-count">—</span>
+        <span id="export-preview-label">Calculando productos que coinciden con los filtros…</span>
+      </div>
+    </div>
+
+    <div class="export-preview-table-wrap">
+      <table class="export-preview-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Stock</th>
+            <th>Precio</th>
+          </tr>
+        </thead>
+        <tbody id="export-preview-table-body">
+          <tr id="export-preview-table-empty">
+            <td colspan="4">Sin resultados para estos filtros.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p id="export-preview-more" class="export-preview-more" hidden></p>
+    </div>
+
+    <div id="export-error" class="alert alert-danger" hidden></div>
+    <div id="export-success" class="alert alert-success" hidden></div>
+
+    <div class="export-actions">
+      <button type="button" id="export-reset-btn" class="btn-ghost">
+        Limpiar filtros
+      </button>
+      <button type="button" id="export-confirm-btn" class="btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        Descargar CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/product-export.css') }}">
+<script src="{{ url_for('static', filename='js/product-export.js') }}" defer></script>
+{% endblock %}

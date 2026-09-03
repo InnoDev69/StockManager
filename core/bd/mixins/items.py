@@ -366,3 +366,75 @@ class ItemsMixin:
                 (name, weight, price, price_per_gram, description),
             )
             return cur.lastrowid
+    
+    def export_csv(self, file_path, filter: list = None, search=None,
+                    view_mode=None, sort=None, order="asc"):
+        """
+        Exporta productos activos a un archivo CSV.
+    
+        Args:
+            file_path (str): Ruta del archivo CSV de salida.
+            filter (list): Nombres de campos a EXCLUIR del CSV (comportamiento
+                original, sin cambios de firma ni de semántica).
+            search (str, optional): Filtra por nombre o código de barras
+                (mismo criterio que GET /api/products).
+            view_mode (str, optional): "in_stock" | "out_of_stock". Cualquier
+                otro valor (o None) = todos los productos activos.
+            sort (str, optional): "name" | "stock" | "price". Si no se pasa
+                ninguno de search/view_mode/sort, se usa get_all_items() tal
+                cual como antes (mismo orden de siempre, cero cambio de
+                comportamiento para quien llame a export_csv() sin filtros).
+            order (str): "asc" | "desc", solo aplica si se pasa `sort`.
+        """
+        import csv
+    
+        if search or view_mode in ("in_stock", "out_of_stock") or sort:
+            where = ["status = 1"]
+            params = []
+    
+            if search:
+                where.append("(name LIKE ? OR barrs_code LIKE ?)")
+                params.extend([f"%{search}%", f"%{search}%"])
+    
+            if view_mode == "in_stock":
+                where.append("quantity > 0")
+            elif view_mode == "out_of_stock":
+                where.append("quantity = 0")
+    
+            sort_columns = {"name": "name", "stock": "quantity", "price": "price"}
+            sort_column = sort_columns.get(sort, "name")
+            order = order if order in ("asc", "desc") else "asc"
+    
+            where_clause = " AND ".join(where)
+            rows = self.get_all_rows(
+                f"""
+                SELECT id, barrs_code, name, description, quantity, min_quantity,
+                    price, status, expiration_date, created_at, updated_at
+                FROM items
+                WHERE {where_clause}
+                ORDER BY {sort_column} {order}
+                """,
+                tuple(params),
+            )
+            field_order = [
+                "id", "barcode", "name", "description", "quantity", "min_quantity",
+                "price", "status", "expiration_date", "created_at", "updated_at",
+            ]
+            items = [dict(zip(field_order, row)) for row in rows]
+        else:
+            items = self.get_all_items()
+    
+        if filter:
+            items = [
+                {k: v for k, v in item.items() if k not in filter}
+                for item in items
+            ]
+    
+        with open(file_path, mode='w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = items[0].keys() if items else []
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for item in items:
+                writer.writerow(item)
+    
+        logger.info(f"Productos exportados a CSV: {file_path}")
