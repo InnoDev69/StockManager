@@ -180,7 +180,7 @@
       // Dispara el diálogo nativo de "guardar como" del navegador/webview.
       window.location.href = EXPORT_ENDPOINT;
 
-      showSuccess("Descarga iniciada. Revisá el diálogo de tu navegador para elegir dónde guardar el archivo.");
+      showSuccess("Descarga iniciada. Revisá el diálogo de tu navegador para elegir dónde guardar el archivo. (Si no lo hace, se descarga en la carpeta de descargas por defecto.)");
     } catch (err) {
       console.warn("[product-export] error al exportar:", err);
       showError("No se pudo generar la exportación. Intentá de nuevo en unos segundos.");
