@@ -103,6 +103,17 @@ def train():
         return jsonify({"error": str(e)}), 400
     return jsonify({"status": "ok", "intent": intent_name, "phrase": phrase})
 
+@app.route('/admin/train', methods=['POST'])
+def admin_train():
+    data = request.json
+    intent = data.get("intent")
+    phrase = data.get("phrase")
+    
+    # Suponiendo que 'bot' es tu instancia global de StocklyBot
+    bot.add_training_phrase(intent, phrase) 
+    
+    return jsonify({"status": "success", "message": f"Frase añadida a {intent}"})
+
 
 @app.route("/health", methods=["GET"])
 def health():
