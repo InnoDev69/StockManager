@@ -758,6 +758,7 @@ def export_products():
         filters = session.get('export_filters', {})
         db.export_csv(
             tmp_path,
+            filter=filters.get('exclude_fields'),
             search=filters.get('search'),
             view_mode=filters.get('view_mode'),
             sort=filters.get('sort'),

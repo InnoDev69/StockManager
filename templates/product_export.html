@@ -49,6 +49,14 @@
       </div>
     </div>
 
+    <div class="export-columns">
+      <span class="label">Columnas a incluir en el CSV</span>
+      <div id="export-columns-list" class="export-columns-grid"></div>
+      <p id="export-columns-error" class="export-columns-hint" hidden>
+        Elegí al menos una columna para exportar.
+      </p>
+    </div>
+
     <div class="export-preview">
       <div class="export-preview-icon" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -64,16 +72,11 @@
     <div class="export-preview-table-wrap">
       <table class="export-preview-table">
         <thead>
-          <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Stock</th>
-            <th>Precio</th>
-          </tr>
+          <tr id="export-preview-table-head"></tr>
         </thead>
         <tbody id="export-preview-table-body">
           <tr id="export-preview-table-empty">
-            <td colspan="4">Sin resultados para estos filtros.</td>
+            <td>Sin resultados para estos filtros.</td>
           </tr>
         </tbody>
       </table>

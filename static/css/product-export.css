@@ -88,13 +88,27 @@
 .export-preview-table-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .export-preview-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+}
+
+.export-preview-table th,
+.export-preview-table td {
+  white-space: nowrap;
+}
+
+.export-cell-name,
+.export-cell-description {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .export-preview-table thead th {
@@ -153,4 +167,31 @@
   text-align: center;
   border-top: 1px solid var(--border);
   background: var(--panel-2);
+}
+
+.export-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.export-column-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.export-column-item input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--brand-2);
+}
+
+.export-columns-hint {
+  margin: var(--spacing-sm) 0 0 0;
+  font-size: 0.85rem;
+  color: var(--danger);
 }

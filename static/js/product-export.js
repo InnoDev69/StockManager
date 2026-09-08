@@ -2,12 +2,18 @@
  * product-export.js — Página de exportación de productos.
  * templates/product_export.html
  *
- * Flujo: el usuario arma filtros -> se consulta GET /api/products con
- * esos filtros (limit=1) solo para leer "total" y mostrar una vista
- * previa de cuántos productos van a exportarse -> al confirmar, se
- * hace POST /api/products/export (guarda los filtros en sesión) y
- * después se navega a GET /api/products/export, que devuelve el CSV
- * como attachment y dispara la descarga nativa del navegador/webview.
+ * Flujo: el usuario arma filtros + elige columnas -> se consulta
+ * GET /api/products (limit=8) para mostrar total y una muestra real
+ * de los productos, ya recortada a las columnas elegidas -> al
+ * confirmar, POST /api/products/export guarda filtros + columnas
+ * excluidas en sesión, y GET /api/products/export descarga el CSV
+ * respetando ambas cosas.
+ *
+ * OJO: los nombres de campo NO son iguales entre la API de búsqueda
+ * (stock, min_stock) y el CSV real (quantity, min_quantity) — es la
+ * misma columna con otro nombre en cada lado. FIELDS de acá abajo
+ * mapea ambos. Si algún día se unifican los nombres en el backend,
+ * este mapeo se puede simplificar a un solo campo por fila.
  */
 (function () {
   "use strict";
@@ -15,6 +21,24 @@
   const SEARCH_ENDPOINT = "/api/products";
   const EXPORT_ENDPOINT = "/api/products/export";
   const PREVIEW_DEBOUNCE_MS = 350;
+  const PREVIEW_ROWS = 8;
+
+  // key: como viene en GET /api/products (data[i][key])
+  // csvKey: como se llama esa misma columna en el CSV real
+  // default: si arranca tildada o no
+  const FIELDS = [
+    { key: "barcode", csvKey: "barcode", label: "Código de barras", default: true },
+    { key: "name", csvKey: "name", label: "Nombre", default: true },
+    { key: "stock", csvKey: "quantity", label: "Stock", default: true },
+    { key: "price", csvKey: "price", label: "Precio", default: true },
+    { key: "min_stock", csvKey: "min_quantity", label: "Stock mínimo", default: false },
+    { key: "description", csvKey: "description", label: "Descripción", default: false },
+    { key: "expiration_date", csvKey: "expiration_date", label: "Vencimiento", default: false },
+    { key: "status", csvKey: "status", label: "Estado", default: false },
+    { key: "id", csvKey: "id", label: "ID interno", default: false },
+    { key: "created_at", csvKey: "created_at", label: "Creado", default: false },
+    { key: "updated_at", csvKey: "updated_at", label: "Actualizado", default: false },
+  ];
 
   const searchInput = document.getElementById("export-search");
   if (!searchInput) return; // esta página no está cargada
@@ -23,13 +47,15 @@
   const sortSelect = document.getElementById("export-sort");
   const orderSelect = document.getElementById("export-order");
 
+  const columnsList = document.getElementById("export-columns-list");
+  const columnsError = document.getElementById("export-columns-error");
+
   const previewCount = document.getElementById("export-preview-count");
   const previewLabel = document.getElementById("export-preview-label");
+  const previewTableHead = document.getElementById("export-preview-table-head");
   const previewTableBody = document.getElementById("export-preview-table-body");
   const previewTableEmpty = document.getElementById("export-preview-table-empty");
   const previewMore = document.getElementById("export-preview-more");
-
-  const PREVIEW_ROWS = 8;
 
   const errorBox = document.getElementById("export-error");
   const successBox = document.getElementById("export-success");
@@ -39,6 +65,46 @@
 
   let previewTimer = null;
   let previewRequestId = 0;
+
+  // ---------- columnas ----------
+
+  function buildColumnCheckboxes() {
+    FIELDS.forEach((field) => {
+      const label = document.createElement("label");
+      label.className = "export-column-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = field.default;
+      checkbox.dataset.fieldKey = field.key;
+
+      checkbox.addEventListener("change", () => {
+        columnsError.hidden = getSelectedFields().length > 0;
+        renderPreviewTableHead();
+        scheduleRefreshPreview();
+      });
+
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode(field.label));
+      columnsList.appendChild(label);
+    });
+  }
+
+  function getSelectedFields() {
+    const checked = new Set(
+      Array.from(columnsList.querySelectorAll("input[type=checkbox]:checked")).map(
+        (el) => el.dataset.fieldKey
+      )
+    );
+    return FIELDS.filter((f) => checked.has(f.key));
+  }
+
+  function getExcludedCsvFields() {
+    const selectedKeys = new Set(getSelectedFields().map((f) => f.key));
+    return FIELDS.filter((f) => !selectedKeys.has(f.key)).map((f) => f.csvKey);
+  }
+
+  // ---------- helpers generales ----------
 
   function escapeHtml(str) {
     return String(str)
@@ -53,35 +119,18 @@
     return num.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
   }
 
-  function renderPreviewRows(products, total) {
-    previewTableBody.querySelectorAll("tr:not(#export-preview-table-empty)").forEach((r) => r.remove());
+  function formatCellValue(field, product) {
+    const value = product[field.key];
+    if (value === null || value === undefined || value === "") return "—";
+    if (field.key === "price") return formatPrice(value);
+    return escapeHtml(value);
+  }
 
-    if (!products.length) {
-      previewTableEmpty.hidden = false;
-      previewMore.hidden = true;
-      return;
-    }
-
-    previewTableEmpty.hidden = true;
-
-    products.forEach((product) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="export-cell-code">${escapeHtml(product.barcode || "—")}</td>
-        <td class="export-cell-name">${escapeHtml(product.name || "—")}</td>
-        <td class="export-cell-stock">${product.stock ?? "—"}</td>
-        <td class="export-cell-price">${formatPrice(product.price)}</td>
-      `;
-      previewTableBody.appendChild(row);
-    });
-
-    const remaining = total - products.length;
-    if (remaining > 0) {
-      previewMore.textContent = `…y ${remaining} producto${remaining === 1 ? "" : "s"} más en el CSV.`;
-      previewMore.hidden = false;
-    } else {
-      previewMore.hidden = true;
-    }
+  function cellTitleAttr(field, product) {
+    if (field.key !== "name" && field.key !== "description") return "";
+    const value = product[field.key];
+    if (!value) return "";
+    return ` title="${escapeHtml(value)}"`;
   }
 
   function currentFilters() {
@@ -90,6 +139,7 @@
       view_mode: viewModeSelect.value,
       sort: sortSelect.value,
       order: orderSelect.value,
+      exclude_fields: getExcludedCsvFields(),
     };
   }
 
@@ -111,11 +161,56 @@
   }
 
   function buildQuery(filters, extra) {
-    const params = new URLSearchParams({ ...filters, ...extra });
-    // No mandamos "search" vacío para no ensuciar la query.
+    const params = new URLSearchParams({
+      search: filters.search,
+      view_mode: filters.view_mode,
+      sort: filters.sort,
+      order: filters.order,
+      ...extra,
+    });
     if (!filters.search) params.delete("search");
     return params.toString();
   }
+
+  // ---------- tabla de vista previa ----------
+
+  function renderPreviewTableHead() {
+    const fields = getSelectedFields();
+    previewTableHead.innerHTML = fields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("");
+    previewTableEmpty.querySelector("td").colSpan = Math.max(fields.length, 1);
+  }
+
+  function renderPreviewRows(products, total) {
+    previewTableBody.querySelectorAll("tr:not(#export-preview-table-empty)").forEach((r) => r.remove());
+
+    const fields = getSelectedFields();
+
+    if (!fields.length || !products.length) {
+      previewTableEmpty.hidden = false;
+      previewMore.hidden = true;
+      return;
+    }
+
+    previewTableEmpty.hidden = true;
+
+    products.forEach((product) => {
+      const row = document.createElement("tr");
+      row.innerHTML = fields
+        .map((f) => `<td class="export-cell-${f.key}"${cellTitleAttr(f, product)}>${formatCellValue(f, product)}</td>`)
+        .join("");
+      previewTableBody.appendChild(row);
+    });
+
+    const remaining = total - products.length;
+    if (remaining > 0) {
+      previewMore.textContent = `…y ${remaining} producto${remaining === 1 ? "" : "s"} más en el CSV.`;
+      previewMore.hidden = false;
+    } else {
+      previewMore.hidden = true;
+    }
+  }
+
+  // ---------- vista previa (conteo + muestra) ----------
 
   async function refreshPreview() {
     const filters = currentFilters();
@@ -130,9 +225,7 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      // Si mientras esperábamos la respuesta el usuario cambió otro
-      // filtro y disparó una consulta más nueva, esta ya es vieja.
-      if (requestId !== previewRequestId) return;
+      if (requestId !== previewRequestId) return; // ya quedó vieja
 
       const total = typeof data.total === "number" ? data.total : 0;
       const products = Array.isArray(data.data) ? data.data : [];
@@ -142,7 +235,7 @@
         total === 1
           ? "producto coincide con los filtros elegidos"
           : "productos coinciden con los filtros elegidos";
-      confirmBtn.disabled = total === 0;
+      confirmBtn.disabled = total === 0 || getSelectedFields().length === 0;
 
       renderPreviewRows(products, total);
     } catch (err) {
@@ -160,7 +253,14 @@
     previewTimer = setTimeout(refreshPreview, PREVIEW_DEBOUNCE_MS);
   }
 
+  // ---------- exportar ----------
+
   async function handleExport() {
+    if (getSelectedFields().length === 0) {
+      columnsError.hidden = false;
+      return;
+    }
+
     confirmBtn.disabled = true;
     const originalHtml = confirmBtn.innerHTML;
     confirmBtn.textContent = "Preparando descarga…";
@@ -177,10 +277,8 @@
         throw new Error(payload.error || `HTTP ${res.status}`);
       }
 
-      // Dispara el diálogo nativo de "guardar como" del navegador/webview.
       window.location.href = EXPORT_ENDPOINT;
-
-      showSuccess("Descarga iniciada. Revisá el diálogo de tu navegador para elegir dónde guardar el archivo. (Si no lo hace, se descarga en la carpeta de descargas por defecto.)");
+      showSuccess("Descarga iniciada. Revisá el diálogo de tu navegador para elegir dónde guardar el archivo.");
     } catch (err) {
       console.warn("[product-export] error al exportar:", err);
       showError("No se pudo generar la exportación. Intentá de nuevo en unos segundos.");
@@ -195,10 +293,21 @@
     viewModeSelect.value = "all";
     sortSelect.value = "name";
     orderSelect.value = "asc";
+    columnsList.querySelectorAll("input[type=checkbox]").forEach((el) => {
+      const field = FIELDS.find((f) => f.key === el.dataset.fieldKey);
+      el.checked = field ? field.default : true;
+    });
+    columnsError.hidden = true;
     hideMessages();
+    renderPreviewTableHead();
     refreshPreview();
     searchInput.focus();
   }
+
+  // ---------- init ----------
+
+  buildColumnCheckboxes();
+  renderPreviewTableHead();
 
   [searchInput].forEach((el) => el.addEventListener("input", scheduleRefreshPreview));
   [viewModeSelect, sortSelect, orderSelect].forEach((el) =>
