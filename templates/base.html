@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}Stockly{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/feature-highlights.css') }}">
-  <script src="{{ url_for('static', filename='js/feature-highlights.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/modules/feature-highlights.css') }}">
+  <script src="{{ url_for('static', filename='js/core/feature-highlights.js') }}"></script>
   <script>
     window.ROLES = {
       ADMIN:  "{{ ROLES.ADMIN }}",
@@ -33,7 +33,7 @@
 
 <!-- sb-open class is toggled by JS after reading localStorage -->
 <body>
-  {% import "components.html" as comp %}
+  {% import View.COMPONENTS.value as comp%}
 
   <!-- ╔══════════════════════════════════════════════╗
        ║  LEFT SIDEBAR                                ║
@@ -416,8 +416,6 @@
     </form>
   </div>
 
-  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-
   <div id="product-modal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="overlay" data-close="true"></div>
     <article class="dialog card max-w-md">
@@ -592,7 +590,7 @@
   })();
   </script>
 
-  <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/notifications.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
 
@@ -720,7 +718,7 @@
   </script>
 
   <style>
-  /* ══════════════════════════════════════════════
+  /* ════════════════════════════════���═════════════
      SIDEBAR — scoped to .sb prefix
      Uses existing CSS variables ONLY
      ══════════════════════════════════════════════ */
@@ -1074,7 +1072,7 @@
     body.sb-open .sb-main { margin-left: 0 !important; }
   }
   </style>
-  <script src="{{ url_for('static', filename='js/file-downloader.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/csv-exporter.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/file-downloader.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/csv-exporter.js') }}"></script>
 </body>
 </html>

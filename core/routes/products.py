@@ -2,6 +2,8 @@ import csv
 import io
 import time
 import uuid
+
+from templates.views import View
 from core.api.auth_utils import require_auth, require_permission
 from miscellaneous import ROLES, PERMS
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify, send_file
@@ -51,9 +53,9 @@ def product_new():
     Requiere login: True.
     
     Returns:
-        Template: product_form.html (vacío, se envía por AJAX)
+        Template: products_form.html (vacío, se envía por AJAX)
     """
-    return render_template("product_form.html", form_data={}, role=session.get("role", ROLES.VENDOR), show_back=False)
+    return render_template(View.PRODUCTS_FORM.value, form_data={}, role=session.get("role", ROLES.VENDOR), show_back=False)
         
 #Compatibilidad
 def legacy_product_form():
@@ -74,7 +76,7 @@ def product_management():
         Template: product_management.html con la interfaz de gestión
     """
     
-    return render_template("product_management.html", role=session.get("role", ROLES.VENDOR))
+    return render_template(View.PRODUCTS_MANAGEMENT.value, role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/import", methods=["GET", "POST"])
 @require_permission(PERMS.PRODUCTS_MANAGE)
@@ -93,7 +95,7 @@ def import_preview():
     """
     
     if request.method == "GET":
-        return render_template("import.html", role=session.get("role", ROLES.VENDOR))
+        return render_template(View.IMPORT_PRODUCTS.value, role=session.get("role", ROLES.VENDOR))
     
     if 'file' not in request.files:
         return {"error": "No file"}, 400
@@ -204,7 +206,7 @@ def product_detail(product_id):
     
     """
     product = db.get_item_by_id(product_id)
-    return render_template("product_detail.html", product=product, role=session.get("role", ROLES.VENDOR),show_back=False)
+    return render_template(View.PRODUCTS_DETAIL.value, product=product, role=session.get("role", ROLES.VENDOR),show_back=False)
 
 @products_bp.route("/products/<int:product_id>/edit")
 @require_permission(PERMS.PRODUCTS_MANAGE)
@@ -230,7 +232,7 @@ def product_edit(product_id):
         flash("Producto no encontrado", "error")
         return redirect(url_for("products.product_management", show_back='0'),)
     
-    return render_template("product_edit.html", product=product, role=session.get("role", ROLES.VENDOR), show_back=False)
+    return render_template(View.PRODUCTS_EDIT.value, product=product, role=session.get("role", ROLES.VENDOR), show_back=False)
 
 @products_bp.route("/products/barcodes", methods=["GET"])
 @require_permission(PERMS.BARCODE_MANAGE)
@@ -297,7 +299,7 @@ def barcode_management():
     start_item = 0 if total_products == 0 else offset + 1
     end_item = min(offset + limit, total_products)
     
-    return render_template("barcode_management.html", 
+    return render_template(View.BARCODE_MANAGEMENT.value, 
                          products=products,
                          without_barcode=without_barcode,
                          page=page,
@@ -488,10 +490,10 @@ def stock_scan():
     Returns:
         Template: stock_scan.html con interfaz de escaneo
     """
-    return render_template("stock_scan.html", role=session.get("role", ROLES.VENDOR))
+    return render_template(View.STOCK_SCAN.value , role=session.get("role", ROLES.VENDOR))
 
 @products_bp.route("/products/export-view", methods=["GET"])
 @require_permission(PERMS.PRODUCTS_MANAGE)
 def product_export_view():
     """Vista para armar filtros y descargar el CSV de productos."""
-    return render_template("product_export.html", role=session.get("role", ROLES.VENDOR))
+    return render_template(View.PRODUCTS_EXPORT.value, role=session.get("role", ROLES.VENDOR))

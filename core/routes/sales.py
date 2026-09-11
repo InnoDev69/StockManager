@@ -3,6 +3,8 @@ from core.api.auth_utils import require_auth, require_permission
 from core.bd.bdInstance import db
 from miscellaneous import ROLES, PERMS
 
+from templates.views import View
+
 sales_bp = Blueprint('sales', __name__)
 
 @sales_bp.route("/sales/new", methods=["GET", "POST"])
@@ -25,7 +27,7 @@ def sale_new():
         Template/Redirect: Formulario en GET, redirect a dashboard en POST
     """
     
-    return render_template("sale_form.html", role=session.get("role", ROLES.VENDOR))
+    return render_template(View.SALES_FORM.value, role=session.get("role", ROLES.VENDOR))
 
 @sales_bp.route("/sales", methods=["GET"])
 @require_auth
@@ -106,7 +108,7 @@ def sales():
         sales_dict[sale_id]["total_quantity"] += row[3]
     
     sales = list(sales_dict.values())
-    return render_template("sales.html", sales=sales, role=session.get("role", ROLES.VENDOR))
+    return render_template(View.SALES_MANAGEMENT.value, sales=sales, role=session.get("role", ROLES.VENDOR))
 
 @sales_bp.route("/sales/<int:sale_id>/edit", methods=["GET"])
 @require_permission(PERMS.SALES_EDIT)
@@ -120,4 +122,4 @@ def edit_sale_form(sale_id):
         flash("Venta no encontrada", "error")
         return redirect(url_for("sales.sales"))
     
-    return render_template("sale_edit.html", sale=sale, role=session.get("role", ROLES.VENDOR))
+    return render_template(View.SALE_EDIT.value, sale=sale, role=session.get("role", ROLES.VENDOR))

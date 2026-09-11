@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, session
 from miscellaneous import ROLES
 
+from templates.views import View
+
 help_bp = Blueprint('help', __name__)
 
 @help_bp.route("/help")
@@ -14,4 +16,4 @@ def help_center():
         Template: help.html con contenido de ayuda por módulo
     """
     role = session.get("role", ROLES.VENDOR)
-    return render_template('help.html', role=role, show_back=False)
+    return render_template(View.HELP.value, role=role, show_back=False)

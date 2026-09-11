@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for
+from templates.views import View
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -15,7 +16,7 @@ def login():
     
     if session.get("user_id"):
         return redirect(url_for("dashboard.index"))
-    return render_template("login.html")
+    return render_template(View.LOGIN.value)
 
 @auth_bp.route("/register", methods=["GET"])
 def register(): 
@@ -28,7 +29,7 @@ def register():
         Template: login.html con parámetro register=True
     """
     
-    return render_template("login.html", register=True)
+    return render_template(View.LOGIN.value, register=True)
 
 @auth_bp.route("/logout")
 def logout():
@@ -57,4 +58,4 @@ def reset_password():
         Template: reset_password.html
     """
     
-    return render_template("reset_password.html")
+    return render_template(View.RESET_PASSWORD.value)

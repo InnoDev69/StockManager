@@ -1,10 +1,11 @@
 from flask import Blueprint, render_template, session
 from miscellaneous import ROLES
-from core.api.auth_utils import require_role, require_auth
+from core.api.auth_utils import require_auth
+from templates.views import View
 
 credit_bp = Blueprint("credit_bp", __name__)
 
 @require_auth
 @credit_bp.route("/customers")
 def create_customer():
-    return render_template('credit.html', role=session.get("role", ROLES.VENDOR), show_back=False)
+    return render_template(View.CREDIT.value, role=session.get("role", ROLES.VENDOR), show_back=False)
