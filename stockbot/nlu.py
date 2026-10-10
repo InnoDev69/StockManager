@@ -10,7 +10,8 @@ inferencia toma milisegundos, no segundos).
 """
 import re
 import unicodedata
-from typing import Dict, List, Optional, Tuple
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 from rapidfuzz import process, fuzz
@@ -28,6 +29,9 @@ STOPWORDS = {
     "me", "te", "se", "mi", "tu", "su", "lo", "al", "esta", "este",
 }
 
+# "900 ml" -> "900ml" (une número + unidad para que matchee igual que en el catálogo)
+_UNIT_JOIN = re.compile(r"(?<=\d)\s+(?=(?:ml|cc|lt|lts|l|g|gr|grs|kg|kgs|mg)\b)")
+
 
 def strip_accents(text: str) -> str:
     nfkd = unicodedata.normalize("NFKD", text)
@@ -40,7 +44,12 @@ def normalize(text: str) -> str:
     text = strip_accents(text)
     text = re.sub(r"[^a-z0-9ñ{}\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
+    text = _UNIT_JOIN.sub("", text)
     return text
+
+
+def _has_digit(text: str) -> bool:
+    return any(c.isdigit() for c in text)
 
 
 class SpellCorrector:
@@ -48,10 +57,13 @@ class SpellCorrector:
 
     def __init__(self, vocabulary: List[str], score_cutoff: int = 72):
         self.vocabulary = sorted(set(vocabulary))
+        self._vocab_set = set(self.vocabulary)
         self.score_cutoff = score_cutoff
 
     def correct_word(self, word: str) -> str:
-        if word in self.vocabulary or len(word) <= 2:
+        # Las palabras con números (900ml, 1l...) NO se corrigen: cambiarlas
+        # convertiría un producto en otro (900ml -> 500ml).
+        if word in self._vocab_set or len(word) <= 2 or _has_digit(word):
             return word
         match = process.extractOne(
             word, self.vocabulary, scorer=fuzz.WRatio, score_cutoff=self.score_cutoff
@@ -133,30 +145,108 @@ class IntentClassifier:
         return top_intent, top_score, ranked
 
 
-def extract_entities(text: str, product_catalog: List[str]) -> Dict[str, str]:
-    """Extracción simple de entidades por gazetteer (productos) + regex (cantidades)."""
-    entities: Dict[str, str] = {}
+# ---------- productos ----------
 
-    # cantidad: primer número encontrado
-    qty_match = re.search(r"\b(\d+)\b", text)
-    if qty_match:
-        entities["cantidad"] = qty_match.group(1)
 
-    # producto: fuzzy match contra el catálogo, probando ventanas de 1 a 3 palabras
+@lru_cache(maxsize=4096)
+def _product_tokens(name: str) -> Tuple[str, ...]:
+    """Palabras significativas del nombre de un producto (normalizadas, sin stopwords)."""
+    tokens: List[str] = []
+    for t in normalize(name).split():
+        if t not in STOPWORDS and t not in tokens:
+            tokens.append(t)
+    return tuple(tokens)
+
+
+def _token_matches(token: str, word: str) -> bool:
+    """Palabra del producto vs palabra del mensaje.
+
+    - Iguales: match.
+    - Con números (900ml, 5l): solo exacto, para no confundir variantes.
+    - Resto: difuso, pero solo con palabras de 4+ letras (evita que "el" matchee "helado").
+    """
+    if token == word:
+        return True
+    if len(token) < 4 or len(word) < 4 or _has_digit(token) or _has_digit(word):
+        return False
+    return fuzz.ratio(token, word) >= 85
+
+
+def find_products(
+    text: str,
+    product_catalog: List[str],
+    min_confident_coverage: float = 0.6,
+    max_candidates: int = 5,
+) -> Tuple[List[str], bool, Set[int]]:
+    """Busca productos del catálogo mencionados en `text` (ya normalizado).
+
+    Devuelve (candidatos, seguro, índices_de_palabras_usadas).
+    - seguro=True: hay un único ganador claro -> candidatos tiene 1 elemento.
+    - seguro=False y 1 candidato: coincidencia débil (conviene confirmar).
+    - seguro=False y varios candidatos: ambiguo (conviene preguntar cuál).
+    - candidatos vacío: no se reconoció ningún producto.
+    """
+    words = text.split()
+    scored = []
+    for name in dict.fromkeys(product_catalog):  # sin duplicados exactos, conserva el orden
+        tokens = _product_tokens(name)
+        if not tokens:
+            continue
+        used: Set[int] = set()
+        matched = 0
+        for token in tokens:
+            for i, w in enumerate(words):
+                if _token_matches(token, w):
+                    matched += 1
+                    used.add(i)
+                    break
+        if matched:
+            scored.append((matched, matched / len(tokens), name, used))
+
+    if not scored:
+        return [], False, set()
+
+    best = max(s[0] for s in scored)
+    top = [s for s in scored if s[0] == best]
+    top.sort(key=lambda s: (-s[1], s[2]))
+    full = [s for s in top if s[1] == 1.0]
+
+    winner = None
+    if len(top) == 1:
+        winner = top[0]
+    elif len(full) == 1:
+        winner = full[0]  # ej: existe un producto llamado exactamente "Aceite"
+
+    if winner is not None:
+        return [winner[2]], winner[1] >= min_confident_coverage, winner[3]
+
+    top = top[:max_candidates]
+    used_all: Set[int] = set().union(*(s[3] for s in top))
+    return [s[2] for s in top], False, used_all
+
+
+def extract_entities(text: str, product_catalog: List[str]) -> Dict[str, Any]:
+    """Extracción simple de entidades: productos (catálogo) + cantidad (número suelto).
+
+    - "producto": nombre exacto del catálogo cuando hay un ganador claro.
+    - "producto_candidatos": lista de nombres cuando es ambiguo o débil.
+    """
+    entities: Dict[str, Any] = {}
+    words = text.split()
+    used: Set[int] = set()
+
     if product_catalog:
-        words = text.split()
-        best_score = 0
-        best_product = None
-        for size in (3, 2, 1):
-            for i in range(len(words) - size + 1):
-                chunk = " ".join(words[i : i + size])
-                match = process.extractOne(
-                    chunk, product_catalog, scorer=fuzz.WRatio, score_cutoff=70
-                )
-                if match and match[1] > best_score:
-                    best_score = match[1]
-                    best_product = match[0]
-        if best_product:
-            entities["producto"] = best_product
+        candidates, confident, used = find_products(text, product_catalog)
+        if candidates:
+            if confident:
+                entities["producto"] = candidates[0]
+            else:
+                entities["producto_candidatos"] = candidates
+
+    # cantidad: primer número suelto que NO sea parte del nombre de un producto
+    for i, w in enumerate(words):
+        if i not in used and w.isdigit():
+            entities["cantidad"] = w
+            break
 
     return entities

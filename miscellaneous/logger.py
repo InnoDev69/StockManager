@@ -100,7 +100,7 @@ class AppLogger:
         )
         
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARNING)
+        console_handler.setLevel(self._is_freeze and logging.WARNING or logging.DEBUG)  # Solo DEBUG en desarrollo
         console_handler.setFormatter(formatter)
         self._logger.addHandler(console_handler)
         

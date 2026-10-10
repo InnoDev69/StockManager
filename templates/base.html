@@ -403,6 +403,59 @@
     {% endif %}
   </main>
 
+  <!-- Widget de chat -->
+  <div class="chat-widget" data-chat-widget>
+    <section
+      id="chat-widget-panel"
+      class="chat-widget__panel"
+      data-chat-panel
+      hidden>
+
+      <header class="chat-widget__header">
+        <strong>StocklyBot</strong>
+
+        <button
+          type="button"
+          data-chat-close
+          aria-label="Cerrar chat">
+          ×
+        </button>
+      </header>
+
+      <div
+        class="chat-widget__messages"
+        data-chat-messages
+        aria-live="polite">
+        <div class="chat-message chat-message--bot">
+          Hola, soy StocklyBot. ¿En qué puedo ayudarte?
+        </div>
+      </div>
+
+      <form class="chat-widget__form" data-chat-form>
+        <input
+          type="text"
+          data-chat-input
+          placeholder="Escribí tu consulta..."
+          autocomplete="off"
+          required>
+
+        <button type="submit" aria-label="Enviar mensaje">
+          ➤
+        </button>
+      </form>
+    </section>
+
+    <button
+      type="button"
+      class="chat-widget__trigger"
+      data-chat-trigger
+      aria-label="Abrir chat con StocklyBot"
+      aria-expanded="false"
+      aria-controls="chat-widget-panel">
+      💬
+    </button>
+  </div>
+
   <!-- ── Existing overlays (unchanged) ────────────── -->
   <div id="drawer" class="drawer hidden" aria-hidden="true">
     <div class="overlay" data-close="true"></div>
@@ -591,6 +644,7 @@
   </script>
 
   <script src="{{ url_for('static', filename='js/core/notifications.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/core/chat-widget.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
 
