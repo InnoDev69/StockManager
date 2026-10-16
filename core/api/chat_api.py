@@ -197,7 +197,7 @@ def bot_is_ready():
 def chat():
     current_bot = _bot  # referencia local: no cambia a mitad de la request
     if current_bot is None:
-        return jsonify({"error": "El bot está desactivado"}), 503
+        return jsonify({"error": "El bot está desactivado. Activalo desde la configuracion en las funciones experimentales."}), 503
 
     payload = request.get_json(silent=True) or {}
     message = (payload.get("message") or "").strip()
