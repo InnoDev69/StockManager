@@ -9,3 +9,6 @@ class CreditLimitExceededError(DatabaseError):
 
 class InsufficientBalanceError(DatabaseError):
     pass
+
+class InsufficientStockError(StockError):
+    pass

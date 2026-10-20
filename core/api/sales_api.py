@@ -298,6 +298,7 @@ def create_sales_bulk():
         if payment_method in ("Fiado", "Mixto") and not customer_id:
             return jsonify({"error": "Debe seleccionar un cliente para venta fiada"}), 400
 
+        # TODO: hacer que esto sea configurable y no hardcodeado
         if force_credit and session.get("role") not in (ROLES.ADMIN, ROLES.ROOT):
             return jsonify({"error": "Solo un admin puede forzar el límite de crédito"}), 403
 

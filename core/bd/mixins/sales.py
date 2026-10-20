@@ -1,4 +1,4 @@
-from core.bd.bdErrors import DatabaseError
+from core.bd.bdErrors import DatabaseError, InsufficientStockError
 from miscellaneous import logger, localDate
 from core.config import config
 
@@ -88,7 +88,7 @@ class SalesMixin:
                     return
                 price, current_qty = row
                 if current_qty < quantity:
-                    raise ValueError("Stock insuficiente")
+                    raise InsufficientStockError("Stock insuficiente")
 
                 cur.execute(
                     "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
@@ -148,7 +148,7 @@ class SalesMixin:
 
                 price, current_qty = row
                 if current_qty < quantity:
-                    raise ValueError(f"Stock insuficiente para producto ID {item_id}")
+                    raise InsufficientStockError(f"Stock insuficiente para producto ID {item_id}")
 
                 total += price * quantity
 
@@ -374,6 +374,8 @@ class SalesMixin:
         Raises:
             ValueError: sin líneas, stock insuficiente, o datos de fiado
                 inconsistentes.
+            InsufficientStockError: stock insuficiente para algún producto.
+            InsufficientBalanceError: saldo insuficiente para algún producto.
             DatabaseError: producto no encontrado, o venta 100% por peso
                 (limitación legacy de 'sells.item_id', ver nota abajo).
         """
@@ -431,7 +433,7 @@ class SalesMixin:
 
                 price, current_qty = row
                 if current_qty < quantity:
-                    raise ValueError(f"Stock insuficiente para producto ID {item_id}")
+                    raise InsufficientStockError(f"Stock insuficiente para producto ID {item_id}")
 
                 total += price * quantity
 
@@ -559,10 +561,10 @@ class SalesMixin:
     def get_sale_total(self, sell_id):
         """Suma el total de una venta contemplando líneas por unidad y por peso."""
         query = """
-            SELECT COALESCE(SUM(price), 0) FROM (
-                SELECT price FROM details WHERE sell_id = ?
+            SELECT COALESCE(SUM(line_total), 0) FROM (
+                SELECT price * quantity AS line_total FROM details WHERE sell_id = ?
                 UNION ALL
-                SELECT price FROM weight_details WHERE sell_id = ?
+                SELECT price AS line_total FROM weight_details WHERE sell_id = ?
             )
         """
         return self.get_count(query, (sell_id, sell_id))

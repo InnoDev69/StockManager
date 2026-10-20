@@ -10,8 +10,8 @@ from miscellaneous import logger, localDate
 from miscellaneous.audit_decorator import audit_action
 from core.bd.bdErrors import DatabaseError
 from core.api.error_handlers import handle_db_error
-import sqlite3
-from miscellaneous import ROLES, PERMS
+from sqlite3 import IntegrityError, OperationalError
+from miscellaneous import PERMS
 from core.services import cache_service
 from miscellaneous import Limits
 import requests
@@ -337,7 +337,7 @@ def create_product():
     
     except ValidationError as e:
         return jsonify({"error": f"{e.field}: {e.message}"}), 400
-    except (sqlite3.IntegrityError, sqlite3.OperationalError, DatabaseError) as e:
+    except (IntegrityError, OperationalError, DatabaseError) as e:
         return handle_db_error(e, f"create_product")
     except Exception as e:
         logger.exception("Unexpected error in create_product")

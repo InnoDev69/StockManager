@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from miscellaneous.permissions import PERMS
 from core.api.error_handlers import handle_db_error
 from core.bd.bdInstance import db
-from core.api.auth_utils import require_auth, require_permission, require_role
+from core.api.auth_utils import require_auth, require_permission
 from miscellaneous.validators import RoleValidator, UserValidator, ValidationError
 from miscellaneous import logger, email_sender
 from miscellaneous.audit_decorator import audit_action
