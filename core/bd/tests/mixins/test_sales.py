@@ -218,3 +218,16 @@ def test_update_sale_al_contado_actualiza_lo_cobrado(db, item):
         vendor_id=ROOT_ID, payment_method="Efectivo", user_id=ROOT_ID,
     )
     assert db.get_single_row("SELECT amount_paid FROM sells WHERE id = ?", (sale_id,))[0] == 160.0
+    
+def test_get_sale_by_id_indica_precio_libre(db, item, generic_item):
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[
+            {"item_id": item, "quantity": 1},
+            {"item_id": generic_item, "quantity": 1, "price": 500.0},
+        ],
+        payment_method="Efectivo",
+    )
+    sale = db.get_sale_by_id(sale_id)
+    flags = {line["item_id"]: line["allow_custom_price"] for line in sale["items"]}
+    assert flags == {item: False, generic_item: True}

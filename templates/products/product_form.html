@@ -39,7 +39,21 @@
              value="{{ form_data.description or '' }}" placeholder="Descripción detallada (opcional)" />
       <span class="field-error" data-field="Descripción"></span>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <!-- Tipo de producto: sin control de stock y/o precio libre -->
+    <div class="field" id="product-type-field" style="padding: 0.75rem 1rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;">
+      <label class="label" style="margin-bottom: 0.5rem;">Tipo de producto</label>
+      <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; margin-bottom: 0.6rem;">
+        <input type="checkbox" id="no_track_stock" name="no_track_stock"  style="width: auto; margin-top: 0.2rem;" />
+        <span><strong>Sin control de stock</strong><br>
+          <small style="color: var(--text-muted);">Servicios o productos que no se cuentan: se pueden vender siempre y no generan alertas de stock.</small></span>
+      </label>
+      <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer;">
+        <input type="checkbox" id="allow_custom_price" name="allow_custom_price"  style="width: auto; margin-top: 0.2rem;" />
+        <span><strong>Precio libre</strong><br>
+          <small style="color: var(--text-muted);">El precio se escribe en cada venta (por ejemplo, servicio técnico o instalación).</small></span>
+      </label>
+    </div>
+    <div id="stock-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
       <div class="field">
         <label class="label">Stock inicial <span style="color: var(--danger);">*</span></label>
         <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
@@ -54,7 +68,7 @@
         <span class="field-error" data-field="Cantidad mínima"></span>
       </div>
     </div>
-    <div class="field">
+    <div class="field" id="price-field">
       <label class="label">Precio <span style="color: var(--danger);">*</span></label>
       <input type="number" step="0.01" name="price" min="0" max="{{Limits.ITEM_PRICE_MAX}}"
              value="{{ form_data.price or '0.00' }}" required placeholder="0.00" />

@@ -190,7 +190,7 @@ class SalesMixin:
                 return None
 
             cur.execute("""
-                SELECT d.item_id, d.quantity, d.price, i.name
+                SELECT d.item_id, d.quantity, d.price, i.name, i.allow_custom_price
                 FROM details d
                 JOIN items i ON d.item_id = i.id
                 WHERE d.sell_id = ?
@@ -218,7 +218,8 @@ class SalesMixin:
             "amount_paid": amount_paid,
             "pending": round(total - amount_paid, 2),
             "items": [
-                {"item_id": r[0], "quantity": r[1], "price": r[2], "name": r[3]}
+                {"item_id": r[0], "quantity": r[1], "price": r[2], "name": r[3],
+                 "allow_custom_price": bool(r[4])}
                 for r in unit_rows
             ],
             "weight_items": [

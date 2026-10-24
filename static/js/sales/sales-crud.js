@@ -17,6 +17,9 @@ let selectedCustomerLimit = null; // null = sin limite configurado
 let customerSearchTimer;
 let pendingForceCredit = false; // se activa tras un rechazo por limite, para el reintento
 
+// ===== PRODUCTOS DE PRECIO LIBRE =====
+let pendingPriceFocusId = null; // id del producto cuyo campo de precio hay que enfocar tras renderizar
+
 // ===== RELOJ =====
 function updateClock() {
   document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('es-ES', {
@@ -94,9 +97,15 @@ function renderSuggestions(items) {
   items.slice(0, 8).forEach(function(it) {
     const div = document.createElement('div');
     div.className = 'suggestion-item';
-    const stockColor = it.stock > 0 ? 'var(--success)' : 'var(--danger)';
-    const stockBg = it.stock > 0 ? 'color-mix(in srgb, var(--success) 12%, transparent)' : 'color-mix(in srgb, var(--danger) 12%, transparent)';
-    const stockText = it.stock > 0 ? it.stock + ' disp.' : 'Agotado';
+    // track_stock === false: producto sin control de stock (servicios, "Varios"), siempre disponible
+    const tracksStock = it.track_stock !== false;
+    const available = !tracksStock || it.stock > 0;
+    const stockColor = !tracksStock ? 'var(--text-muted)' : (it.stock > 0 ? 'var(--success)' : 'var(--danger)');
+    const stockBg = !tracksStock
+      ? 'color-mix(in srgb, var(--text-muted) 14%, transparent)'
+      : (it.stock > 0 ? 'color-mix(in srgb, var(--success) 12%, transparent)' : 'color-mix(in srgb, var(--danger) 12%, transparent)');
+    const stockText = !tracksStock ? 'Sin control' : (it.stock > 0 ? it.stock + ' disp.' : 'Agotado');
+    const priceText = it.allow_custom_price === true ? 'Precio libre' : '$' + it.price.toFixed(2);
     div.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">' +
         '<div style="min-width:0;">' +
@@ -105,10 +114,10 @@ function renderSuggestions(items) {
         '</div>' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
           '<span style="background:' + stockBg + ';color:' + stockColor + ';padding:2px 8px;border-radius:999px;font-size:0.72rem;font-weight:600;">' + stockText + '</span>' +
-          '<span style="font-weight:700;font-size:0.95rem;">$' + it.price.toFixed(2) + '</span>' +
+          '<span style="font-weight:700;font-size:0.95rem;">' + priceText + '</span>' +
         '</div>' +
       '</div>';
-    if (it.stock > 0) {
+    if (available) {
       div.addEventListener('click', function() {
         addToCart(it, 1);
         hideSuggestions();
@@ -132,32 +141,42 @@ function cleanSearchInput() {
 // ===== CARRITO =====
 function addToCart(item, qty) {
   qty = qty || 1;
+  const tracksStock = item.track_stock !== false;       // false = sin control de stock
+  const customPrice = item.allow_custom_price === true; // true = el precio se carga en cada venta
   const existing = cart.get(item.id);
   let newQty = existing ? existing.quantity + qty : qty;
-  const maxStock = item.stock || 999;
+  // Sin control de stock no hay tope de cantidad
+  const maxStock = tracksStock ? (item.stock || 999) : Infinity;
 
-  if (newQty > maxStock) {
+  if (tracksStock && newQty > maxStock) {
     Notify.warning('Stock insuficiente. Disponible: ' + maxStock);
     newQty = maxStock;
   }
 
+  // En precio libre se conserva el precio ya cargado si el producto estaba en el carrito
+  const unitPrice = customPrice ? (existing ? existing.unit_price : 0) : item.price;
+
   cart.set(item.id, {
     id: item.id,
     name: item.name,
-    unit_price: item.price,
+    unit_price: unitPrice,
     quantity: newQty,
-    max_stock: maxStock
+    max_stock: maxStock,
+    custom_price: customPrice
   });
 
+  // Si falta el precio, tras renderizar se enfoca su campo
+  if (customPrice && !(unitPrice > 0)) pendingPriceFocusId = item.id;
+
   cleanSearchInput();
-  showLastAdded(item.name, newQty, item.price);
+  showLastAdded(item.name, newQty, unitPrice);
   renderCart();
 }
 
 function showLastAdded(name, qty, price) {
   const bar = document.getElementById('lastAdded');
   const text = document.getElementById('lastAddedText');
-  text.textContent = name + ' x' + qty + ' — $' + (qty * price).toFixed(2);
+  text.textContent = name + ' x' + qty + (price > 0 ? ' — $' + (qty * price).toFixed(2) : ' — definir precio');
   bar.style.display = 'flex';
   bar.style.animation = 'none';
   bar.offsetHeight;
@@ -202,11 +221,13 @@ function renderCart() {
     div.innerHTML =
       '<div class="cart-item-info">' +
         '<div class="cart-item-name" title="' + row.name + '">' + row.name + '</div>' +
-        '<div class="cart-item-price">$' + row.unit_price.toFixed(2) + ' c/u</div>' +
+        '<div class="cart-item-price">' + (row.custom_price
+          ? '<input type="number" class="price-input" min="0.01" step="0.01" placeholder="Precio" value="' + (row.unit_price > 0 ? row.unit_price : '') + '" data-id="' + row.id + '"> c/u'
+          : '$' + row.unit_price.toFixed(2) + ' c/u') + '</div>' +
       '</div>' +
       '<div class="qty-controls">' +
         '<button type="button" class="qty-btn qty-dec" data-id="' + row.id + '">-</button>' +
-        '<input type="number" class="qty-value" value="' + row.quantity + '" min="1" max="' + row.max_stock + '" data-id="' + row.id + '">' +
+        '<input type="number" class="qty-value" value="' + row.quantity + '" min="1"' + (isFinite(row.max_stock) ? ' max="' + row.max_stock + '"' : '') + ' data-id="' + row.id + '">' +
         '<button type="button" class="qty-btn qty-inc" data-id="' + row.id + '">+</button>' +
       '</div>' +
       '<div class="cart-item-subtotal">$' + lineTotal.toFixed(2) + '</div>' +
@@ -251,8 +272,39 @@ function renderCart() {
       focusSearch();
     });
 
+    const priceInput = div.querySelector('.price-input');
+    if (priceInput) {
+      priceInput.addEventListener('change', function(e) {
+        const v = parseFloat(e.target.value);
+        row.unit_price = (isFinite(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
+        if (e.target.value !== '' && row.unit_price <= 0) {
+          Notify.warning('El precio debe ser mayor a 0');
+        }
+        renderCart();
+      });
+      priceInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.target.blur();               // dispara 'change' y vuelve a renderizar
+          setTimeout(focusSearch, 0);
+        }
+      });
+    }
+
     container.appendChild(div);
   });
+
+  // No se puede confirmar mientras falte el precio de algún producto de precio libre
+  if (cart.size) {
+    document.getElementById('confirmSale').disabled = !!getRowMissingPrice();
+  }
+
+  // Llevar el cursor al campo de precio del producto recién agregado
+  if (pendingPriceFocusId !== null) {
+    const pendingInput = container.querySelector('.price-input[data-id="' + pendingPriceFocusId + '"]');
+    if (pendingInput) pendingInput.focus();
+    pendingPriceFocusId = null;
+  }
 
   document.getElementById('cartCount').textContent = itemCount;
   document.getElementById('cartItemTypes').textContent = typeCount;
@@ -327,6 +379,14 @@ function generateQuickCashButtons(total) {
     updateChangeCalc();
   });
   container.appendChild(exactBtn);
+}
+
+// Devuelve la primera línea de precio libre sin precio cargado (o null si están todas completas)
+function getRowMissingPrice() {
+  for (const row of cart.values()) {
+    if (row.custom_price && !(row.unit_price > 0)) return row;
+  }
+  return null;
 }
 
 function getCartTotal() {
@@ -708,6 +768,11 @@ function initSalesForm() {
   if (confirmBtn) {
     confirmBtn.addEventListener('click', function() {
       if (!cart.size) return;
+      const missing = getRowMissingPrice();
+      if (missing) {
+        Notify.warning('Definí el precio de "' + missing.name + '"');
+        return;
+      }
       showConfirmModal();
     });
   }
@@ -767,6 +832,10 @@ function initSalesForm() {
   const modalConfirmBtn = document.getElementById('modalConfirm');
   if (modalConfirmBtn) {
     modalConfirmBtn.addEventListener('click', async function() {
+      if (getRowMissingPrice()) {
+        Notify.warning('Falta definir el precio de un producto');
+        return;
+      }
       if (!validateCreditRequirements()) return;
 
       const modal = document.getElementById('confirmModal');
@@ -775,7 +844,10 @@ function initSalesForm() {
       btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>Procesando...';
 
       const payload = Array.from(cart.values()).map(function(r) {
-        return { item_id: r.id, quantity: r.quantity };
+        const line = { item_id: r.id, quantity: r.quantity };
+        // El precio solo se envía en productos de precio libre; para el resto manda el de la base
+        if (r.custom_price) line.price = r.unit_price;
+        return line;
       });
 
       const requestBody = {

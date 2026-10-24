@@ -9,6 +9,30 @@ function initProductsForm() {
   initNumberInputLimits();
   initDatePicker();
   initBarcodeAutofill();
+  initProductTypeToggles();
+}
+
+// ===== TIPO DE PRODUCTO (sin control de stock / precio libre) =====
+function initProductTypeToggles() {
+  const form = document.getElementById('product-form');
+  if (!form || !form.no_track_stock) return;
+  const sync = () => syncProductTypeFields(form);
+  form.no_track_stock.addEventListener('change', sync);
+  form.allow_custom_price.addEventListener('change', sync);
+  sync();
+}
+
+function syncProductTypeFields(form) {
+  const noStock = form.no_track_stock.checked;
+  const customPrice = form.allow_custom_price.checked;
+  const stockFields = document.getElementById('stock-fields');
+  const priceField = document.getElementById('price-field');
+  // El bloque de stock usa display:grid en línea, por eso se restituye explícitamente
+  if (stockFields) stockFields.style.display = noStock ? 'none' : 'grid';
+  if (priceField) priceField.style.display = customPrice ? 'none' : '';
+  // Los campos ocultos quedan en 0 para no arrastrar valores escritos antes
+  if (noStock) { form.quantity.value = 0; form.min_quantity.value = 0; }
+  if (customPrice) form.price.value = 0;
 }
 
 // ===== LIMITAR INPUTS NUMÉRICOS =====
@@ -46,16 +70,20 @@ function validateProductForm(form) {
   const quantity = parseInt(form.quantity.value) || 0;
   const min_quantity = parseInt(form.min_quantity.value) || 0;
   const price = parseFloat(form.price.value) || 0;
+  const noStock = !!(form.no_track_stock && form.no_track_stock.checked);
+  const customPrice = !!(form.allow_custom_price && form.allow_custom_price.checked);
 
   if (!barrs_code) errors.push('El código de barras es obligatorio');
   if (barrs_code.length < 3) errors.push('El código de barras debe tener al menos 3 caracteres');
   if (!name) errors.push('El nombre del producto es obligatorio');
   if (name.length < 2) errors.push('El nombre debe tener al menos 2 caracteres');
-  if (quantity < 0) errors.push('El stock no puede ser negativo');
-  if (min_quantity < 0) errors.push('El stock mínimo no puede ser negativo');
-  if (quantity < min_quantity) errors.push('El stock inicial no puede ser menor que el stock mínimo');
+  if (!noStock) {
+    if (quantity < 0) errors.push('El stock no puede ser negativo');
+    if (min_quantity < 0) errors.push('El stock mínimo no puede ser negativo');
+    if (quantity < min_quantity) errors.push('El stock inicial no puede ser menor que el stock mínimo');
+  }
   if (price < 0) errors.push('El precio no puede ser negativo');
-  if (price === 0) errors.push('El precio está en 0 - ¿Es intencional?');
+  if (price === 0 && !customPrice) errors.push('El precio está en 0 - ¿Es intencional?');
 
   return errors;
 }
@@ -140,6 +168,8 @@ function getProductFormData(form) {
     quantity: parseInt(form.quantity.value) || 0,
     min_quantity: parseInt(form.min_quantity.value) || 0,
     price: parseFloat(form.price.value) || 0,
+    track_stock: !(form.no_track_stock && form.no_track_stock.checked),
+    allow_custom_price: !!(form.allow_custom_price && form.allow_custom_price.checked),
     expiration_date: form.expiration_date?.value ? convertDateFormat(form.expiration_date.value) : null
   };
 }
@@ -167,7 +197,12 @@ function handleProductFormError(result) {
 
 // ===== LIMPIAR FORMULARIO =====
 function clearProductForm(form) {
-  document.querySelectorAll('input').forEach(input => input.value = '');
+  document.querySelectorAll('input:not([type="checkbox"])').forEach(input => input.value = '');
+  if (form.no_track_stock) {
+    form.no_track_stock.checked = false;
+    form.allow_custom_price.checked = false;
+    syncProductTypeFields(form);
+  }
   document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
   resetBarcodeAutofillState();
 }

@@ -71,7 +71,21 @@
       <span class="field-error" data-field="Descripción"></span>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <!-- Tipo de producto: sin control de stock y/o precio libre -->
+    <div class="field" id="product-type-field" style="padding: 0.75rem 1rem; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;">
+      <label class="label" style="margin-bottom: 0.5rem;">Tipo de producto</label>
+      <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; margin-bottom: 0.6rem;">
+        <input type="checkbox" id="no_track_stock" name="no_track_stock" {% if product.track_stock is sameas false %}checked{% endif %} style="width: auto; margin-top: 0.2rem;" />
+        <span><strong>Sin control de stock</strong><br>
+          <small style="color: var(--text-muted);">Servicios o productos que no se cuentan: se pueden vender siempre y no generan alertas de stock.</small></span>
+      </label>
+      <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer;">
+        <input type="checkbox" id="allow_custom_price" name="allow_custom_price" {% if product.allow_custom_price is sameas true %}checked{% endif %} style="width: auto; margin-top: 0.2rem;" />
+        <span><strong>Precio libre</strong><br>
+          <small style="color: var(--text-muted);">El precio se escribe en cada venta (por ejemplo, servicio técnico o instalación).</small></span>
+      </label>
+    </div>
+    <div id="stock-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
       <div class="field">
         <label class="label">Stock actual <span style="color: var(--danger);">*</span></label>
         <input type="number" name="quantity" min="0" max="{{Limits.ITEM_QUANTITY_MAX}}"
@@ -89,7 +103,7 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" id="price-field">
       <label class="label">Precio <span style="color: var(--danger);">*</span></label>
       <input type="number" step="0.01" name="price" min="0" max="{{Limits.ITEM_PRICE_MAX}}"
              value="{{ product.price or '0.00' }}" required placeholder="0.00" />
@@ -145,14 +159,31 @@
   const initialValues = {};
   let pendingNavigation = null;
 
+  // ===== Tipo de producto (sin control de stock / precio libre) =====
+  function inputValue(inp) {
+    return inp.type === 'checkbox' ? String(inp.checked) : inp.value;
+  }
+
+  function syncProductTypeFields() {
+    const stockFields = document.getElementById('stock-fields');
+    const priceField = document.getElementById('price-field');
+    // El bloque de stock usa display:grid en línea, por eso se restituye explícitamente.
+    // Los valores guardados no se tocan: solo se ocultan los campos que no aplican.
+    if (stockFields) stockFields.style.display = form.no_track_stock.checked ? 'none' : 'grid';
+    if (priceField) priceField.style.display = form.allow_custom_price.checked ? 'none' : '';
+  }
+  form.no_track_stock.addEventListener('change', syncProductTypeFields);
+  form.allow_custom_price.addEventListener('change', syncProductTypeFields);
+  syncProductTypeFields();
+
   // Guardar valores iniciales
   inputs.forEach(input => {
-    initialValues[input.name] = input.value;
+    initialValues[input.name] = inputValue(input);
   });
 
   function hasUnsavedChanges() {
     return Array.from(inputs).some(
-      inp => inp.value !== initialValues[inp.name]
+      inp => inputValue(inp) !== initialValues[inp.name]
     );
   }
 
@@ -245,6 +276,8 @@
       quantity: parseInt(form.quantity.value),
       min_quantity: parseInt(form.min_quantity.value),
       price: parseFloat(form.price.value),
+      track_stock: !form.no_track_stock.checked,
+      allow_custom_price: form.allow_custom_price.checked,
       status: parseInt(form.status.value),
       expiration_date: form.expiration_date.value.trim() ? convertDateFormat(form.expiration_date.value) : null
     };
@@ -266,7 +299,7 @@
       if (response.ok) {
         NotificationManager.success('Producto actualizado exitosamente', { duration: 3000 });
         Array.from(inputs).forEach(input => {
-            initialValues[input.name] = input.value;
+            initialValues[input.name] = inputValue(input);
         });
         unsavedAlert.style.display = 'none';
 
@@ -294,9 +327,11 @@
     const price = parseFloat(form.price.value) || 0;
 
     if (!name) errors.push('El nombre del producto es obligatorio');
-    if (quantity < 0) errors.push('El stock no puede ser negativo');
-    if (min_quantity < 0) errors.push('El stock mínimo no puede ser negativo');
-    if (quantity < min_quantity) errors.push('El stock actual no puede ser menor que el stock mínimo');
+    if (!form.no_track_stock.checked) {
+      if (quantity < 0) errors.push('El stock no puede ser negativo');
+      if (min_quantity < 0) errors.push('El stock mínimo no puede ser negativo');
+      if (quantity < min_quantity) errors.push('El stock actual no puede ser menor que el stock mínimo');
+    }
     if (price < 0) errors.push('El precio no puede ser negativo');
 
     return errors;

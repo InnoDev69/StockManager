@@ -87,10 +87,20 @@
             Precio de venta
           </div>
           <div style="font-size: 2rem; font-weight: 700; color: var(--brand, #4f46e5);">
-            ${{ "%.2f"|format(product.price) }}
+            {% if product.allow_custom_price is sameas true %}Precio libre{% else %}${{ "%.2f"|format(product.price) }}{% endif %}
           </div>
         </div>
 
+        {% if product.track_stock is sameas false %}
+        <!-- Card: Sin control de stock -->
+        <div style="padding: var(--spacing-lg); background: var(--panel-2); border-radius: var(--radius-md); border: 1px solid var(--border);">
+          <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm);">
+            Stock
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 700;">Sin control de stock</div>
+          <div class="text-muted" style="font-size: 0.85rem; margin-top: var(--spacing-xs);">Se puede vender siempre y no genera alertas de stock.</div>
+        </div>
+        {% else %}
         <!-- Card: Stock -->
         <div style="padding: var(--spacing-lg); background: {% if product.stock > product.min_stock %}rgba(16, 185, 129, 0.05){% elif product.stock > 0 %}rgba(245, 158, 11, 0.05){% else %}rgba(239, 68, 68, 0.05){% endif %}; border-radius: var(--radius-md); border: 2px solid {% if product.stock > product.min_stock %}rgba(16, 185, 129, 0.3){% elif product.stock > 0 %}rgba(245, 158, 11, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %};" title="{% if product.stock > product.min_stock %}Stock saludable{% elif product.stock > 0 %}Stock bajo - considera reponer{% else %}¡Agotado! - Acción inmediata{% endif %}">
           <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm); display: flex; align-items: center; gap: var(--spacing-xs);">
@@ -114,6 +124,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
 
       </div>
 
@@ -150,6 +161,7 @@
   <!-- Grid de descripción general -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-2xl);">
     
+    {% if product.track_stock is not sameas false %}
     <!-- Valor en stock -->
     <div class="card" style="padding: var(--spacing-lg);">
       <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm);">
@@ -160,13 +172,20 @@
       </div>
     </div>
 
+    {% endif %}
+
     <!-- Estado del stock -->
     <div class="card" style="padding: var(--spacing-lg);">
       <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-sm);">
         Estado
       </div>
       <div style="font-size: 1.1rem; font-weight: 600;">
-        {% if product.stock == 0 %}
+        {% if product.track_stock is sameas false %}
+          <span style="color: var(--text-muted); display: flex; align-items: center; gap: var(--spacing-sm);">
+            <span style="display: inline-block; width: 12px; height: 12px; background: var(--text-muted); border-radius: 50%;"></span>
+            Sin control de stock
+          </span>
+        {% elif product.stock == 0 %}
           <span style="color: var(--danger); display: flex; align-items: center; gap: var(--spacing-sm);">
             <span style="display: inline-block; width: 12px; height: 12px; background: var(--danger); border-radius: 50%;"></span>
             Agotado

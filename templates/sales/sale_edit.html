@@ -255,6 +255,21 @@
 
   .cart-item-price { font-size: 0.78rem; color: var(--text-muted); }
 
+  /* Campo de precio de los productos de precio libre */
+  .price-input {
+    width: 96px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    outline: none;
+  }
+  .price-input:focus { border-color: var(--brand); }
+  .price-input:placeholder-shown { border-color: var(--warning); }
+
   .cart-item-subtotal {
     font-weight: 700;
     font-size: 0.95rem;
@@ -439,7 +454,8 @@ async function loadSaleData() {
         name: item.name,
         unit_price: item.price,
         quantity: item.quantity,
-        max_stock: item.quantity + 1000 // permitir edición
+        max_stock: item.quantity + 1000, // permitir edición
+        custom_price: item.allow_custom_price === true // precio libre: se puede corregir
       });
     });
     
@@ -478,7 +494,7 @@ function renderCart() {
   } else {
     document.getElementById('emptyCart').style.display = 'none';
     document.getElementById('cartSummaryLine').style.display = 'flex';
-    document.getElementById('updateSaleBtn').disabled = false;
+    document.getElementById('updateSaleBtn').disabled = !!getMissingPrice();
     
     cart.forEach((item, item_id) => {
       const itemSubtotal = item.unit_price * item.quantity;
@@ -491,7 +507,11 @@ function renderCart() {
       div.innerHTML = `
         <div class="cart-item-info">
           <div class="cart-item-name">${item.name}</div>
-          <div class="cart-item-price">$${item.unit_price.toFixed(2)} c/u</div>
+          <div class="cart-item-price">${item.custom_price
+            ? `<input type="number" class="price-input" min="0.01" step="0.01" placeholder="Precio"
+                      value="${item.unit_price > 0 ? item.unit_price : ''}"
+                      onchange="setPrice(${item_id}, this.value)"> c/u`
+            : `$${item.unit_price.toFixed(2)} c/u`}</div>
         </div>
         <div class="qty-controls">
           <button type="button" class="qty-btn" onclick="changeQty(${item_id}, -1)">−</button>
@@ -542,6 +562,25 @@ function removeFromCart(item_id) {
   }
 }
 
+// Devuelve la primera línea de precio libre sin precio válido (o null si están todas completas)
+function getMissingPrice() {
+  for (const item of cart.values()) {
+    if (item.custom_price && !(item.unit_price > 0)) return item;
+  }
+  return null;
+}
+
+function setPrice(item_id, value) {
+  const item = cart.get(item_id);
+  if (!item) return;
+  const v = parseFloat(value);
+  item.unit_price = (isFinite(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
+  if (value !== '' && item.unit_price <= 0) {
+    Notify.warning('El precio debe ser mayor a 0');
+  }
+  renderCart();
+}
+
 function prepareUpdatePayload() {
   if (!cart.size) {
     Notify.error(' El carrito está vacío. Debe haber al menos un producto para guardar la venta.');
@@ -554,10 +593,18 @@ function prepareUpdatePayload() {
     return null;
   }
 
-  const items = Array.from(cart.values()).map(item => ({
-    item_id: item.id,
-    quantity: item.quantity
-  }));
+  const missing = getMissingPrice();
+  if (missing) {
+    Notify.error(`Definí el precio de "${missing.name}"`);
+    return null;
+  }
+
+  const items = Array.from(cart.values()).map(item => {
+    const line = { item_id: item.id, quantity: item.quantity };
+    // El precio solo se envía en productos de precio libre; para el resto manda el de la base
+    if (item.custom_price) line.price = item.unit_price;
+    return line;
+  });
 
   return {
     items,

@@ -398,6 +398,21 @@
 
 .cart-item-price { font-size: 0.78rem; color: var(--text-muted); }
 
+/* Campo de precio de los productos de precio libre */
+.price-input {
+  width: 96px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+}
+.price-input:focus { border-color: var(--brand); }
+.price-input:placeholder-shown { border-color: var(--warning); }
+
 .cart-item-subtotal {
   font-weight: 700;
   font-size: 0.95rem;

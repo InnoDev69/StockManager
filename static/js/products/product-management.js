@@ -358,14 +358,14 @@
           '<td style="padding:0.875rem 1rem;"><span class="mono" style="font-size:0.85rem;color:var(--text-muted);">' + (p.barcode || '—') + '</span></td>' +
           '<td style="padding:0.875rem 1rem;"><div style="font-weight:600;">' + name + '</div>' +
             (desc ? '<div class="text-muted" style="font-size:0.8rem;margin-top:0.25rem;">' + desc + '</div>' : '') + '</td>' +
-          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono" style="font-size:1rem;font-weight:600;color:' + status.color + ';">' + (p.stock || 0) + '</span></td>' +
-          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.min_stock || 0) + '</span></td>' +
-          '<td style="padding:0.875rem 1rem;text-align:right;"><span class="mono" style="font-weight:600;">$' + price + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono" style="font-size:1rem;font-weight:600;color:' + status.color + ';">' + (p.track_stock === false ? '—' : (p.stock || 0)) + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.track_stock === false ? '—' : (p.min_stock || 0)) + '</span></td>' +
+          '<td style="padding:0.875rem 1rem;text-align:right;"><span class="mono" style="font-weight:600;">' + (p.allow_custom_price === true ? 'Libre' : '$' + price) + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:center;"><span class="status-badge ' + status.cssClass + '">' + status.text + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:center;"><span class="mono text-muted">' + (p.expiration_date || '—') + '</span></td>' +
           '<td style="padding:0.875rem 1rem;text-align:center;">' +
             '<div style="display:flex;gap:0.25rem;justify-content:center;">' +
-              '<button class="action-btn stock" data-action="stock" data-id="' + p.id + '" title="Ajustar stock"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></button>' +
+              (p.track_stock === false ? '' : '<button class="action-btn stock" data-action="stock" data-id="' + p.id + '" title="Ajustar stock"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg></button>') +
               '<button class="action-btn edit"  data-action="edit"  data-id="' + p.id + '" title="Editar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>' +
               (p.status === 0 ? '<button class="action-btn reactivate" data-action="reactivate" data-id="' + p.id + '" title="Reactivar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>' : '<button class="action-btn delete" data-action="delete" data-id="' + p.id + '" title="Eliminar"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>') +
             '</div>' +
@@ -445,6 +445,7 @@
     const stock    = product.stock || 0;
     const minStock = product.min_stock || 0;
     if (product.status === 0) return { cssClass: 'out-of-stock', text: 'Deshabilitado', color: 'var(--danger)' };
+    if (product.track_stock === false) return { cssClass: 'in-stock', text: 'Sin control', color: 'var(--text-muted)' };
     if (stock === 0)          return { cssClass: 'out-of-stock', text: 'Sin stock',     color: 'var(--danger)' };
     if (stock <= minStock)    return { cssClass: 'low-stock',    text: 'Stock bajo',    color: 'var(--warning)' };
     return                           { cssClass: 'in-stock',     text: 'En stock',      color: 'var(--success)' };
@@ -460,6 +461,10 @@
     $('edit-quantity').value     = product.stock || 0;
     $('edit-min-quantity').value = product.min_stock || 0;
     $('edit-price').value        = product.price || 0;
+    // Sin control de stock / precio libre: esos campos no aplican (se conservan los valores guardados)
+    $('edit-quantity').disabled     = product.track_stock === false;
+    $('edit-min-quantity').disabled = product.track_stock === false;
+    $('edit-price').disabled        = product.allow_custom_price === true;
     $('edit-expiration-date').value = product.expiration_date || '';
     $('edit-status').checked     = product.status === 1;
     hide($('edit-error'));
