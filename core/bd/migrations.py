@@ -23,4 +23,6 @@ migrations = [
     ("sells", "amount_paid", "REAL DEFAULT NULL"),
     ("sells", "customer_id",  "INTEGER DEFAULT NULL"),
     ("sells", "amount_paid",  "REAL DEFAULT NULL"),
+    ("items", "track_stock",        "INTEGER NOT NULL DEFAULT 1"),
+    ("items", "allow_custom_price", "INTEGER NOT NULL DEFAULT 0"),
 ]

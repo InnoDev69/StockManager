@@ -148,7 +148,7 @@ class MetricsMixin:
                 FROM details d
                 JOIN items i ON d.item_id = i.id
                 JOIN sells s ON d.sell_id = s.id
-                WHERE DATE(s.date) BETWEEN ? AND ?
+                WHERE DATE(s.date) BETWEEN ? AND ? AND i.track_stock = 1
                 GROUP BY i.id, i.name, i.barrs_code
                 ORDER BY 4 DESC
                 LIMIT 10
@@ -182,9 +182,9 @@ class MetricsMixin:
             cur.execute(
                 """
                 SELECT
-                    SUM(CASE WHEN quantity = 0 AND status = 1 THEN 1 ELSE 0 END),
-                    SUM(CASE WHEN quantity > 0 AND quantity <= min_quantity AND status = 1 THEN 1 ELSE 0 END),
-                    SUM(CASE WHEN status = 1 AND id NOT IN (
+                    SUM(CASE WHEN quantity = 0 AND status = 1 AND track_stock = 1 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN quantity > 0 AND quantity <= min_quantity AND status = 1 AND track_stock = 1 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN status = 1 AND track_stock = 1 AND id NOT IN (
                         SELECT DISTINCT d.item_id FROM details d
                         JOIN sells s ON d.sell_id = s.id
                         WHERE DATE(s.date) >= DATE('now', '-30 days')

@@ -11,7 +11,6 @@ def item_id(db):
     db.add_item("7791234567890", "Paquete 1kg", "Yerba Mate", 10, 5, "2027-01-01", 1500.0)
     return db.get_single_row("SELECT id FROM items WHERE barrs_code='7791234567890'")[0]
 
-
 # ---------- Alta y lecturas básicas ----------
 
 def test_add_item_y_getters_basicos(db, item_id):

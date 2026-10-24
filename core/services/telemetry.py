@@ -13,6 +13,10 @@ from miscellaneous.scheduler import SCHEDULER
 
 from miscellaneous.dirs import get_data_path
 
+from pathlib import Path
+
+UNRECOGNIZED_PATH = Path(__file__).resolve().parents[2] / "stockbot" / "unrecognized.json"
+
 SEND_INTERVAL = timedelta(hours=24)   # mínimo entre envíos
 CHECK_INTERVAL_SECONDS = 3600         # cada cuánto se revisa si toca enviar
 MAX_DAYS_BACK = 7                     # tope de días de logs por envío
@@ -107,7 +111,7 @@ class TelemetryService:
         """
         Devuelve el número de palabras no reconocidas por el bot desde el último envío.
         """
-        from core.api.chat_api import UNRECOGNIZED_PATH
+        
         try:
             with open(UNRECOGNIZED_PATH, "r", encoding="utf-8") as f:
                 return len(f.readlines())

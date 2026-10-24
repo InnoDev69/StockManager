@@ -1,4 +1,4 @@
-from miscellaneous import ROLES, PERMS
+from miscellaneous import ROLES, PERMS, Limits
 from flask import Blueprint, jsonify, request, session
 from miscellaneous.local_time import localDate
 from core.api.notifications_api import notify_user
@@ -98,7 +98,10 @@ def create_sales_bulk():
     Request Body (JSON):
         items (array, optional): productos por unidad
           - item_id (int): ID del producto
-          - quantity (int): Cantidad a vender
+          - quantity (int): Cantidad a vender (mayor a 0)
+          - price (float, solo productos con precio libre): precio unitario.
+            Es obligatorio y mayor a 0 si el producto tiene allow_custom_price;
+            para el resto se ignora y se usa siempre el precio de la base.
         weight_items (array, optional): productos por peso
           - weight_item_id (int): ID del producto por peso
           - weight (float): gramos vendidos
@@ -141,12 +144,18 @@ def create_sales_bulk():
         unit_data = []
         for idx, it in enumerate(unit_items):
             try:
-                unit_data.append({
+                entry = {
                     "item_id": int(it.get("item_id")),
                     "qty": int(it.get("quantity")),
-                })
-            except (TypeError, ValueError):
-                return jsonify({"error": f"item_id/cantidad inválidos en items[{idx}]"}), 400
+                }
+                # El precio solo se usa para productos con precio libre
+                if it.get("price") is not None:
+                    entry["price"] = float(it["price"])
+            except (AttributeError, TypeError, ValueError):
+                return jsonify({"error": f"item_id/cantidad/precio inválidos en items[{idx}]"}), 400
+            if entry["qty"] <= 0:
+                return jsonify({"error": f"La cantidad debe ser mayor a 0 en items[{idx}]"}), 400
+            unit_data.append(entry)
 
         weight_data = []
         for idx, wi in enumerate(weight_items_in):
@@ -171,7 +180,7 @@ def create_sales_bulk():
             item_ids = [u["item_id"] for u in unit_data]
             placeholders = ",".join("?" * len(item_ids))
             rows = db.execute_query(
-                f"SELECT id, name, quantity, price, status FROM items WHERE id IN ({placeholders})",
+                f"SELECT id, name, quantity, price, status, track_stock, allow_custom_price FROM items WHERE id IN ({placeholders})",
                 tuple(item_ids),
             )
             items_map = {row[0]: row for row in rows}
@@ -182,13 +191,25 @@ def create_sales_bulk():
                 if row is None:
                     return jsonify({"error": f"Producto con ID {u['item_id']} no encontrado"}), 400
 
-                _, name, stock, price, status = row
+                _, name, stock, db_price, status, track_stock, custom_price = row
 
                 if status == 0:
                     unavailable.append(name)
                     continue
 
-                if stock < u["qty"]:
+                # Precio: solo los productos con precio libre aceptan el del cliente.
+                # En todos los demás se usa el de la base, nunca el que llegue por request.
+                if custom_price:
+                    price = u.get("price")
+                    if price is None or price <= 0 or price > Limits.ITEM_PRICE_MAX:
+                        return jsonify({
+                            "error": f"'{name}' requiere un precio entre 0 y {Limits.ITEM_PRICE_MAX}"
+                        }), 400
+                else:
+                    price = db_price
+
+                # Stock: solo se controla en productos con track_stock = 1
+                if track_stock and stock < u["qty"]:
                     return jsonify({
                         "error": "Stock insuficiente",
                         "product": name,
@@ -298,7 +319,6 @@ def create_sales_bulk():
         if payment_method in ("Fiado", "Mixto") and not customer_id:
             return jsonify({"error": "Debe seleccionar un cliente para venta fiada"}), 400
 
-        # TODO: hacer que esto sea configurable y no hardcodeado
         if force_credit and session.get("role") not in (ROLES.ADMIN, ROLES.ROOT):
             return jsonify({"error": "Solo un admin puede forzar el límite de crédito"}), 403
 
@@ -681,9 +701,28 @@ def update_sale(sale_id):
         if not data.get("vendor_id") or not data.get("payment_method"):
             return jsonify({"error": "Faltan campos requeridos"}), 400
 
+        # Normalizar items. 'price' solo importa para productos con precio libre
+        # (para el resto la DB usa siempre su propio precio).
+        items = []
+        for idx, it in enumerate(data["items"]):
+            try:
+                line = {
+                    "item_id": int(it.get("item_id")),
+                    "quantity": int(it.get("quantity")),
+                }
+                if it.get("price") is not None:
+                    line["price"] = float(it["price"])
+            except (AttributeError, TypeError, ValueError):
+                return jsonify({"error": f"item_id/cantidad/precio inválidos en items[{idx}]"}), 400
+            if line["quantity"] <= 0:
+                return jsonify({"error": f"La cantidad debe ser mayor a 0 en items[{idx}]"}), 400
+            if "price" in line and line["price"] > Limits.ITEM_PRICE_MAX:
+                return jsonify({"error": f"El precio no puede superar {Limits.ITEM_PRICE_MAX} en items[{idx}]"}), 400
+            items.append(line)
+
         db.update_sale(
             sale_id,
-            data["items"],
+            items,
             data["vendor_id"],
             data["payment_method"],
             user_id=session.get("user_id"),

@@ -6,27 +6,25 @@ class SalesMixin:
     """Métodos de registro y consulta de ventas."""
 
     def get_dashboard_stats(self):
-        today = localDate()
-
+        # localDate() devuelve fecha y hora; para comparar contra DATE(date)
+        # hace falta solo la parte de la fecha (YYYY-MM-DD).
+        today = str(localDate())[:10]
         with self._cursor() as cur:
-
             cur.execute("""
                 SELECT
                     (SELECT COUNT(*)
                     FROM items
                     WHERE status = 1),
-
                     (SELECT COUNT(*)
                     FROM items
                     WHERE quantity <= min_quantity
                         AND quantity > 0
-                        AND status = 1),
-
+                        AND status = 1
+                        AND track_stock = 1),
                     (SELECT COUNT(*)
                     FROM sells
                     WHERE DATE(date) = ?)
             """, (today,))
-
             products, low_stock, sales_today = cur.fetchone()
 
             cur.execute("""
@@ -37,11 +35,11 @@ class SalesMixin:
                     quantity
                 FROM items
                 WHERE status = 1
+                AND track_stock = 1
                 AND quantity <= min_quantity
                 ORDER BY quantity ASC
                 LIMIT 10
             """)
-
             low_stock_list = [
                 {
                     "id": row[0],
@@ -51,7 +49,6 @@ class SalesMixin:
                 }
                 for row in cur
             ]
-
         # NOTA: no contempla weight_items todavía (ver checklist).
         return {
             "products": products,
@@ -71,8 +68,12 @@ class SalesMixin:
             payment_method (str): Método de pago
 
         Raises:
-            ValueError: Si no hay stock suficiente
-            DatabaseError: Si el producto no existe o hay error SQL
+            DatabaseError: Si el producto no existe, no hay stock suficiente
+                o hay error SQL (cualquier error se envuelve en DatabaseError).
+
+        Nota: usa _resolve_unit_line, así que respeta track_stock y
+        allow_custom_price. Un producto de precio libre no se puede vender
+        por esta vía (no recibe precio) y falla de forma explícita.
         """
         with self._cursor() as cur:
             try:
@@ -82,22 +83,19 @@ class SalesMixin:
                 )
                 sell_id = cur.lastrowid
 
-                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
-                row = cur.fetchone()
-                if not row:
-                    return
-                price, current_qty = row
-                if current_qty < quantity:
-                    raise InsufficientStockError("Stock insuficiente")
+                price, current_qty, track_stock = self._resolve_unit_line(
+                    cur, {"item_id": item_id, "quantity": quantity}
+                )
 
                 cur.execute(
                     "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
                     (sell_id, item_id, quantity, price, vendor_id, payment_method),
                 )
-                cur.execute(
-                    "UPDATE items SET quantity = ? WHERE id = ?",
-                    (current_qty - quantity, item_id),
-                )
+                if track_stock:
+                    cur.execute(
+                        "UPDATE items SET quantity = ? WHERE id = ?",
+                        (current_qty - quantity, item_id),
+                    )
             except Exception as e:
                 raise DatabaseError(f"Error al registrar venta: {e}")
 
@@ -141,25 +139,18 @@ class SalesMixin:
                 item_id = item["item_id"]
                 quantity = item["quantity"]
 
-                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
-                row = cur.fetchone()
-                if not row:
-                    raise DatabaseError(f"Producto con ID {item_id} no encontrado")
-
-                price, current_qty = row
-                if current_qty < quantity:
-                    raise InsufficientStockError(f"Stock insuficiente para producto ID {item_id}")
-
+                price, current_qty, track_stock = self._resolve_unit_line(cur, item)
                 total += price * quantity
 
                 cur.execute(
                     "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
                     (sell_id, item_id, quantity, price, vendor_id, payment_method),
                 )
-                cur.execute(
-                    "UPDATE items SET quantity = ? WHERE id = ?",
-                    (current_qty - quantity, item_id),
-                )
+                if track_stock:
+                    cur.execute(
+                        "UPDATE items SET quantity = ? WHERE id = ?",
+                        (current_qty - quantity, item_id),
+                    )
 
             paid = self.__resolve_paid_amount(payment_method, amount_paid, total)
 
@@ -239,19 +230,23 @@ class SalesMixin:
     def update_sale(self, sale_id, items, vendor_id, payment_method, user_id=None):
         """
         Actualiza una venta existente:
-        1. Restaura stock de productos antiguos
-        2. Deduce stock de nuevos productos
-        3. Actualiza details y sells
+        1. Restaura stock de productos antiguos (solo los que controlan stock)
+        2. Deduce stock de nuevos productos (solo los que controlan stock)
+        3. Actualiza details y sells (en ventas al contado, también lo cobrado)
         4. Si la venta tiene cliente asociado (fiado/mixto) y
            RECALCULATE_CREDIT_ON_SALE_EDIT está en True, ajusta el
            pendiente de cuenta corriente con un movimiento ADJUSTMENT.
            Si está en False, el pendiente fiado original no se toca.
+
+        Los productos con precio libre (allow_custom_price) necesitan que cada
+        línea de 'items' traiga su 'price'; para el resto se usa el de la base.
 
         NOTA: por ahora solo maneja líneas por unidad ('items'/'details').
         Editar líneas por peso ('weight_items'/'weight_details') no está
         soportado todavía (ver checklist).
         """
         with self.transaction() as cur:
+            # 1. Verificar que la venta existe en 'sells'
             cur.execute(
                 "SELECT customer_id, amount_paid FROM sells WHERE id = ?",
                 (sale_id,)
@@ -261,8 +256,11 @@ class SalesMixin:
                 raise DatabaseError(f"Venta {sale_id} no encontrada")
             old_customer_id, old_amount_paid = row
 
+            # 2. Restaurar stock SOLO de los productos antiguos que controlan stock (track_stock = 1)
             cur.execute("""
-                SELECT item_id, quantity FROM details WHERE sell_id = ?
+                SELECT d.item_id, d.quantity FROM details d
+                JOIN items i ON i.id = d.item_id
+                WHERE d.sell_id = ? AND i.track_stock = 1
             """, (sale_id,))
             old_items = cur.fetchall()
 
@@ -272,20 +270,34 @@ class SalesMixin:
                     (old_qty, old_item_id)
                 )
 
+            # 3. Borrar el detalle viejo
             cur.execute("DELETE FROM details WHERE sell_id = ?", (sale_id,))
 
+            # 4. Insertar los nuevos productos (respetando track_stock y allow_custom_price)
             new_total = 0.0
             for item in items:
                 item_id = item["item_id"]
                 quantity = item["quantity"]
 
-                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
+                cur.execute(
+                    "SELECT price, quantity, track_stock, allow_custom_price FROM items WHERE id = ?",
+                    (item_id,)
+                )
                 r = cur.fetchone()
                 if not r:
                     raise DatabaseError(f"Producto {item_id} no encontrado")
+                db_price, current_qty, track_stock, allow_custom_price = r
 
-                price, current_qty = r
-                if current_qty < quantity:
+                # Resolver precio: libre si allow_custom_price=1, de lo contrario el de la DB
+                if allow_custom_price:
+                    price = item.get("price")
+                    if price is None or price <= 0:
+                        raise ValueError(f"El producto ID {item_id} requiere un precio válido mayor a 0")
+                else:
+                    price = db_price
+
+                # Validar stock solo si track_stock=1
+                if track_stock and current_qty < quantity:
                     raise ValueError(f"Stock insuficiente para ID {item_id}")
 
                 new_total += price * quantity
@@ -294,16 +306,28 @@ class SalesMixin:
                     "INSERT INTO details (sell_id, item_id, quantity, price, vendor_id, payment_method) VALUES (?, ?, ?, ?, ?, ?)",
                     (sale_id, item_id, quantity, price, vendor_id, payment_method)
                 )
+
+                # Descontar stock solo si track_stock=1
+                if track_stock:
+                    cur.execute(
+                        "UPDATE items SET quantity = quantity - ? WHERE id = ?",
+                        (quantity, item_id)
+                    )
+
+            # 5. Actualizar cabecera de la venta
+            if old_customer_id is None and old_amount_paid is not None:
+                # Venta al contado: lo cobrado acompaña al nuevo total
                 cur.execute(
-                    "UPDATE items SET quantity = quantity - ? WHERE id = ?",
-                    (quantity, item_id)
+                    "UPDATE sells SET vendor_id = ?, payment_method = ?, amount_paid = ? WHERE id = ?",
+                    (vendor_id, payment_method, new_total, sale_id)
+                )
+            else:
+                cur.execute(
+                    "UPDATE sells SET vendor_id = ?, payment_method = ? WHERE id = ?",
+                    (vendor_id, payment_method, sale_id)
                 )
 
-            cur.execute(
-                "UPDATE sells SET vendor_id = ?, payment_method = ? WHERE id = ?",
-                (vendor_id, payment_method, sale_id)
-            )
-
+            # 6. Recalcular cuenta corriente si corresponde
             if old_customer_id and config.get("features.RECALCULATE_CREDIT_ON_SALE_EDIT", default=False):
                 cur.execute(
                     "SELECT COALESCE(SUM(amount), 0) FROM account_movements "
@@ -311,11 +335,9 @@ class SalesMixin:
                     (sale_id,)
                 )
                 old_due_recorded = cur.fetchone()[0] or 0.0
-
                 old_paid = old_amount_paid if old_amount_paid is not None else new_total
                 new_due = round(new_total - old_paid, 2)
                 diff = round(new_due - old_due_recorded, 2)
-
                 if diff != 0:
                     cur.execute(
                         """
@@ -357,11 +379,14 @@ class SalesMixin:
         dentro de esta transacción: 'price' que venga en unit_lines /
         weight_lines se ignora, para no confiar en un valor calculado
         fuera de la transacción (posible carrera con otra venta).
+        Única excepción: los productos con precio libre (allow_custom_price),
+        que exigen un 'price' mayor a 0 en la línea.
 
         Args:
             date (str)
             vendor_id (int)
             unit_lines (list[dict]): cada dict con item_id, quantity
+                (y price, solo para productos con precio libre)
             weight_lines (list[dict]): cada dict con weight_item_id, weight
             payment_method (str): 'Efectivo', 'Fiado' o 'Mixto'
             customer_id (int|None): requerido si payment_method es Fiado/Mixto
@@ -423,18 +448,8 @@ class SalesMixin:
             total = 0.0
 
             for line in unit_lines:
-                item_id = line["item_id"]
-                quantity = line["quantity"]
-
-                cur.execute("SELECT price, quantity FROM items WHERE id = ?", (item_id,))
-                row = cur.fetchone()
-                if not row:
-                    raise DatabaseError(f"Producto con ID {item_id} no encontrado")
-
-                price, current_qty = row
-                if current_qty < quantity:
-                    raise InsufficientStockError(f"Stock insuficiente para producto ID {item_id}")
-
+                item_id, quantity = line["item_id"], line["quantity"]
+                price, current_qty, track_stock = self._resolve_unit_line(cur, line)
                 total += price * quantity
 
                 cur.execute(
@@ -444,10 +459,11 @@ class SalesMixin:
                     """,
                     (sell_id, item_id, quantity, price, vendor_id, payment_method),
                 )
-                cur.execute(
-                    "UPDATE items SET quantity = ? WHERE id = ?",
-                    (current_qty - quantity, item_id),
-                )
+                if track_stock:
+                    cur.execute(
+                        "UPDATE items SET quantity = ? WHERE id = ?",
+                        (current_qty - quantity, item_id),
+                    )
 
             for line in weight_lines:
                 weight_item_id = line["weight_item_id"]
@@ -500,6 +516,50 @@ class SalesMixin:
                 )
 
             return sell_id
+
+    def _resolve_unit_line(self, cur, line):
+        """
+        Resuelve una línea de venta por unidad leyendo el producto de la DB
+        (debe llamarse dentro de la transacción de la venta).
+
+        Reglas, compartidas por todas las vías de venta:
+        - Precio: el de la base, salvo en productos con allow_custom_price,
+          que exigen un 'price' mayor a 0 en la línea.
+        - Stock: solo se valida si el producto tiene track_stock = 1.
+
+        Args:
+            cur: cursor de la transacción en curso
+            line (dict): item_id, quantity y, opcionalmente, price
+
+        Returns:
+            tuple: (price, current_qty, track_stock) donde track_stock indica
+                si el llamador debe descontar stock del producto.
+
+        Raises:
+            DatabaseError: producto no encontrado.
+            ValueError: precio libre ausente o menor o igual a 0.
+            InsufficientStockError: stock insuficiente (solo si track_stock).
+        """
+        item_id, quantity = line["item_id"], line["quantity"]
+        cur.execute(
+            "SELECT price, quantity, track_stock, allow_custom_price FROM items WHERE id = ?",
+            (item_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise DatabaseError(f"Producto con ID {item_id} no encontrado")
+        price, current_qty, track_stock, custom_price = row
+
+        if custom_price:
+            # Único caso donde se acepta el precio que viene de afuera
+            price = line.get("price")
+            if price is None or price <= 0:
+                raise ValueError(f"El producto ID {item_id} requiere un precio mayor a 0")
+
+        if track_stock and current_qty < quantity:
+            raise InsufficientStockError(f"Stock insuficiente para producto ID {item_id}")
+
+        return price, current_qty, bool(track_stock)
 
     @staticmethod
     def __resolve_paid_amount(payment_method, amount_paid, total):

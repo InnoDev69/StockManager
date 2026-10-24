@@ -22,6 +22,21 @@ ALLOWED_ATTRIBUTE_TYPES = {"text", "number", "date", "bool"}
 
 products_api = Blueprint("products_api", __name__)
 
+def _to_flag(value, default=None):
+    """Convierte un valor del request (bool, 0/1, '0'/'1', 'true'/'false') a 0 o 1."""
+    if value is None:
+        if default is None:
+            raise ValueError("valor requerido")
+        return default
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int) and value in (0, 1):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("0", "1", "true", "false"):
+        return 1 if value.strip().lower() in ("1", "true") else 0
+    raise ValueError("debe ser 0/1 o true/false")
+
+
 @products_api.route("/products_all", methods=["GET"])
 @require_auth
 def get_all_products():
@@ -77,12 +92,13 @@ def get_all_products():
         where.append("(name LIKE ? OR barrs_code LIKE ? OR description LIKE ?)")
         params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
 
+    # Los productos sin control de stock (track_stock = 0) no entran en estos filtros
     if view_mode == "in_stock":
-        where.append("quantity > min_quantity")
+        where.append("track_stock = 1 AND quantity > min_quantity")
     elif view_mode == "low_stock":
-        where.append("quantity > 0 AND quantity <= min_quantity")
+        where.append("track_stock = 1 AND quantity > 0 AND quantity <= min_quantity")
     elif view_mode == "out_of_stock":
-        where.append("quantity = 0")
+        where.append("track_stock = 1 AND quantity = 0")
 
     where_clause = " AND ".join(where)
 
@@ -94,7 +110,8 @@ def get_all_products():
 
         # ── Pagina actual ─────────────────────────────────────────
         data_query = f"""
-            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at
+            SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at,
+                   track_stock, allow_custom_price
             FROM items
             WHERE {where_clause}
             ORDER BY {sort_column} {order}
@@ -115,6 +132,8 @@ def get_all_products():
                 "expiration_date": row[8],
                 "created_at": row[9],
                 "updated_at": row[10],
+                "track_stock": bool(row[11]),
+                "allow_custom_price": bool(row[12]),
             }
             for row in rows
         ]
@@ -177,10 +196,11 @@ def get_products():
         where.append("(name LIKE ? OR barrs_code LIKE ?)")
         params.extend([f"%{search}%", f"%{search}%"])
 
+    # Sin control de stock = siempre disponible; nunca figura como agotado
     if view_mode == "in_stock":
-        where.append("quantity > 0")
+        where.append("(track_stock = 0 OR quantity > 0)")
     elif view_mode == "out_of_stock":
-        where.append("quantity = 0")
+        where.append("track_stock = 1 AND quantity = 0")
 
     where_clause = " AND ".join(where)
 
@@ -191,7 +211,8 @@ def get_products():
 
     rows = db.get_all_rows(
         f"""
-        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at
+        SELECT id, barrs_code, name, description, quantity, min_quantity, price, status, expiration_date, created_at, updated_at,
+               track_stock, allow_custom_price
         FROM items
         WHERE {where_clause}
         ORDER BY {sort_column} {order}
@@ -213,6 +234,8 @@ def get_products():
             "expiration_date": row[8],
             "created_at": row[9],
             "updated_at": row[10],
+            "track_stock": bool(row[11]),
+            "allow_custom_price": bool(row[12]),
         }
         for row in rows
     ]
@@ -254,7 +277,7 @@ def get_product(product_id):
     """
     
     rows = db.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date, created_at, updated_at FROM items WHERE id = ?",
+        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date, created_at, updated_at, track_stock, allow_custom_price FROM items WHERE id = ?",
         (product_id,)
     )
     
@@ -273,6 +296,8 @@ def get_product(product_id):
         "expiration_date": row[7],
         "created_at": row[8],
         "updated_at": row[9],
+        "track_stock": bool(row[10]),
+        "allow_custom_price": bool(row[11]),
     }
     
     return jsonify(product), 200
@@ -295,6 +320,10 @@ def create_product():
         min_quantity (int): Stock mínimo de alerta
         price (float): Precio de venta
         expiration_date (str, optional): Fecha de expiración
+        track_stock (bool, optional): Controla stock (default: true). Si es false,
+            quantity y min_quantity son opcionales (se guardan en 0).
+        allow_custom_price (bool, optional): Precio libre, se define en cada venta
+            (default: false). Si es true, price es opcional (se guarda en 0).
     
     Returns:
         JSON: {"message": "Producto creado exitosamente"}
@@ -309,6 +338,21 @@ def create_product():
     
     data = request.get_json()
     
+    data = data or {}
+
+    try:
+        track_stock = _to_flag(data.get("track_stock"), default=1)
+        allow_custom_price = _to_flag(data.get("allow_custom_price"), default=0)
+    except ValueError as e:
+        return jsonify({"error": f"track_stock/allow_custom_price inválido: {e}"}), 400
+
+    # Sin control de stock no hay cantidades que pedir; con precio libre tampoco hay precio fijo
+    if not track_stock:
+        data.setdefault("quantity", 0)
+        data.setdefault("min_quantity", 0)
+    if allow_custom_price:
+        data.setdefault("price", 0)
+
     required_fields = ["barcode", "name", "quantity", "min_quantity", "price"]
     if not all(field in data for field in required_fields):
         return jsonify({"error": "Faltan campos requeridos"}), 400
@@ -328,7 +372,9 @@ def create_product():
             data["quantity"],
             data["min_quantity"],
             data["expiration_date"],
-            data["price"]
+            data["price"],
+            track_stock=track_stock,
+            allow_custom_price=allow_custom_price,
         )
         logger.info(f"Producto '{data['name']}' creado por {session.get('user_id')}")
         db.create_notification(user_id=session.get('user_id'), title="Producto agregado", message=f"El producto '{data['name']}' ha sido agregado al inventario.", notification_type='success')
@@ -381,7 +427,7 @@ def update_product(product_id):
     params = []
     
     current = db.execute_query(
-        "SELECT name, description, quantity, min_quantity, price, expiration_date, status FROM items WHERE id = ?",
+        "SELECT name, description, quantity, min_quantity, price, expiration_date, status, track_stock, allow_custom_price FROM items WHERE id = ?",
         (product_id,)
     )[0]
     
@@ -392,7 +438,9 @@ def update_product(product_id):
         "min_quantity": current[3],
         "price": current[4],
         "expiration_date": current[5],
-        "status": current[6]
+        "status": current[6],
+        "track_stock": current[7],
+        "allow_custom_price": current[8],
     }
         
     field_mapping = {
@@ -402,8 +450,19 @@ def update_product(product_id):
         "min_quantity": "min_quantity",
         "price": "price",
         "expiration_date": "expiration_date",
-        "status": "status"
+        "status": "status",
+        "track_stock": "track_stock",
+        "allow_custom_price": "allow_custom_price",
     }
+
+    # Normalizar los flags a 0/1 para compararlos bien con lo guardado
+    data = data or {}
+    for flag in ("track_stock", "allow_custom_price"):
+        if flag in data:
+            try:
+                data[flag] = _to_flag(data[flag])
+            except ValueError as e:
+                return jsonify({"error": f"{flag} inválido: {e}"}), 400
     
     for key, db_field in field_mapping.items():
         if key in data and data[key] != current_values.get(key):
@@ -485,7 +544,7 @@ def search_items():
         return jsonify([]), 200
     
     rows = db.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, price FROM items WHERE barrs_code LIKE ? AND status = 1 OR name LIKE ? AND status = 1 LIMIT 10",
+        "SELECT id, barrs_code, name, description, quantity, price, track_stock, allow_custom_price FROM items WHERE barrs_code LIKE ? AND status = 1 OR name LIKE ? AND status = 1 LIMIT 10",
         (f"%{query_param}%", f"%{query_param}%")
     )
     
@@ -496,7 +555,9 @@ def search_items():
             "name": row[2],
             "description": row[3],
             "stock": row[4],
-            "price": row[5]
+            "price": row[5],
+            "track_stock": bool(row[6]),
+            "allow_custom_price": bool(row[7]),
         }
         for row in rows
     ]
@@ -719,7 +780,7 @@ def stock_update_bulk():
             params_list.append((new_stock, localDate(), product_id))
 
         if params_list:
-            query = "UPDATE items SET quantity = ?, updated_at = ? WHERE id = ?"
+            query = "UPDATE items SET quantity = ?, updated_at = ? WHERE id = ? AND track_stock = 1"
             db.execute_many(query, params_list)
         
         db.check_and_notify_low_stock(session.get('user_id'))

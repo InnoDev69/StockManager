@@ -76,6 +76,7 @@ def get_inventory_forecast(start_date, end_date):
         LEFT JOIN sells s
             ON s.id = d.sell_id
         WHERE i.status = 1
+            AND i.track_stock = 1
         GROUP BY
             i.id,
             i.name,

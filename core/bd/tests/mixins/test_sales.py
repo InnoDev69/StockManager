@@ -21,6 +21,12 @@ def weight_item(db):
     """$80 cada 500 g, con 5000 g en stock. Devuelve el id en weight_items."""
     return db.add_weight_item("Jamón", 5000, 80.0, 500)
 
+@pytest.fixture
+def generic_item(db):
+    """Producto en blanco: sin control de stock y con precio libre. Devuelve su id."""
+    db.add_item("GEN", "", "Varios", 0, 5, None, 0.0, track_stock=0, allow_custom_price=1)
+    return db.get_single_row("SELECT id FROM items WHERE barrs_code='GEN'")[0]
+
 # Tests
 
 def test_stock_insuficiente(db, item):
@@ -105,3 +111,110 @@ def test_mixed_sale(db, item, weight_item):
     assert db.get_single_row(
         "SELECT weight FROM weight_items WHERE id=?", (weight_item,)
     )[0] == 4750
+
+def test_generico_visible_en_listados(db, generic_item):
+    """El genérico se puede buscar y listar: solo se excluye de las alertas de stock."""
+    assert db.get_item_by_id(generic_item) is not None
+    assert any(i["id"] == generic_item for i in db.get_all_items())
+
+def test_generico_vende_sin_stock(db, generic_item):
+    """Se puede vender con stock 0, no toca la cantidad y el total usa el precio de la línea."""
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[{"item_id": generic_item, "quantity": 3, "price": 150.0}],
+        payment_method="Efectivo",
+    )
+    assert db.get_item_stock(generic_item) == 0
+    assert db.get_sale_total(sale_id) == 450.0
+
+
+def test_generico_exige_precio(db, generic_item):
+    """Sin precio, o con precio <= 0, falla y no deja ninguna venta registrada."""
+    for line in (
+        {"item_id": generic_item, "quantity": 1},
+        {"item_id": generic_item, "quantity": 1, "price": 0},
+        {"item_id": generic_item, "quantity": 1, "price": -5},
+    ):
+        with pytest.raises(ValueError):
+            db.create_mixed_sale(DATE, ROOT_ID, unit_lines=[line], payment_method="Efectivo")
+
+    # El rollback de la transacción no debe dejar ventas a medias
+    assert db.get_count("SELECT COUNT(*) FROM sells") == 0
+
+
+def test_producto_normal_ignora_precio_de_la_linea(db, item):
+    """Regresión: el precio enviado desde afuera solo vale para productos con precio libre."""
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[{"item_id": item, "quantity": 1, "price": 1.0}],
+        payment_method="Efectivo",
+    )
+    assert db.get_sale_total(sale_id) == 80.0
+
+
+def test_venta_con_generico_y_normal(db, item, generic_item):
+    """En una misma venta, el normal descuenta stock y el genérico no."""
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[
+            {"item_id": item, "quantity": 2},                          # 160
+            {"item_id": generic_item, "quantity": 1, "price": 500.0},  # 500
+        ],
+        payment_method="Efectivo",
+    )
+    assert db.get_item_stock(item) == 8
+    assert db.get_item_stock(generic_item) == 0
+    assert db.get_sale_total(sale_id) == 660.0
+
+
+def test_update_sale_no_inventa_stock_en_generico(db, generic_item):
+    """Al editar una venta, el genérico no recupera stock y conserva su precio libre."""
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[{"item_id": generic_item, "quantity": 2, "price": 150.0}],
+        payment_method="Efectivo",
+    )
+    db.update_sale(
+        sale_id,
+        items=[{"item_id": generic_item, "quantity": 3, "price": 200.0}],
+        vendor_id=ROOT_ID,
+        payment_method="Efectivo",
+        user_id=ROOT_ID,
+    )
+    assert db.get_item_stock(generic_item) == 0          # antes se sumaban las 2 viejas
+    assert db.get_sale_total(sale_id) == 600.0           # 3 x 200
+
+
+def test_generico_fuera_de_alertas_de_stock(db, generic_item):
+    """Con quantity 0 y mínimo 5, un producto normal alertaría; el genérico no."""
+    stats = db.get_dashboard_stats()
+    assert all(p["id"] != generic_item for p in stats["low_stock_list"])
+
+    db.check_and_notify_low_stock(ROOT_ID)
+    assert db.get_count("SELECT COUNT(*) FROM notifications") == 0
+    
+def test_update_sale_al_contado_actualiza_lo_cobrado(db, item):
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[{"item_id": item, "quantity": 1}],
+        payment_method="Efectivo",
+    )
+    db.update_sale(
+        sale_id,
+        items=[{"item_id": item, "quantity": 2}],
+        vendor_id=ROOT_ID, payment_method="Efectivo", user_id=ROOT_ID,
+    )
+    assert db.get_single_row("SELECT amount_paid FROM sells WHERE id = ?", (sale_id,))[0] == 160.0
+
+def test_update_sale_al_contado_actualiza_lo_cobrado(db, item):
+    sale_id = db.create_mixed_sale(
+        DATE, ROOT_ID,
+        unit_lines=[{"item_id": item, "quantity": 1}],
+        payment_method="Efectivo",
+    )
+    db.update_sale(
+        sale_id,
+        items=[{"item_id": item, "quantity": 2}],
+        vendor_id=ROOT_ID, payment_method="Efectivo", user_id=ROOT_ID,
+    )
+    assert db.get_single_row("SELECT amount_paid FROM sells WHERE id = ?", (sale_id,))[0] == 160.0

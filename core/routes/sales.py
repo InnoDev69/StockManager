@@ -122,4 +122,4 @@ def edit_sale_form(sale_id):
         flash("Venta no encontrada", "error")
         return redirect(url_for("sales.sales"))
     
-    return render_template(View.SALE_EDIT.value, sale=sale, role=session.get("role", ROLES.VENDOR))
+    return render_template(View.SALES_EDIT.value, sale=sale, role=session.get("role", ROLES.VENDOR))
