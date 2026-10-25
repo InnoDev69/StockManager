@@ -2,6 +2,7 @@
 Fixtures para los tests de la API.
 
 Aislamiento: todo lo que la app escribe (base de datos, config.json, sesiones de
+Issue URL: https://github.com/InnoDev69/StockManager/issues/54
 Flask) va a una carpeta temporal. Estos tests NUNCA tocan tu base real.
 Para lograrlo, get_data_path se reemplaza ANTES de importar nada de 'core'.
 """
