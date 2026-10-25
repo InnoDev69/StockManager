@@ -105,3 +105,4 @@ data/config.json
 data/*
 backup/*
 tests/*
+tools/*
