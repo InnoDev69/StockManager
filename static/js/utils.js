@@ -32,35 +32,6 @@ function debounce(func, wait) {
 }
 
 /**
- * Muestra notificación toast usando NotificationManager
- * Fallback a console si NotificationManager no disponible
- * @param {string} message - Mensaje a mostrar
- * @param {string|boolean} type - Tipo: 'success', 'error', 'warning', 'info'
- */
-function showToast(message, type = 'success') {
-  // Si type es boolean (legacy), convertir a string
-  if (typeof type === 'boolean') {
-    type = type ? 'error' : 'success';
-  }
-
-  // Preferir NotificationManager si está disponible
-  if (typeof NotificationManager !== 'undefined') {
-    if (type === 'error' || type === 'danger') {
-      NotificationManager.error(message);
-    } else if (type === 'warning') {
-      NotificationManager.warning(message);
-    } else if (type === 'info') {
-      NotificationManager.info(message);
-    } else {
-      NotificationManager.success(message);
-    }
-  } else {
-    // Fallback para páginas sin NotificationManager
-    console.log(`[${type.toUpperCase()}] ${message}`);
-  }
-}
-
-/**
  * Formatea una fecha ISO a formato local
  * @param {string} dateStr - Fecha en formato ISO
  * @returns {string} Fecha formateada o '—' si inválida

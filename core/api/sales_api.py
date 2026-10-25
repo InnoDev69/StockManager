@@ -7,7 +7,13 @@ from core.api.auth_utils import require_auth, require_permission
 from miscellaneous import logger
 from miscellaneous.audit_decorator import audit_action
 from core.api.error_handlers import handle_db_error
-from core.bd.bdErrors import CreditLimitExceededError, DatabaseError
+from core.bd.bdErrors import (
+    CreditLimitExceededError,
+    DatabaseError,
+    InsufficientStockError,
+    ItemNotFoundError,
+    ProductUnavailableError,
+)
 import sqlite3
 
 sales_api = Blueprint("sales_api", __name__)
@@ -47,7 +53,9 @@ def create_sale():
         404: Producto no encontrado
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON inválido"}), 400
 
         if "barcode" not in data or "quantity" not in data:
             return jsonify({"error": "Faltan campos requeridos"}), 400
@@ -98,7 +106,10 @@ def create_sales_bulk():
     Request Body (JSON):
         items (array, optional): productos por unidad
           - item_id (int): ID del producto
-          - quantity (int): Cantidad a vender
+          - quantity (int): Cantidad a vender (mayor a 0)
+          - price (float, solo productos con precio libre): precio unitario.
+            Es obligatorio y mayor a 0 si el producto tiene allow_custom_price;
+            para el resto se ignora y se usa siempre el precio de la base.
         weight_items (array, optional): productos por peso
           - weight_item_id (int): ID del producto por peso
           - weight (float): gramos vendidos
@@ -136,142 +147,37 @@ def create_sales_bulk():
 
     try:
         # ------------------------------------------------------------
-        # Parseo de formato (sin tocar la DB todavía)
+        # Formato de los datos (sin tocar la DB todavía). Las reglas de
+        # negocio (disponibilidad, precio, stock) las aplica la capa de
+        # datos al crear la venta: acá no se repiten.
         # ------------------------------------------------------------
-        unit_data = []
+        unit_lines = []
         for idx, it in enumerate(unit_items):
             try:
-                unit_data.append({
+                line = {
                     "item_id": int(it.get("item_id")),
-                    "qty": int(it.get("quantity")),
-                })
-            except (TypeError, ValueError):
-                return jsonify({"error": f"item_id/cantidad inválidos en items[{idx}]"}), 400
+                    "quantity": int(it.get("quantity")),
+                }
+                # El precio solo lo usan los productos con precio libre
+                if it.get("price") is not None:
+                    line["price"] = float(it["price"])
+            except (AttributeError, TypeError, ValueError):
+                return jsonify({"error": f"item_id/cantidad/precio inválidos en items[{idx}]"}), 400
+            if line["quantity"] <= 0:
+                return jsonify({"error": f"La cantidad debe ser mayor a 0 en items[{idx}]"}), 400
+            unit_lines.append(line)
 
-        weight_data = []
+        weight_lines = []
         for idx, wi in enumerate(weight_items_in):
             try:
-                weight_data.append({
+                weight_lines.append({
                     "weight_item_id": int(wi.get("weight_item_id")),
                     "weight": float(wi.get("weight")),
                 })
-            except (TypeError, ValueError):
+            except (AttributeError, TypeError, ValueError):
                 return jsonify({"error": f"weight_item_id/peso inválidos en weight_items[{idx}]"}), 400
-            if weight_data[-1]["weight"] <= 0:
+            if weight_lines[-1]["weight"] <= 0:
                 return jsonify({"error": f"El peso debe ser mayor a 0 en weight_items[{idx}]"}), 400
-
-        # ------------------------------------------------------------
-        # Validación + carga en bloque de productos por unidad
-        # ------------------------------------------------------------
-        validated_units = []
-        unit_results = []
-        subtotal_units = 0.0
-
-        if unit_data:
-            item_ids = [u["item_id"] for u in unit_data]
-            placeholders = ",".join("?" * len(item_ids))
-            rows = db.execute_query(
-                f"SELECT id, name, quantity, price, status FROM items WHERE id IN ({placeholders})",
-                tuple(item_ids),
-            )
-            items_map = {row[0]: row for row in rows}
-
-            unavailable = []
-            for u in unit_data:
-                row = items_map.get(u["item_id"])
-                if row is None:
-                    return jsonify({"error": f"Producto con ID {u['item_id']} no encontrado"}), 400
-
-                _, name, stock, price, status = row
-
-                if status == 0:
-                    unavailable.append(name)
-                    continue
-
-                if stock < u["qty"]:
-                    return jsonify({
-                        "error": "Stock insuficiente",
-                        "product": name,
-                        "requested": u["qty"],
-                        "available": stock,
-                    }), 400
-
-                validated_units.append({"item_id": u["item_id"], "quantity": u["qty"], "price": price})
-                subtotal = round(price * u["qty"], 2)
-                unit_results.append({
-                    "item_id": u["item_id"],
-                    "name": name,
-                    "quantity": u["qty"],
-                    "unit_price": price,
-                    "subtotal": subtotal,
-                })
-                subtotal_units += subtotal
-
-            if unavailable:
-                return jsonify({
-                    "error": f"Los siguientes productos no están disponibles: {', '.join(unavailable)}"
-                }), 400
-
-        # ------------------------------------------------------------
-        # Validación + carga en bloque de productos por peso
-        # ------------------------------------------------------------
-        validated_weights = []
-        weight_results = []
-        subtotal_weights = 0.0
-
-        if weight_data:
-            wi_ids = [w["weight_item_id"] for w in weight_data]
-            placeholders = ",".join("?" * len(wi_ids))
-            rows = db.execute_query(
-                f"SELECT id, name, weight, price, price_per_gram, status FROM weight_items WHERE id IN ({placeholders})",
-                tuple(wi_ids),
-            )
-            weight_items_map = {row[0]: row for row in rows}
-
-            unavailable = []
-            for w in weight_data:
-                row = weight_items_map.get(w["weight_item_id"])
-                if row is None:
-                    return jsonify({"error": f"Producto (por peso) con ID {w['weight_item_id']} no encontrado"}), 400
-
-                _, name, stock_weight, price, price_per_gram, status = row
-
-                if status == 0:
-                    unavailable.append(name)
-                    continue
-
-                if stock_weight < w["weight"]:
-                    return jsonify({
-                        "error": "Stock insuficiente",
-                        "product": name,
-                        "requested": w["weight"],
-                        "available": stock_weight,
-                    }), 400
-
-                # Precio calculado server-side, nunca confiar en un precio
-                # mandado por el cliente. price_per_gram es la base de
-                # gramos para 'price' (ej: 500 -> price es el precio cada 500g)
-                line_price = round((w["weight"] / price_per_gram) * price, 2)
-
-                validated_weights.append({
-                    "weight_item_id": w["weight_item_id"],
-                    "weight": w["weight"],
-                    "price": line_price,
-                })
-                weight_results.append({
-                    "weight_item_id": w["weight_item_id"],
-                    "name": name,
-                    "weight": w["weight"],
-                    "subtotal": line_price,
-                })
-                subtotal_weights += line_price
-
-            if unavailable:
-                return jsonify({
-                    "error": f"Los siguientes productos no están disponibles: {', '.join(unavailable)}"
-                }), 400
-
-        total = round(subtotal_units + subtotal_weights, 2)
 
         # ------------------------------------------------------------
         # Pago / crédito
@@ -301,32 +207,31 @@ def create_sales_bulk():
         if force_credit and session.get("role") not in (ROLES.ADMIN, ROLES.ROOT):
             return jsonify({"error": "Solo un admin puede forzar el límite de crédito"}), 403
 
-        product_names = [r["name"] for r in unit_results] + [r["name"] for r in weight_results]
-        message = f"Venta registrada de los productos {', '.join(product_names)}."
-
         try:
-            sale_id = db.create_mixed_sale(
+            result = db.create_sale_detailed(
                 date=localDate(),
                 vendor_id=vendor_id,
-                unit_lines=validated_units,
-                weight_lines=validated_weights,
+                unit_lines=unit_lines,
+                weight_lines=weight_lines,
                 payment_method=payment_method,
                 customer_id=customer_id,
                 amount_paid=amount_paid,
                 force_credit=force_credit,
             )
+            sale_id = result["sale_id"]
 
             logger.info(
                 f"Bulk sale {sale_id} created by {vendor_id} with "
-                f"{len(validated_units)} items + {len(validated_weights)} weight_items"
+                f"{len(result['items'])} items + {len(result['weight_items'])} weight_items"
             )
 
             db.check_and_notify_low_stock(session.get('user_id'))
 
+            product_names = [r["name"] for r in result["items"]] + [r["name"] for r in result["weight_items"]]
             db.create_notification(
                 user_id=session.get('user_id'),
                 title="Venta registrada",
-                message=message,
+                message=f"Venta registrada de los productos {', '.join(product_names)}.",
                 notification_type='success',
             )
             notify_user(session.get('user_id'))
@@ -334,14 +239,25 @@ def create_sales_bulk():
             return jsonify({
                 "ok": True,
                 "sale_id": sale_id,
-                "items": unit_results,
-                "weight_items": weight_results,
-                "total": total,
+                "items": result["items"],
+                "weight_items": result["weight_items"],
+                "total": result["total"],
             }), 201
 
         except CreditLimitExceededError as e:
             logger.warning(f"Credit limit exceeded: {e}")
             return jsonify({"error": str(e), "ok": False, "code": "credit_limit_exceeded"}), 400
+
+        except InsufficientStockError as e:
+            return jsonify({
+                "error": "Stock insuficiente",
+                "product": e.product,
+                "requested": e.requested,
+                "available": e.available,
+            }), 400
+
+        except (ItemNotFoundError, ProductUnavailableError) as e:
+            return jsonify({"error": str(e)}), 400
 
         except ValueError as e:
             logger.warning(f"Bulk sale validation: {e}")
@@ -672,7 +588,9 @@ def get_sale_for_edit(sale_id):
 def update_sale(sale_id):
     """Actualiza una venta existente"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON inválido"}), 400
 
         if "items" not in data or not isinstance(data["items"], list):
             return jsonify({"error": "Items inválidos"}), 400
@@ -680,9 +598,26 @@ def update_sale(sale_id):
         if not data.get("vendor_id") or not data.get("payment_method"):
             return jsonify({"error": "Faltan campos requeridos"}), 400
 
+        # Normalizar items. 'price' solo importa para productos con precio libre
+        # (para el resto la DB usa siempre su propio precio).
+        items = []
+        for idx, it in enumerate(data["items"]):
+            try:
+                line = {
+                    "item_id": int(it.get("item_id")),
+                    "quantity": int(it.get("quantity")),
+                }
+                if it.get("price") is not None:
+                    line["price"] = float(it["price"])
+            except (AttributeError, TypeError, ValueError):
+                return jsonify({"error": f"item_id/cantidad/precio inválidos en items[{idx}]"}), 400
+            if line["quantity"] <= 0:
+                return jsonify({"error": f"La cantidad debe ser mayor a 0 en items[{idx}]"}), 400
+            items.append(line)
+
         db.update_sale(
             sale_id,
-            data["items"],
+            items,
             data["vendor_id"],
             data["payment_method"],
             user_id=session.get("user_id"),

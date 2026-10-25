@@ -26,7 +26,9 @@ tables = {
             status INTEGER NOT NULL DEFAULT 1,
             notified_low_stock INTEGER NOT NULL DEFAULT 0,
             created_at TEXT,
-            updated_at TEXT
+            updated_at TEXT,
+            track_stock INTEGER NOT NULL DEFAULT 1,
+            allow_custom_price INTEGER NOT NULL DEFAULT 0
         )
         """,
         

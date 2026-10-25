@@ -115,6 +115,7 @@ class ConfigManager:
 
     def reload(self):
         """Carga el config.json, aplica migraciones y mergea con los defaults."""
+        from core.services import SERVICE_MANAGER
         logger.info("Reloading configuration", source=LOGGER_NAME)
         defaults = self._build_defaults()
 
@@ -133,6 +134,7 @@ class ConfigManager:
 
         data = self._apply_migrations(data)
         self._data = self._deep_merge(defaults, data)
+        SERVICE_MANAGER.restart_all()  # reinicia todos los servicios para que tomen la nueva configuración
         return self._data
 
     def _apply_migrations(self, data):
