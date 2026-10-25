@@ -32,7 +32,7 @@ def consultar_stock(entities, session):
 
     rows = db.execute_query(
         """
-        SELECT name, quantity
+        SELECT name, quantity, track_stock
         FROM items
         WHERE lower(name) = lower(?)
           AND status = 1
@@ -44,7 +44,10 @@ def consultar_stock(entities, session):
     if not rows:
         return f"No encontré el producto '{producto}' en el inventario."
 
-    name, quantity = rows[0]
+    name, quantity, track_stock = rows[0]
+
+    if not track_stock:
+        return f"{name} no tiene control de stock: se puede vender siempre."
 
     if quantity <= 0:
         return f"{name} está agotado."
@@ -57,7 +60,7 @@ def consultar_precio(entities, session):
 
     rows = db.execute_query(
         """
-        SELECT name, price
+        SELECT name, price, allow_custom_price
         FROM items
         WHERE lower(name) = lower(?)
           AND status = 1
@@ -69,14 +72,18 @@ def consultar_precio(entities, session):
     if not rows:
         return f"No encontré el producto '{producto}' en el inventario."
 
-    name, price = rows[0]
+    name, price, allow_custom_price = rows[0]
+
+    if allow_custom_price:
+        return f"{name} tiene precio libre: se define en cada venta."
+
     return f"El precio de {name} es ${float(price):,.2f}."
 
 
 def listar_productos(entities, session):
     rows = db.execute_query(
         """
-        SELECT name, quantity, price
+        SELECT name, quantity, price, track_stock, allow_custom_price
         FROM items
         WHERE status = 1
         ORDER BY name ASC
@@ -87,8 +94,10 @@ def listar_productos(entities, session):
         return "No hay productos disponibles en el inventario."
 
     response_lines = ["Estos son los productos disponibles en tu inventario actual:"]
-    for name, quantity, price in rows:
-        response_lines.append(f"- {name}: {quantity} unidades, ${float(price):,.2f}")
+    for name, quantity, price, track_stock, allow_custom_price in rows:
+        stock_text = f"{quantity} unidades" if track_stock else "sin control de stock"
+        price_text = "precio libre" if allow_custom_price else f"${float(price):,.2f}"
+        response_lines.append(f"- {name}: {stock_text}, {price_text}")
 
     return "\n".join(response_lines)
 

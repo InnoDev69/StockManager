@@ -4,6 +4,7 @@ import uuid
 
 from flask import Flask, session, render_template, request
 from flask_session import Session
+from werkzeug.exceptions import HTTPException
 
 from miscellaneous import logger, Var, Limits, ROLES
 from miscellaneous.dirs import get_data_path
@@ -15,6 +16,14 @@ from core.config import config
 from templates.views import View
 
 APP_LOGGER_NAME = "ROOT"
+
+# Mensajes en español para los errores HTTP que Flask/Werkzeug genera por su cuenta
+HTTP_ERROR_MESSAGES = {
+    400: "Solicitud inválida",
+    405: "Método no permitido",
+    413: "El archivo es demasiado grande",
+    415: "Tipo de contenido no soportado",
+}
 
 
 class Stockly:
@@ -102,10 +111,13 @@ class Stockly:
         for bp in all_blueprints:
             self.app.register_blueprint(bp)
 
-    # Error handlers: loguean y devuelven templates o JSON según corresponda
+    # Error handlers: loguean y devuelven templates o JSON según corresponda.
+    # Flask elige el handler más específico: 404 y 500 por código, luego los
+    # errores HTTP por clase y, al final, cualquier excepción no prevista.
 
     def _register_error_handlers(self):
         self.app.errorhandler(404)(self._handle_404)
+        self.app.errorhandler(HTTPException)(self._handle_http_exception)
         self.app.errorhandler(500)(self._handle_server_error)
         self.app.errorhandler(Exception)(self._handle_server_error)
 
@@ -115,8 +127,19 @@ class Stockly:
             return {"error": "Ruta no encontrada"}, 404
         return render_template(View.ERROR_404.value), 404
 
+    def _handle_http_exception(self, e):
+        """Errores HTTP que genera Flask/Werkzeug (400 por JSON inválido, 405,
+        413, 415...): se responden con su código original, no como un 500."""
+        logger.warning(f"{e.code} en {request.path}: {e.description}", source=APP_LOGGER_NAME)
+        if request.path.startswith("/api"):
+            return {"error": HTTP_ERROR_MESSAGES.get(e.code, e.description)}, e.code
+        return e
+
     def _handle_server_error(self, e):
-        logger.error(f"Error en {request.path}: {e}", source=APP_LOGGER_NAME)
+        """Errores no previstos: se loguean con un id de referencia. La API
+        responde JSON (el frontend hace response.json()); las páginas, el template."""
         error_id = str(uuid.uuid4())[:8].upper()
         logger.exception(f"Error {error_id} en {request.path}: {e}", source=APP_LOGGER_NAME)
+        if request.path.startswith("/api"):
+            return {"error": "Error interno del servidor", "error_id": error_id}, 500
         return render_template(View.ERROR_500.value, error_id=error_id, error=e), 500
