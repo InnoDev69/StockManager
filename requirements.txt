@@ -10,3 +10,4 @@ Pillow
 reportlab
 pywebview==6.1
 cffi==2.0.0
+numpy
