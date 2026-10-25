@@ -2,7 +2,14 @@ import sqlite3
 
 from miscellaneous import logger
 from flask import jsonify
-from core.bd.bdErrors import DatabaseError
+from core.bd.bdErrors import (
+    DatabaseError,
+    StockError,
+    CreditLimitExceededError,
+    InsufficientBalanceError,
+    ItemNotFoundError,
+    ProductUnavailableError,
+)
 
 class APIError(Exception):
     def __init__(self, message: str, status_code: int = 400) -> None:
@@ -10,9 +17,29 @@ class APIError(Exception):
         self.message = message
         self.status_code = status_code
 
+# Errores de negocio de la capa de datos: la operación pedida incumple una regla
+# (no hay stock, se superó el límite de crédito, saldo insuficiente, el producto
+# no existe o está deshabilitado). Son errores
+# del pedido, no del servidor: se responden con 400, el mensaje original y un
+# 'code' estable para que el frontend pueda distinguirlos.
+# El orden importa: se evalúan de arriba hacia abajo.
+BUSINESS_ERRORS = (
+    (StockError, "insufficient_stock"),
+    (CreditLimitExceededError, "credit_limit_exceeded"),
+    (InsufficientBalanceError, "insufficient_balance"),
+    (ItemNotFoundError, "item_not_found"),
+    (ProductUnavailableError, "product_unavailable"),
+)
+
 def handle_db_error(error:Exception, context: str = "") -> tuple:
     """Convierte excepciones BD en respuestas HTTP amigables"""
     error_str = str(error).lower()
+    
+    # Errores de negocio (stock, crédito, saldo): 400 con el mensaje original
+    for error_class, code in BUSINESS_ERRORS:
+        if isinstance(error, error_class):
+            logger.warning(f"Business rule violation {context} ({code}): {error}")
+            return jsonify({"error": str(error), "code": code}), 400
     
     # Manejo específico para errores definidos en bdErrors.py
     if isinstance(error, DatabaseError):

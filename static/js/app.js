@@ -66,25 +66,22 @@ function renderProducts(products) {
     card.querySelector('.expiration-date').textContent = product.expiration_date || '—';
     
     const badge = card.querySelector('.product-badge');
+    badge.classList.remove('badge-danger', 'badge-warning', 'badge-success');
     const stock = product.stock || 0;
     const min = product.min_stock || 0;
     
     if (product.status === 0) {
       badge.textContent = 'Inactivo';
-      badge.style.background = 'rgba(239,68,68,0.15)';
-      badge.style.color = 'var(--danger, #ef4444)';
+      badge.classList.add('badge-danger');
     } else if (stock === 0) {
       badge.textContent = 'Agotado';
-      badge.style.background = 'rgba(239,68,68,0.15)';
-      badge.style.color = 'var(--danger, #ef4444)';
+      badge.classList.add('badge-danger');
     } else if (stock <= min) {
       badge.textContent = 'Stock bajo';
-      badge.style.background = 'rgba(245,158,11,0.15)';
-      badge.style.color = 'var(--warning, #f59e0b)';
+      badge.classList.add('badge-warning');
     } else {
       badge.textContent = 'En stock';
-      badge.style.background = 'rgba(16,185,129,0.15)';
-      badge.style.color = 'var(--success, #10b981)';
+      badge.classList.add('badge-success');
     }
     
     // ✅ ADD EVENT LISTENER AL CLICK
@@ -119,37 +116,6 @@ document.getElementById('product-modal')?.addEventListener('click', (e) => {
 });
 document.getElementById('pm-close')?.addEventListener('click', closeModal);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-async function viewProduct(id) {
-  try {
-    const response = await fetch(`/api/products/${id}`);
-    if (!response.ok) throw new Error('No se pudo cargar el producto');
-    const product = await response.json();
-    openProductModal(product);
-  } catch (error) {
-    console.error('Error:', error);
-    Notify.error('No se pudo cargar el producto');
-  }
-}
-
-async function deleteProduct(id) {
-  if (!confirm('¿Estás seguro de eliminar este producto?')) return;
-  
-  try {
-    const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    
-    if (response.ok) {
-      Notify.success('Producto eliminado exitosamente');
-      loadProducts();
-    } else {
-      const error = await response.json();
-      Notify.error(error.error || 'Error al eliminar');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    Notify.error('Error al eliminar producto');
-  }
-}
 
 // Event listeners para filtros
 document.getElementById('search')?.addEventListener('input', debounce(applyFilters, 300));

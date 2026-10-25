@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
 from miscellaneous.permissions import PERMS
 from core.bd.bdInstance import db
-from miscellaneous import ROLES
-from core.api.auth_utils import require_auth, require_permission, require_role
+from core.api.auth_utils import require_permission
 from miscellaneous.audit_decorator import audit_action
 
 applications_api = Blueprint('applications_api', __name__, url_prefix='')

@@ -3,7 +3,7 @@ from core.api.auth_utils import require_auth
 from werkzeug.security import generate_password_hash, check_password_hash
 from core.bd.bdInstance import db
 from core.config import config
-from miscellaneous.security import encode_text, decode_text, safe_decode, safe_encode
+from miscellaneous.security import safe_decode, safe_encode
 
 settings_api = Blueprint('settings_api', __name__)
 

@@ -9,7 +9,17 @@ from miscellaneous import get_data_path
 class ItemsMixin:
     """Métodos de gestión de productos/inventario."""
 
-    def add_item(self, barrs_code: str, description, name, quantity, min_quantity, expiration_date, price: float):
+    # Filtros de disponibilidad compartidos (catálogo, caja y exportación).
+    # Un producto sin control de stock (track_stock = 0) está siempre disponible
+    # y nunca figura como agotado.
+    STOCK_VIEW_SQL = {
+        "in_stock": "(track_stock = 0 OR quantity > 0)",
+        "out_of_stock": "track_stock = 1 AND quantity = 0",
+    }
+
+    def add_item(self, barrs_code: str, description, name, quantity, min_quantity,
+                 expiration_date, price: float,
+                 track_stock: int = 1, allow_custom_price: int = 0):
         """
         Agrega un nuevo producto al inventario.
 
@@ -21,6 +31,11 @@ class ItemsMixin:
             min_quantity (int): Stock mínimo antes de alerta
             expiration_date (str|None): Fecha de expiración (puede ser None)
             price (float): Precio de venta
+            track_stock (int): 1 = controla stock (default), 0 = producto sin control
+                de stock (servicios, "Varios"): se puede vender con quantity en 0
+                y no entra en las alertas de stock.
+            allow_custom_price (int): 0 = usa siempre el precio de la base (default),
+                1 = el precio se define en cada venta.
 
         Raises:
             DatabaseError: Si el código de barras ya existe o hay error SQL
@@ -29,9 +44,13 @@ class ItemsMixin:
             Si barrs_code es una cadena vacía, se convierte a None
         """
         barrs_code = str(barrs_code).strip() if barrs_code else None
+        barrs_code = barrs_code or None
         self.execute_query(
-            "INSERT INTO items (barrs_code, description, name, quantity, min_quantity, expiration_date, price, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (barrs_code, description, name, quantity, min_quantity, expiration_date, price, localDate(), localDate()),
+            """INSERT INTO items (barrs_code, description, name, quantity, min_quantity,
+                expiration_date, price, track_stock, allow_custom_price, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (barrs_code, description, name, quantity, min_quantity, expiration_date,
+             price, int(track_stock), int(allow_custom_price), localDate(), localDate()),
         )
 
     def get_item_details(self, item_id):
@@ -45,7 +64,9 @@ class ItemsMixin:
             dict|None: Detalles del producto o None si no existe
         """
         rows = self.execute_query(
-            "SELECT barrs_code, description, name, quantity, min_quantity, expiration_date, price, status FROM items WHERE id = ?",
+            """SELECT barrs_code, description, name, quantity, min_quantity,
+                expiration_date, price, status, track_stock, allow_custom_price
+            FROM items WHERE id = ?""",
             (item_id,),
         )
         if not rows:
@@ -58,9 +79,11 @@ class ItemsMixin:
             "name": row[2],
             "quantity": row[3],
             "min_quantity": row[4],
-            "price": row[5],
-            "status": row[6],
-            "expiration_date": row[7],
+            "expiration_date": row[5],
+            "price": row[6],
+            "status": row[7],
+            "track_stock": bool(row[8]),
+            "allow_custom_price": bool(row[9]),
         }
 
     def disable_item(self, item_id):
@@ -86,7 +109,8 @@ class ItemsMixin:
         """
         query = """
             SELECT id, barrs_code, name, description, quantity as stock, 
-                min_quantity, price, status, expiration_date, created_at, updated_at
+                min_quantity, price, status, expiration_date, created_at, updated_at,
+                track_stock, allow_custom_price
             FROM items WHERE id = ?
         """
         result = self.execute_query(query, (item_id,))
@@ -109,6 +133,8 @@ class ItemsMixin:
             "expiration_date": row[8],
             "created_at": row[9],
             "updated_at": row[10],
+            "track_stock": bool(row[11]),
+            "allow_custom_price": bool(row[12]),
         }
         
         try:
@@ -128,10 +154,19 @@ class ItemsMixin:
         )
         return rows[0][0] if rows else None
     
+    def get_item_stock(self, item_id):
+        """Obtiene la cantidad en stock de un producto por su ID."""
+        rows = self.execute_query(
+            "SELECT quantity FROM items WHERE id = ?",
+            (item_id,)
+        )
+        return rows[0][0] if rows else None
+    
     def check_and_notify_low_stock(self, user_id):
         """
         Verifica el stock de todos los productos y crea una notificación si está bajo.
         Si el stock se recupera, resetea la notificación para futuras alertas.
+        Los productos sin control de stock (track_stock = 0) se ignoran.
         Args:
             user_id (int): ID del usuario a notificar
         """
@@ -139,6 +174,7 @@ class ItemsMixin:
             """SELECT id, name, quantity, min_quantity, notified_low_stock
             FROM items
             WHERE status = 1
+                AND track_stock = 1
                 AND quantity IS NOT NULL
                 AND min_quantity IS NOT NULL"""
         )
@@ -326,7 +362,9 @@ class ItemsMixin:
     def get_all_items(self):
         """Obtiene una lista de todos los productos activos."""
         rows = self.execute_query(
-        "SELECT id, barrs_code, name, description, quantity, min_quantity, price, expiration_date FROM items WHERE status = 1 ORDER BY name ASC"
+            """SELECT id, barrs_code, name, description, quantity, min_quantity, price,
+                expiration_date, track_stock, allow_custom_price
+            FROM items WHERE status = 1 ORDER BY name ASC"""
         )
         
         return [
@@ -338,34 +376,12 @@ class ItemsMixin:
                 "quantity": row[4],
                 "min_quantity": row[5],
                 "price": row[6],
-                "expiration_date": row[7]
+                "expiration_date": row[7],
+                "track_stock": bool(row[8]),
+                "allow_custom_price": bool(row[9]),
             }
             for row in rows
         ]
-    
-    def add_weight_item(self, name, weight, price, price_per_gram, description=None):
-        """
-        Crea un producto vendido por peso (ej: jamón, pan).
- 
-        Args:
-            name (str): nombre del producto
-            weight (float): peso de referencia en stock (si aplica)
-            price (float): precio para 'price_per_gram' gramos
-            price_per_gram (float): base de gramos para el precio (ej: 500)
-            description (str|None)
- 
-        Returns:
-            int: id del weight_item creado
-        """
-        with self._cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO weight_items (name, weight, price, price_per_gram, description)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (name, weight, price, price_per_gram, description),
-            )
-            return cur.lastrowid
     
     def export_csv(self, file_path, filter: list = None, search=None,
                     view_mode=None, sort=None, order="asc"):
@@ -379,7 +395,8 @@ class ItemsMixin:
             search (str, optional): Filtra por nombre o código de barras
                 (mismo criterio que GET /api/products).
             view_mode (str, optional): "in_stock" | "out_of_stock". Cualquier
-                otro valor (o None) = todos los productos activos.
+                otro valor (o None) = todos los productos activos. Los productos
+                sin control de stock cuentan como disponibles (ver STOCK_VIEW_SQL).
             sort (str, optional): "name" | "stock" | "price". Si no se pasa
                 ninguno de search/view_mode/sort, se usa get_all_items() tal
                 cual como antes (mismo orden de siempre, cero cambio de
@@ -388,7 +405,7 @@ class ItemsMixin:
         """
         import csv
     
-        if search or view_mode in ("in_stock", "out_of_stock") or sort:
+        if search or view_mode in self.STOCK_VIEW_SQL or sort:
             where = ["status = 1"]
             params = []
     
@@ -396,10 +413,8 @@ class ItemsMixin:
                 where.append("(name LIKE ? OR barrs_code LIKE ?)")
                 params.extend([f"%{search}%", f"%{search}%"])
     
-            if view_mode == "in_stock":
-                where.append("quantity > 0")
-            elif view_mode == "out_of_stock":
-                where.append("quantity = 0")
+            if view_mode in self.STOCK_VIEW_SQL:
+                where.append(self.STOCK_VIEW_SQL[view_mode])
     
             sort_columns = {"name": "name", "stock": "quantity", "price": "price"}
             sort_column = sort_columns.get(sort, "name")
@@ -422,7 +437,12 @@ class ItemsMixin:
             ]
             items = [dict(zip(field_order, row)) for row in rows]
         else:
-            items = self.get_all_items()
+            # get_all_items() ahora trae los flags; se quitan para que el CSV
+            # conserve exactamente las mismas columnas que antes.
+            items = [
+                {k: v for k, v in item.items() if k not in ("track_stock", "allow_custom_price")}
+                for item in self.get_all_items()
+            ]
     
         if filter:
             items = [

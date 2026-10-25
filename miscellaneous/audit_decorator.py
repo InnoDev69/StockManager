@@ -34,12 +34,21 @@ FIELD_LABELS = {
     "min_quantity": "Stock mínimo",
     "expiration_date": "Fecha de vencimiento",
     "payment_method": "Método de pago",
+    "track_stock":  "Controla stock",
+    "allow_custom_price": "Precio libre",
     # sales
     "item_id":      "Producto (ID)",
     "total_price":  "Total",
+    "total":        "Total",
+    "amount_paid":  "Cobrado",
+    "vendor_id":    "Vendedor (ID)",
+    "items":        "Productos",
 }
 
-_CURRENCY_FIELDS = {"price", "total_price"}
+_CURRENCY_FIELDS = {"price", "total_price", "total", "amount_paid"}
+
+# Campos que se guardan como 0/1 y se muestran como Sí/No
+_BOOLEAN_FIELDS = {"track_stock", "allow_custom_price"}
 
 _SKIP_ON_CREATE = {"password", "id"}
 
@@ -81,6 +90,8 @@ def _format_value(field: str, value) -> str:
     """Formatea un valor según el tipo de campo."""
     if value is None:
         return "—"
+    if field in _BOOLEAN_FIELDS:
+        return "Sí" if value else "No"
     if field in _CURRENCY_FIELDS:
         try:
             return f"${float(value):,.2f}"
@@ -190,6 +201,18 @@ def _compare_changes(old_value: dict | None, new_value: dict | None) -> str:
     return "Cambios: " + "; ".join(changes)
 
 
+def _safe_log_audit(**kwargs):
+    """
+    Registra en auditoría sin dejar nunca que una falla de la auditoría rompa
+    la petición: si la operación ya se hizo, el usuario no debe ver un error
+    solo porque no se pudo escribir el registro.
+    """
+    try:
+        _get_db().log_audit(**kwargs)
+    except Exception as e:
+        logger.error(f"[Audit] No se pudo registrar la auditoría: {e}")
+
+
 def audit_action(entity_type, action_name=None, id_param=None):
     """
     Decorator para registrar automáticamente acciones en auditoría.
@@ -203,6 +226,10 @@ def audit_action(entity_type, action_name=None, id_param=None):
         @audit_action("user", "update", "target_user_id")
         def update_user(target_user_id):
             ...
+
+    Si la vista lanza una excepción, se registra un evento de error y se
+    re-lanza. Si la vista termina bien, el registro de auditoría se hace
+    aparte y nunca puede romper la respuesta.
     """
     def decorator(func):
         @wraps(func)
@@ -220,52 +247,12 @@ def audit_action(entity_type, action_name=None, id_param=None):
             if action in ("update", "delete") and entity_id and id_param:
                 old_value = _get_entity_before(entity_type, entity_id)
 
+            # 1. Ejecutar la vista: si falla, se audita el error y se re-lanza
             try:
                 response = func(*args, **kwargs)
-                status_code = response[1] if isinstance(response, tuple) else 200
-
-                if action == "update" and entity_id and id_param:
-                    new_value = _get_entity_before(entity_type, entity_id)
-                    changes_description = _compare_changes(old_value, new_value)
-
-                if action == "create":
-                    data = request.get_json() or {}
-
-                    if entity_type == "sale":
-                        changes_description = _build_sale_create_description(data)
-                    else:
-                        changes_description = _build_create_description(entity_type, data)
-
-                if action == "delete":
-                    changes_description = _build_delete_description(entity_type, entity_id, old_value)
-                    
-                if action == "login":
-                    actor_id = session.get('user_id')
-                    
-                    if not actor_id:
-                        return response
-                        
-                    changes_description = f"Usuario {_get_db().get_username_by_id(actor_id)} inició sesión a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-
-                status = 'success' if status_code < 400 else 'error'
-
-                _get_db().log_audit(
-                    actor_id=actor_id,
-                    action=action,
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    old_value=old_value,
-                    new_value=new_value,
-                    description=changes_description or _build_default_description(action, entity_type, entity_id),
-                    ip_address=ip_address,
-                    status=status
-                )
-
-                return response
-
             except Exception as e:
                 entity_label = _entity_label(entity_type)
-                _get_db().log_audit(
+                _safe_log_audit(
                     actor_id=actor_id,
                     action=action,
                     entity_type=entity_type,
@@ -277,8 +264,69 @@ def audit_action(entity_type, action_name=None, id_param=None):
                 logger.error(f"[Audit] Error en {func.__name__}: {str(e)}")
                 raise
 
+            # 2. La vista terminó: registrar la auditoría sin afectar la respuesta
+            try:
+                status_code = response[1] if isinstance(response, tuple) else 200
+
+                if action == "update" and entity_id and id_param:
+                    new_value = _get_entity_before(entity_type, entity_id)
+                    changes_description = _compare_changes(old_value, new_value)
+
+                if action == "create":
+                    data = request.get_json(silent=True) or {}
+
+                    if entity_type == "sale":
+                        changes_description = _build_sale_create_description(data)
+                    else:
+                        changes_description = _build_create_description(entity_type, data)
+
+                if action == "delete":
+                    changes_description = _build_delete_description(entity_type, entity_id, old_value)
+
+                if action == "login":
+                    actor_id = session.get('user_id')
+
+                    if not actor_id:
+                        return response
+
+                    changes_description = f"Usuario {_get_db().get_username_by_id(actor_id)} inició sesión a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+                status = 'success' if status_code < 400 else 'error'
+
+                _safe_log_audit(
+                    actor_id=actor_id,
+                    action=action,
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    old_value=old_value,
+                    new_value=new_value,
+                    description=changes_description or _build_default_description(action, entity_type, entity_id),
+                    ip_address=ip_address,
+                    status=status
+                )
+            except Exception as e:
+                logger.error(f"[Audit] No se pudo armar el registro de {func.__name__}: {e}")
+
+            return response
+
         return wrapper
     return decorator
+
+
+def _format_sale_lines(sale: dict) -> tuple[str, float]:
+    """Resume las líneas de una venta en un texto legible y devuelve también el total."""
+    parts = []
+    total = 0.0
+
+    for item in sale.get("items", []):
+        parts.append(f"{item['name']} × {item['quantity']} a ${item['price']:,.2f}")
+        total += item["quantity"] * item["price"]
+
+    for item in sale.get("weight_items", []):
+        parts.append(f"{item['name']} {item['weight']} g por ${item['price']:,.2f}")
+        total += item["price"]
+
+    return "; ".join(parts), round(total, 2)
 
 
 def _get_entity_before(entity_type, entity_id):
@@ -303,7 +351,8 @@ def _get_entity_before(entity_type, entity_id):
 
         elif entity_type == "product":
             rows = db.execute_query(
-                "SELECT id, name, price, quantity, min_quantity FROM items WHERE id = ?",
+                "SELECT id, name, price, quantity, min_quantity, track_stock, allow_custom_price "
+                "FROM items WHERE id = ?",
                 (entity_id,)
             )
             if rows:
@@ -313,22 +362,25 @@ def _get_entity_before(entity_type, entity_id):
                     "name": r[1],
                     "price": r[2],
                     "quantity": r[3],
-                    "min_quantity": r[4]
+                    "min_quantity": r[4],
+                    "track_stock": r[5],
+                    "allow_custom_price": r[6],
                 }
 
         elif entity_type == "sale":
-            rows = db.execute_query(
-                "SELECT id, item_id, quantity, total_price, status FROM sales WHERE id = ?",
-                (entity_id,)
-            )
-            if rows:
-                r = rows[0]
+            # La venta vive en 'sells' (cabecera) y 'details' / 'weight_details' (líneas):
+            # get_sale_by_id ya arma todo eso junto.
+            # Issue URL: https://github.com/InnoDev69/StockManager/issues/55
+            sale = db.get_sale_by_id(entity_id)
+            if sale:
+                lines, total = _format_sale_lines(sale)
                 return {
-                    "id": r[0],
-                    "item_id": r[1],
-                    "quantity": r[2],
-                    "total_price": r[3],
-                    "status": r[4]
+                    "id": sale["id"],
+                    "payment_method": sale["payment_method"],
+                    "vendor_id": sale["vendor_id"],
+                    "amount_paid": sale["amount_paid"],
+                    "total": total,
+                    "items": lines,
                 }
 
     except Exception as e:

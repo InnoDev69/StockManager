@@ -2,10 +2,11 @@ import os
 from flask import Blueprint, render_template, session, redirect
 from core.bd.bdInstance import db
 from miscellaneous import ROLES
+from templates.views import View
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
-@dashboard_bp.route("/")
+@dashboard_bp.route("/", methods=["GET"])
 def index():
     """
     Dashboard principal de la aplicación.
@@ -37,6 +38,6 @@ def index():
     stats["out_of_stock"] = out_of_stock
     
     role = session.get("role", ROLES.VENDOR)
-    return render_template('dashboard.html', stats=stats, role=role,
+    return render_template(View.DASHBOARD.value, stats=stats, role=role,
                        low_stock_list=low_stock_list, products=[], show_back=False,
                        DEBUG=1 if os.getenv("DEBUG", "0") == "1" else 0)

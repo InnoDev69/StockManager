@@ -3,6 +3,8 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from core.api.auth_utils import require_auth
 from core.bd.bdInstance import db
 
+from templates.views import View
+
 settings_bp = Blueprint('settings', __name__)
 
 @settings_bp.route("/settings", methods=["GET"])
@@ -28,5 +30,5 @@ def settings():
     if user_data:
         user = {"username": user_data[0][0], "email": user_data[0][1]}
     
-    return render_template("settings.html", user=user, role=session.get("role", ROLES.VENDOR), show_back=False)
+    return render_template(View.SETTINGS.value, user=user, role=session.get("role", ROLES.VENDOR), show_back=False)
 

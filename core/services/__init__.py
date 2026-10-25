@@ -1,3 +1,4 @@
+from .service_manager import SERVICE_MANAGER, ServiceManager
 from .backup import BackupService
 from .cache import CacheService
 from miscellaneous import get_data_path
@@ -11,4 +12,4 @@ cache_service = CacheService()
 permissions_service = PermissionsService()
 telemetry_service = TelemetryService()
 
-all = ["backup_service", "cache_service", "permissions_service", "telemetry_service"]
+all = ["backup_service", "cache_service", "permissions_service", "telemetry_service", "SERVICE_MANAGER"]

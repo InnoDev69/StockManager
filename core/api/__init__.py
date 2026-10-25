@@ -14,6 +14,7 @@ from core.api.audit_api import audit_api
 from core.api.feature_highlights import bp as feature_highlights_bp
 from core.api.changelog_api import changelog_bp
 from core.api.credit_api import credit_api
+from core.api.chat_api import chat_bp
 
 api_bp.register_blueprint(products_api)
 api_bp.register_blueprint(sales_api)
@@ -27,3 +28,4 @@ api_bp.register_blueprint(audit_api)
 api_bp.register_blueprint(feature_highlights_bp)
 api_bp.register_blueprint(changelog_bp)
 api_bp.register_blueprint(credit_api)
+api_bp.register_blueprint(chat_bp)
