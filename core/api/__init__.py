@@ -28,4 +28,5 @@ api_bp.register_blueprint(audit_api)
 api_bp.register_blueprint(feature_highlights_bp)
 api_bp.register_blueprint(changelog_bp)
 api_bp.register_blueprint(credit_api)
-api_bp.register_blueprint(chat_bp)
+# Note: The chat API is currently disabled due to performance issues. It can be re-enabled by uncommenting the line below.
+#api_bp.register_blueprint(chat_bp)
