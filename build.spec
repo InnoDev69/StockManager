@@ -63,8 +63,6 @@ a = Analysis(
         ('templates', 'templates'),
         ('static', 'static'),
         ('.env', '.'),
-        # Frases de entrenamiento del bot: chat_api las lee de <bundle>/stockbot/intents.json
-        ('stockbot/intents.json', 'stockbot'),
     ] + webview_datas + gi_datas + collect_data_files('barcode'),
     hiddenimports=[
         'pytz',
@@ -93,9 +91,8 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    # numba/llvmlite pueden estar en el venv local pero no son parte de la app.
-    # Observacion: 'scipy' NO se excluye, sentence-transformers lo importa al cargarse.
-    excludes=['tkinter', 'matplotlib', 'pandas', 'numba', 'llvmlite'],
+    # numpy/numba/llvmlite pueden estar en el venv local pero no son parte de la app
+    excludes=['tkinter', 'matplotlib', 'numpy', 'pandas', 'scipy', 'numba', 'llvmlite'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
