@@ -57,6 +57,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller==6.19.0 pyinstaller-hooks-contrib
+          # PyTorch SOLO CPU: en Linux, PyPI instala la versión con CUDA (más de 2 GB de librerías de GPU)
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
         shell: bash
 
@@ -85,6 +87,13 @@ jobs:
 
       - name: Verify build output
         run: ls -lhR dist/stockly/
+        shell: bash
+
+      - name: Report build size
+        run: |
+          du -sh dist/stockly
+          echo "--- lo que más pesa ---"
+          du -sh dist/stockly/_internal/* | sort -rh | head -12
         shell: bash
 
       # ============================================================
@@ -148,6 +157,7 @@ jobs:
             pacman -S --noconfirm python python-pip python-gobject python-cairo gtk3 webkit2gtk-4.1 base-devel &&
             python --version &&
             pip install --break-system-packages pyinstaller==6.19.0 pyinstaller-hooks-contrib &&
+            pip install --break-system-packages torch --index-url https://download.pytorch.org/whl/cpu &&
             pip install --break-system-packages -r /github/workspace/requirements.txt &&
             cd /github/workspace &&
             echo 'SMTP_SERVER='$SMTP_SERVER >> .env &&
