@@ -430,6 +430,8 @@ def update_product(product_id):
         "SELECT name, description, quantity, min_quantity, price, expiration_date, status, track_stock, allow_custom_price FROM items WHERE id = ?",
         (product_id,)
     )[0]
+    if not current:
+        return jsonify({"error": "Producto no encontrado"}), 404
     
     current_values = {
         "name": current[0],
