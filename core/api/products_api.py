@@ -426,12 +426,13 @@ def update_product(product_id):
     updates = []
     params = []
     
-    current = db.execute_query(
+    rows = db.execute_query(
         "SELECT name, description, quantity, min_quantity, price, expiration_date, status, track_stock, allow_custom_price FROM items WHERE id = ?",
         (product_id,)
-    )[0]
-    if not current:
+    )
+    if not rows:
         return jsonify({"error": "Producto no encontrado"}), 404
+    current = rows[0]
     
     current_values = {
         "name": current[0],
