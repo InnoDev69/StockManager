@@ -10,21 +10,8 @@ exe_name = 'stockly' + exe_extension
 
 webview_datas = collect_data_files('webview')
 
-# Recoger typelibs de gi en Linux
+# Dejar que los hooks oficiales de PyInstaller recojan y parchen los typelibs de gi
 gi_datas = []
-if sys.platform == 'linux':
-    gi_datas = collect_data_files('gi')
-    typelib_dirs = [
-        '/usr/lib/x86_64-linux-gnu/girepository-1.0',
-        '/usr/lib/girepository-1.0',
-        '/usr/lib64/girepository-1.0',
-    ]
-    for td in typelib_dirs:
-        if os.path.isdir(td):
-            for f in os.listdir(td):
-                if f.endswith('.typelib'):
-                    gi_datas.append((os.path.join(td, f), 'gi_typelibs'))
-            break
 
 # Hiddenimports específicos por plataforma
 platform_hiddenimports = []
@@ -99,9 +86,9 @@ a = Analysis(
     noarchive=False,
 )
 
-# Excluir libs de sistema en Linux para evitar conflictos con GTK del host
+# Excluir libs de sistema en Linux para evitar conflictos con GTK/GLib del host
 if sys.platform == 'linux':
-    system_libs = ['libglib', 'libgio', 'libgobject', 'libgmodule']
+    system_libs = ['libglib', 'libgio', 'libgobject', 'libgmodule', 'libgirepository']
     a.binaries = [
         (name, path, kind)
         for name, path, kind in a.binaries

@@ -62,10 +62,10 @@ jobs:
           pip install -r requirements.txt
         shell: bash
 
-      # --- PyGObject solo en Linux ---
+      # --- PyGObject solo en Linux (fijado a 3.48.2 para evitar conflicto con GLib de Ubuntu) ---
       - name: Install PyGObject (Linux)
         if: matrix.platform == 'linux-ubuntu'
-        run: pip install PyGObject pycairo
+        run: pip install PyGObject==3.48.2 pycairo
 
       # --- pythonnet solo en Windows (backend WinForms de pywebview) ---
       - name: Install pythonnet (Windows)
