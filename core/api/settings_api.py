@@ -1,9 +1,13 @@
 from flask import Blueprint, request, session, jsonify
-from core.api.auth_utils import require_auth
+from core.api.auth_utils import require_auth, require_permission
 from werkzeug.security import generate_password_hash, check_password_hash
 from core.bd.bdInstance import db
 from core.config import config
+from miscellaneous.audit_decorator import audit_action
 from miscellaneous.security import safe_decode, safe_encode
+from miscellaneous.validators import UserValidator, ValidationError
+from core.bd.bdErrors import ConfigurationError, DatabaseError
+from miscellaneous import logger
 
 settings_api = Blueprint('settings_api', __name__)
 
@@ -36,7 +40,10 @@ def update_profile():
         if not email:
             return {"error": "Email es requerido"}, 400
         
-        if "@" not in email or "." not in email:
+        # Mismo validador que usan el alta y el registro de usuarios
+        try:
+            email = UserValidator.validate_email(email)
+        except ValidationError:
             return {"error": "Email inválido"}, 400
         
         # Actualizar email
@@ -47,8 +54,18 @@ def update_profile():
             "message": "Perfil actualizado correctamente"
         }, 200
     
+    except DatabaseError as e:
+        # db._cursor() convierte todo sqlite3.Error en DatabaseError: un email repetido
+        # llega como "... UNIQUE constraint failed: users.email".
+        msg = str(e).lower()
+        if "unique" in msg and "email" in msg:
+            return {"error": "Este correo ya está registrado"}, 409
+        logger.error(f"Error actualizando perfil del usuario {session.get('user_id')}: {e}")
+        return {"error": "Error al actualizar el perfil"}, 500
+    
     except Exception as e:
-        return {"error": str(e)}, 500
+        logger.error(f"Error actualizando perfil del usuario {session.get('user_id')}: {e}")
+        return {"error": "Error al actualizar el perfil"}, 500
 
 @settings_api.route("/settings/password", methods=["PUT"])
 @require_auth
@@ -140,7 +157,8 @@ def get_setting(key):
         return jsonify({"success": False, "error": str(e)}), 500
 
 @settings_api.route("/settings/actual/<string:key>", methods=["PUT"])
-@require_auth
+@require_permission("SETTINGS_MANAGE")
+@audit_action("settings", "settings_update")
 def update_setting(key):
     """Actualizar una configuración específica por clave."""
     try:
@@ -160,5 +178,8 @@ def update_setting(key):
             "message": f"Configuración '{key}' actualizada correctamente",
             "data": {key: value}
         }), 200
+    except ConfigurationError:
+        return jsonify({"success": False, "error": f"La clave '{key}' no puede ser modificada"}), 403        
+        
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

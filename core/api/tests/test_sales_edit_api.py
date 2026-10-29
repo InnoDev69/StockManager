@@ -152,7 +152,7 @@ def test_editar_sin_sesion_devuelve_401(anon_client, db, item):
     assert r.status_code == 401
 
 
-@pytest.mark.xfail(strict=True, reason="Hoy devuelve 500 'Error interno'; una venta inexistente debería dar 404")
+#@pytest.mark.xfail(strict=True, reason="Hoy devuelve 500 'Error interno'; una venta inexistente debería dar 404")
 def test_editar_una_venta_inexistente_deberia_dar_404(client, item):
     r = editar(client, 99999, [{"item_id": item, "quantity": 1}])
 

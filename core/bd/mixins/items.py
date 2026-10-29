@@ -1,7 +1,7 @@
 from miscellaneous.logger import logger
 from miscellaneous.local_time import localDate
 
-from core.bd.bdErrors import DatabaseError
+from core.bd.bdErrors import DatabaseError, ItemNotFoundError
 
 from core.services import cache_service
 from miscellaneous import get_data_path
@@ -85,9 +85,19 @@ class ItemsMixin:
             "track_stock": bool(row[8]),
             "allow_custom_price": bool(row[9]),
         }
+        
+    def item_exists(self, item_id):
+        """Verifica si un producto existe por su ID."""
+        rows = self.execute_query(
+            "SELECT 1 FROM items WHERE id = ?",
+            (item_id,)
+        )
+        return bool(rows)
 
     def disable_item(self, item_id):
         """Deshabilita un producto (status = 0)."""
+        if not self.item_exists(item_id):
+            raise ItemNotFoundError(f"Producto con ID {item_id} no existe")
         self.execute_query(
             "UPDATE items SET status = 0 WHERE id = ?",
             (item_id,),
@@ -96,6 +106,8 @@ class ItemsMixin:
 
     def enable_item(self, item_id):
         """Habilita un producto (status = 1)."""
+        if not self.item_exists(item_id):
+            raise ItemNotFoundError(f"Producto con ID {item_id} no existe")
         self.execute_query(
             "UPDATE items SET status = 1 WHERE id = ?",
             (item_id,),
@@ -212,6 +224,8 @@ class ItemsMixin:
                     
     def activate_item(self, item_id):
         """Activa un producto deshabilitado."""
+        if not self.item_exists(item_id):
+            raise ItemNotFoundError(f"Producto con ID {item_id} no existe")
         self.execute_query(
             "UPDATE items SET status = 1 WHERE id = ?",
             (item_id,),

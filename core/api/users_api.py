@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from miscellaneous.permissions import PERMS
 from core.api.error_handlers import handle_db_error
 from core.bd.bdInstance import db
+from core.bd.bdErrors import DatabaseError
 from core.api.auth_utils import require_auth, require_permission
 from miscellaneous.validators import RoleValidator, UserValidator, ValidationError
 from miscellaneous import logger, email_sender
@@ -12,6 +13,18 @@ from miscellaneous.audit_decorator import audit_action
 from miscellaneous import ROLES
 
 users_api = Blueprint("users_api", __name__)
+
+def _email_valido(email):
+    """
+    True si el email es válido. UserValidator.validate_email lanza ValidationError cuando
+    es inválido (así lo usan create_user y api_register); también se contempla que
+    devuelva False, para no depender de cuál de los dos estilos use.
+    """
+    try:
+        return UserValidator.validate_email(email) is not False
+    except ValidationError:
+        return False
+
 
 def generate_reset_code():
     """Genera un código de recuperación aleatorio de 6 dígitos."""
@@ -122,9 +135,18 @@ def create_user():
         data["role"] = RoleValidator.validate_name(data["role"])
     except ValidationError as e:
         return jsonify({"error": e.message}), 400
+    
+    if data["role"] == ROLES.ROOT and session.get("role") != ROLES.ROOT:
+        logger.warning(f"Intento de crear un usuario root por admin ID {session.get('user_id')}")
+        return jsonify({"error": "Solo un usuario root puede crear usuarios root"}), 403
+    
+    username = data["username"].strip()
+    if db.get_single_row("SELECT id FROM users WHERE username = ?", (username,)):
+        return jsonify({"error": "Este usuario ya existe"}), 409
+
     try:
         db.add_user(
-            username=data["username"].strip(),
+            username=username,
             email=data["email"].strip(),
             password=hashed,
             role=data["role"],
@@ -134,14 +156,15 @@ def create_user():
         logger.info(f"User {data['username']} created by admin {session.get('user_id')}")
         return jsonify({"message": "Usuario creado exitosamente"}), 201
     
-    except sqlite3.IntegrityError as e:
-        if "email" in str(e):
-            return jsonify({"error": "Este correo ya está registrado"}), 409
-        if "username" in str(e):
-            return jsonify({"error": "Este usuario ya existe"}), 409
-        return handle_db_error(e, "create_user")
-    
     except Exception as e:
+        # Respaldo ante una carrera entre el chequeo de arriba y el INSERT: db._cursor()
+        # convierte todo sqlite3.Error en DatabaseError, no en sqlite3.IntegrityError.
+        msg = str(e).lower()
+        if isinstance(e, (sqlite3.IntegrityError, DatabaseError)) and "unique" in msg:
+            if "email" in msg:
+                return jsonify({"error": "Este correo ya está registrado"}), 409
+            if "username" in msg:
+                return jsonify({"error": "Este usuario ya existe"}), 409
         return handle_db_error(e, "create_user")
 
 @users_api.route("/users/<int:target_user_id>", methods=["PUT"])
@@ -158,6 +181,12 @@ def update_user(target_user_id):
         return jsonify({"error": "Usuario no encontrado"}), 404
     
     current_username, current_email, current_role, current_status = current_user[0]
+
+    # Solo un root puede modificar a otro root (cambiarle la contraseña, el estado, el rol...).
+    soy_root = session.get("role") == ROLES.ROOT
+    if current_role == ROLES.ROOT and not soy_root:
+        logger.warning(f"Intento de modificar al usuario root ID {target_user_id} por admin ID {session.get('user_id')}")
+        return jsonify({"error": "Solo un usuario root puede modificar a otro usuario root"}), 403
     
     data = request.get_json()
     updates = []
@@ -180,12 +209,21 @@ def update_user(target_user_id):
             logger.warning(f"Intento de asignar rol inválido: {data['role']} por admin ID {session.get('user_id')}")
             data["role"] = current_role  # Mantener el rol actual si es inválido
         new_role = data["role"]
+        if new_role == ROLES.ROOT and new_role != current_role and not soy_root:
+            logger.warning(f"Intento de ascender a root al usuario ID {target_user_id} por admin ID {session.get('user_id')}")
+            return jsonify({"error": "Solo un usuario root puede asignar el rol root"}), 403
         if new_role != current_role:
             updates.append("role = ?")
             params.append(new_role)
     
     if "status" in data:
-        new_status = int(data["status"])
+        try:
+            new_status = int(data["status"])
+        except (ValueError, TypeError):
+            return jsonify({"error": "Estado inválido"}), 400
+        if new_status not in (0, 1):
+            return jsonify({"error": "Estado inválido"}), 400
+            
         if new_status != current_status:
             updates.append("status = ?")
             params.append(new_status)
@@ -214,12 +252,17 @@ def update_user(target_user_id):
         logger.info(f"User ID {target_user_id} updated by admin ID {session.get('user_id')}: {', '.join(updates)}")
         return jsonify({"message": "Usuario actualizado exitosamente"}), 200
     
-    except sqlite3.IntegrityError as e:
-        if "email" in str(e):
-            return jsonify({"error": "Este correo ya está registrado"}), 409
-        return jsonify({"error": "Error de integridad de datos"}), 400
-    
     except Exception as e:
+        # db._cursor() convierte todo sqlite3.Error en DatabaseError, así que un UNIQUE
+        # llega acá como DatabaseError("... UNIQUE constraint failed: users.email"),
+        # no como sqlite3.IntegrityError.
+        msg = str(e).lower()
+        if isinstance(e, (sqlite3.IntegrityError, DatabaseError)) and "unique" in msg:
+            if "email" in msg:
+                return jsonify({"error": "Este correo ya está registrado"}), 409
+            if "username" in msg:
+                return jsonify({"error": "Este usuario ya existe"}), 409
+            return jsonify({"error": "Error de integridad de datos"}), 400
         logger.error(f"Error actualizando usuario {target_user_id}: {str(e)}")
         return jsonify({"error": "Error al actualizar el usuario"}), 500
 
@@ -231,6 +274,14 @@ def delete_user(target_user_id):
 
     if target_user_id == session.get("user_id"):
         return jsonify({"error": "No puedes darte de baja a ti mismo"}), 400
+    
+    if db.user_exists_by_id(user_id=target_user_id) is False:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    target = db.execute_query("SELECT role FROM users WHERE id = ?", (target_user_id,))
+    if target and target[0][0] == ROLES.ROOT and session.get("role") != ROLES.ROOT:
+        logger.warning(f"Intento de dar de baja al usuario root ID {target_user_id} por admin ID {session.get('user_id')}")
+        return jsonify({"error": "Solo un usuario root puede dar de baja a otro usuario root"}), 403
 
     db.execute_query(
         "UPDATE users SET status = 0 WHERE id = ?",
@@ -242,7 +293,6 @@ def delete_user(target_user_id):
     return jsonify({"message": "Usuario dado de baja"}), 200
 
 @users_api.route("/users/reset-password", methods=["POST"])
-@require_permission(PERMS.USERS_MANAGE)
 @audit_action("user", "reset_password")
 def restore_password():
     """
@@ -270,20 +320,20 @@ def restore_password():
     
     data = request.get_json()
     
-    logger.info(f"Password reset requested for email: {data.get('email', 'N/A')}")
-    
     if "email" not in data:
         return jsonify({"error": "Faltan campos requeridos"}), 400
     
     email = data["email"].strip()
     
-    if not UserValidator.validate_email(email):
+    if not _email_valido(email):
         return jsonify({"error": "Formato de correo inválido"}), 400
     
     user = db.get_user_by_email(email)
     
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    logger.info(f"Password reset requested for email: {data.get('email', 'N/A')}")
     
     reset_code = generate_reset_code()
     db.save_reset_code(email, reset_code)
@@ -345,6 +395,7 @@ def change_password():
     
     Request Body (JSON):
         email (str): Correo electrónico del usuario
+        code (str): Código de recuperación
         new_password (str): Nueva contraseña a establecer
     
     Returns:
@@ -375,8 +426,11 @@ def change_password():
     email = data["email"].strip()
     new_password = data["new_password"].strip()
     
-    if not UserValidator.validate_email(email):
+    if not _email_valido(email):
         return jsonify({"error": "Formato de correo inválido"}), 400
+    
+    if len(new_password) < 6:
+        return jsonify({"error": "La nueva contraseña debe tener al menos 6 caracteres"}), 400
     
     user = db.get_user_by_email(email)
     
@@ -403,8 +457,13 @@ def api_login():
         }
     """
     data = request.get_json()
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
+    username = data.get("username", "") if isinstance(data, dict) else ""
+    password = data.get("password", "") if isinstance(data, dict) else ""
+
+    if not isinstance(username, str) or not isinstance(password, str):
+        return jsonify({"error": "Formato de datos inválido"}), 400
+
+    username = username.strip()
     
     if not username or not password:
         return jsonify({"error": "Usuario y contraseña requeridos"}), 400
@@ -419,11 +478,14 @@ def api_login():
     
     user_id, pw_hash, role, status = rows[0]
     
-    if status == 0:
-        return jsonify({"error": "Usuario desactivado. Contacta al administrador"}), 403
-    
+    # Primero la contraseña: así una cuenta desactivada con clave incorrecta responde igual
+    # que una cuenta inexistente o con clave incorrecta, y no se puede saber su estado
+    # sin conocer la clave.
     if not check_password_hash(pw_hash, password):
         return jsonify({"error": "Credenciales inválidas"}), 401
+    
+    if status == 0:
+        return jsonify({"error": "Error al iniciar sesión"}), 401
     
     if role not in [ROLES.ADMIN, ROLES.VENDOR, ROLES.ROOT]:
         return jsonify({"error": "Rol de usuario no válido"}), 403

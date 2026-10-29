@@ -588,6 +588,9 @@ def get_sale_for_edit(sale_id):
 def update_sale(sale_id):
     """Actualiza una venta existente"""
     try:
+        if not db.sale_exists(sale_id):
+            return jsonify({"error": "Venta no encontrada"}), 404
+        
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return jsonify({"error": "JSON inválido"}), 400

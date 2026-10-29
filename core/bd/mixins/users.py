@@ -22,6 +22,22 @@ class UsersMixin:
             (username, email),
         )
         return bool(rows)
+    
+    def user_exists_by_id(self, user_id):
+        """
+        Verifica si un usuario ya existe por ID.
+
+        Args:
+            user_id (int): ID del usuario a verificar
+
+        Returns:
+            bool: True si existe un usuario con ese ID
+        """
+        rows = self.execute_query(
+            "SELECT id FROM users WHERE id = ?",
+            (user_id,),
+        )
+        return bool(rows)   
 
     def add_user(self, username, password, email, role=ROLES.VENDOR, status=0, application=Var.USER_APPLICATION_PENDING):
         """

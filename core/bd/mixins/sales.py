@@ -670,3 +670,7 @@ class SalesMixin:
             )
         """
         return self.get_count(query, (sell_id, sell_id))
+    
+    def sale_exists(self, sell_id):
+        """Verifica si una venta existe en la tabla 'sells'."""
+        return self.get_count("SELECT COUNT(*) FROM sells WHERE id = ?", (sell_id,)) > 0

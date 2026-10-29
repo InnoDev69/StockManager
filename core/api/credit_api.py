@@ -4,7 +4,7 @@ from miscellaneous.permissions import PERMS
 from core.bd.bdInstance import db
 from core.api.auth_utils import require_auth, require_permission
 from core.api.error_handlers import handle_db_error
-from core.bd.bdErrors import DatabaseError, InsufficientBalanceError
+from core.bd.bdErrors import BlankUpdateError, DatabaseError, InsufficientBalanceError
 
 credit_api = Blueprint("credit_api", __name__)
 
@@ -131,6 +131,8 @@ def register_payment(customer_id):
         return jsonify({"ok": True, "movement_id": movement_id}), 201
     except InsufficientBalanceError as e:
         return jsonify({"error": str(e), "ok": False}), 400
+    except ValueError as e:
+        return jsonify({"error": str(e), "ok": False}), 400
     except DatabaseError as e:
         return handle_db_error(e, "register_payment")
 
@@ -213,5 +215,7 @@ def update_customer(customer_id):
             update_credit_limit=credit_limit_provided,
         )
         return jsonify({"ok": True}), 200
+    except BlankUpdateError as e:
+        return jsonify({"error": str(e), "ok": False}), 400
     except DatabaseError as e:
         return handle_db_error(e, "update_customer")

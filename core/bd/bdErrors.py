@@ -44,3 +44,19 @@ class ItemNotFoundError(DatabaseError, ValueError):
 class ProductUnavailableError(DatabaseError, ValueError):
     """Un producto existe pero está deshabilitado y no se puede vender (400)."""
     pass
+
+class BlankUpdateError(DatabaseError, ValueError):
+    """Se intentó actualizar un registro sin proporcionar campos a cambiar (400)."""
+    pass
+
+class TransactionNotFoundError(DatabaseError, ValueError):
+    """Se intentó actualizar una venta que no existe (404)."""
+    pass
+
+class UserAlreadyExistsError(DatabaseError, ValueError):
+    """Se intentó crear un usuario con un nombre o email ya existente (409)."""
+    pass
+
+class ConfigurationError(DatabaseError, ValueError):
+    """Error de configuración. Puede ser un dato inválido o un fallo de la base (400)."""
+    pass
