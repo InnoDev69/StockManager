@@ -61,6 +61,7 @@ def sin_permisos(monkeypatch):
 @pytest.fixture
 def con_todos_los_permisos(monkeypatch):
     """Simula un admin al que se le dio USERS_MANAGE (y todo lo demás)."""
+    """ Issue URL: https://github.com/InnoDev69/StockManager/issues/57 """
     monkeypatch.setattr("core.services.permissions_service.has_permission", lambda *a, **k: True)
 
 

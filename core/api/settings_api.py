@@ -56,6 +56,7 @@ def update_profile():
     
     except DatabaseError as e:
         # db._cursor() convierte todo sqlite3.Error en DatabaseError: un email repetido
+        # Issue URL: https://github.com/InnoDev69/StockManager/issues/56
         # llega como "... UNIQUE constraint failed: users.email".
         msg = str(e).lower()
         if "unique" in msg and "email" in msg:

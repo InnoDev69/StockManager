@@ -159,6 +159,7 @@ def create_user():
     except Exception as e:
         # Respaldo ante una carrera entre el chequeo de arriba y el INSERT: db._cursor()
         # convierte todo sqlite3.Error en DatabaseError, no en sqlite3.IntegrityError.
+        # Issue URL: https://github.com/InnoDev69/StockManager/issues/59
         msg = str(e).lower()
         if isinstance(e, (sqlite3.IntegrityError, DatabaseError)) and "unique" in msg:
             if "email" in msg:
@@ -254,6 +255,7 @@ def update_user(target_user_id):
     
     except Exception as e:
         # db._cursor() convierte todo sqlite3.Error en DatabaseError, así que un UNIQUE
+        # Issue URL: https://github.com/InnoDev69/StockManager/issues/58
         # llega acá como DatabaseError("... UNIQUE constraint failed: users.email"),
         # no como sqlite3.IntegrityError.
         msg = str(e).lower()
