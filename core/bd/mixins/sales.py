@@ -69,7 +69,16 @@ class SalesMixin:
             "products": products,
             "low_stock": low_stock,
             "sales_today": sales_today,
-            "low_stock_list": low_stock_list
+            "low_stock_list": low_stock_list,
+            "expires_soon": self.get_count(
+                """
+                SELECT COUNT(*)
+                FROM items
+                WHERE status = 1
+                AND expiration_date IS NOT NULL
+                AND DATE(expiration_date) <= DATE('now', '+7 days')
+                """
+            ),
         }
 
     def record_product_sale(self, item_id, quantity, vendor_id, payment_method="Efectivo"):

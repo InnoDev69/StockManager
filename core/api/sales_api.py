@@ -18,7 +18,7 @@ import sqlite3
 
 sales_api = Blueprint("sales_api", __name__)
 
-ALLOWED_PAYMENT_METHODS = {"Efectivo", "Fiado", "Mixto"}
+ALLOWED_PAYMENT_METHODS = {"Efectivo", "Tarjeta", "Transferencia", "Fiado", "Mixto"}
 
 
 @sales_api.route("/sales", methods=["POST"])
