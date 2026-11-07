@@ -11,3 +11,8 @@ reportlab
 pywebview==6.1
 cffi==2.0.0
 certifi
+
+# Actualizaciones firmadas y licencias
+PyNaCl>=1.5
+# Licencias (se activan al embeber la clave pública en core/licensing/public_keys.py):
+# stockly-license @ git+https://github.com/InnoDev69/stockly-license.git@v0.2.0

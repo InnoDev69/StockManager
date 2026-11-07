@@ -75,6 +75,10 @@ def start_background_jobs():
     llama explícitamente desde __main__."""
     SCHEDULER.add_task(86400, logger._cleanup_old_logs)
     SCHEDULER.add_task(1800, db._check_unique_root_user)
+    from core.updater import get_update_service
+    updates = get_update_service()
+    if updates is not None:
+        SCHEDULER.add_task(21600, updates.maintenance)  # cada 6 h: limpieza y chequeo (usa cache)
     SCHEDULER.start()
 
 
@@ -106,6 +110,10 @@ def launch_desktop_app(server: ServerManager):
         width=1200, height=800, min_size=(800, 600),
     )
 
+    # Al actualizar, el servicio cierra la ventana y webview.start() termina solo.
+    from core.updater import register_shutdown_hook
+    register_shutdown_hook(window.destroy)
+
     if sys.platform == "linux" and os.path.exists(icon_path):
         webview.start(icon=icon_path)
     else:
@@ -114,6 +122,8 @@ def launch_desktop_app(server: ServerManager):
 
 def run_server_only():
     logger.info(f"Sirviendo en http://{FLASK_HOST}:{FLASK_PORT} (server-only)", source=APP_LOGGER_NAME)
+    from core.updater import register_shutdown_hook
+    register_shutdown_hook(lambda: (server.cleanup(), os._exit(0)))
     server.run()
 
 

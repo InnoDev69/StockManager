@@ -110,6 +110,15 @@ class Stockly:
         self.app.register_blueprint(api_bp, url_prefix="/api")
         for bp in all_blueprints:
             self.app.register_blueprint(bp)
+        self._register_licensing_and_updates()
+
+    def _register_licensing_and_updates(self):
+        """Licencias (solo si hay clave pública embebida) y actualizador."""
+        from core.licensing.instance import init_app_licensing
+        from core.updater import init_app_updates
+
+        manager = init_app_licensing(self.app)   # None = licencias desactivadas
+        init_app_updates(self.app, license_manager=manager)
 
     # Error handlers: loguean y devuelven templates o JSON según corresponda.
     # Flask elige el handler más específico: 404 y 500 por código, luego los
