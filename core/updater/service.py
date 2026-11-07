@@ -155,7 +155,7 @@ class UpdateService:
 
         args = [str(self.helper_path), "--apply", "--tag", info.latest_version,
                 "--app-dir", str(self._app_dir), "--wait-pid", str(os.getpid()), "--restart"]
-        kwargs: dict[str, Any] = {"close_fds": True, "cwd": str(self._app_dir)}
+        kwargs: dict[str, Any] = {"close_fds": True, "cwd": str(self._app_dir.parent)}
         if os.name == "nt":
             kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
         else:

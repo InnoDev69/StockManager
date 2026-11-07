@@ -158,7 +158,7 @@ def test_apply_launches_helper_and_schedules_shutdown(tmp_path):
     args, kw = launched[0]
     assert args[0] == str(tmp_path / "app" / HELPER) and args[1:] == [
         "--apply", "--tag", "v1.9.0", "--app-dir", str(tmp_path / "app"), "--wait-pid", str(os.getpid()), "--restart"]
-    assert kw["cwd"] == str(tmp_path / "app")
+    assert kw["cwd"] == str(tmp_path)
     first = FakeTimer.created[0]
     assert first.started and first.daemon and first.delay == 1.5 and hooked == []   # todavía no cerró
     first.fn()                                                                       # vence el primer timer
