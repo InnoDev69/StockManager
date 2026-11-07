@@ -10,6 +10,7 @@ from stockly_license import LicenseVerifier
 
 PUBLIC_KEYS: list[str] = [
     # "AbC...base64url de 43 caracteres...",
+    "SotDx4P_9H1jMOg5KFcw7T4ifTFmHcVQk_ZOC-4Bci4",
 ]
 
 
