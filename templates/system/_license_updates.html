@@ -1,0 +1,25 @@
+{# Pestaña "Licencia y actualizaciones" de Ajustes (solo admin/root). #}
+{% if license_enabled %}
+<div class="card" style="margin-bottom: 1.25rem;">
+  {% include "licensing/license_tab.html" %}
+</div>
+{% endif %}
+
+<section id="updates-tab" class="card" data-api="/api/updates">
+  <h2>Actualizaciones</h2>
+  <p>Versión instalada: <strong data-role="current">…</strong></p>
+  <p data-role="message" class="text-muted"></p>
+
+  <div data-role="update-box" hidden>
+    <p><strong>Nueva versión: <span data-role="latest"></span></strong></p>
+    <pre data-role="notes" style="white-space: pre-wrap; max-height: 12rem; overflow: auto;"></pre>
+  </div>
+
+  <div>
+    <button type="button" data-role="check">Buscar actualizaciones</button>
+    <button type="button" data-role="apply" hidden>Actualizar ahora</button>
+  </div>
+  <p data-role="feedback" role="status" aria-live="polite"></p>
+
+  <script src="{{ url_for('static', filename='js/core/updates-tab.js') }}" defer></script>
+</section>

@@ -1,0 +1,38 @@
+{# Pestaña "Licencia". Incluir con: {% include "licensing/license_tab.html" %}
+   Las clases son neutras: adaptalas al CSS de Stockly. #}
+<section id="license-tab" data-api="{{ url_for('licensing.status') }}">
+  <h2>Licencia</h2>
+
+  <p><strong data-role="state-label">Cargando…</strong></p>
+  <p data-role="message"></p>
+
+  <dl>
+    <dt>Código de este equipo</dt>
+    <dd>
+      <code data-role="machine-id"></code>
+      <button type="button" data-role="copy-machine">Copiar</button>
+    </dd>
+  </dl>
+
+  <dl data-role="details" hidden>
+    <dt>Cliente</dt>
+    <dd data-role="customer"></dd>
+    <dt>Plan</dt>
+    <dd data-role="plan"></dd>
+    <dt>Actualizaciones hasta</dt>
+    <dd data-role="updates-until"></dd>
+    <dt>Incluye</dt>
+    <dd><ul data-role="features"></ul></dd>
+  </dl>
+
+  <h3>Activar licencia</h3>
+  <textarea data-role="token" rows="4" spellcheck="false" autocomplete="off"
+            placeholder="Pegá acá la licencia (empieza con STK1.)"></textarea>
+  <div>
+    <button type="button" data-role="activate">Activar</button>
+    <button type="button" data-role="deactivate" hidden>Quitar licencia de este equipo</button>
+  </div>
+  <p data-role="feedback" role="status" aria-live="polite"></p>
+
+  <script src="{{ url_for('licensing.static', filename='license-tab.js') }}" defer></script>
+</section>
