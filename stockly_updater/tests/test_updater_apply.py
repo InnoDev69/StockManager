@@ -174,10 +174,12 @@ def test_relocate_when_frozen(tmp_path, monkeypatch):
     launched = []
     monkeypatch.setattr(helper.sys, "frozen", True, raising=False)
     monkeypatch.setattr(helper.sys, "executable", str(exe))
-    monkeypatch.setattr(helper, "launch_detached", lambda args, cwd=None: launched.append(args))
+    monkeypatch.setattr(helper, "launch_detached", lambda args, cwd=None: launched.append((args, cwd)))
     assert relocate_self(["--apply", "--tag", "v1.0.0"]) is True
-    copy, *rest = launched[0]
+    launched_args, launched_cwd = launched[0]
+    copy, *rest = launched_args
     assert Path(copy) != exe and Path(copy).read_text() == "binario"          # copia temporal
+    assert launched_cwd == str(Path(copy).parent)
     assert rest[-3:] == ["--relocated", "--app-dir", str(tmp_path)] or "--relocated" in rest
     launched.clear()
     assert relocate_self(["--apply", "--relocated"]) is False                  # ya relanzado: no se repite

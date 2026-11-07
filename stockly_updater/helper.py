@@ -170,7 +170,7 @@ def relocate_self(argv: list[str]) -> bool:
     args = [copy, *argv, RELOCATED_FLAG]
     if "--app-dir" not in argv:
         args += ["--app-dir", os.path.dirname(sys.executable)]
-    launch_detached(args)
+    launch_detached(args, cwd=tmp)
     return True
 
 
