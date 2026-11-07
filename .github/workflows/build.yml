@@ -23,6 +23,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Write version from tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then VERSION="${GITHUB_REF_NAME#v}"; else VERSION="0.0.0-ci"; fi
+          printf '__version__ = "%s"\n' "$VERSION" > core/version.py
+          echo "Versión: $VERSION"
+        shell: bash
+
       - name: Create .env file
         run: |
           echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
@@ -44,6 +51,20 @@ jobs:
           pip install -r requirements.txt
         shell: bash
 
+      # Licencias: la librería es de un repo privado. Sin el secreto LICENSE_LIB_TOKEN el
+      # release sale con las licencias DESACTIVADAS (la app funciona igual).
+      - name: Install license library (private repo)
+        env:
+          LICENSE_LIB_TOKEN: ${{ secrets.LICENSE_LIB_TOKEN }}
+        shell: bash
+        run: |
+          if [ -n "$LICENSE_LIB_TOKEN" ]; then
+            pip install "git+https://x-access-token:${LICENSE_LIB_TOKEN}@github.com/InnoDev69/stockly-license.git@v0.2.0"
+            python -c "import stockly_license; print('stockly_license', stockly_license.__version__)"
+          else
+            echo "::warning::Sin LICENSE_LIB_TOKEN: este release sale con las licencias desactivadas"
+          fi
+
       # pythonnet: backend WinForms de pywebview
       - name: Install pythonnet
         run: pip install pythonnet
@@ -59,6 +80,24 @@ jobs:
       - name: Build with PyInstaller
         run: pyinstaller --clean build.spec
         shell: bash
+
+      # El ayudante (update.exe) viaja DENTRO del zip: así también se actualiza a sí mismo.
+      - name: Build updater (update.exe)
+        run: pyinstaller --clean --noconfirm stockly_updater/update.spec
+        shell: bash
+
+      - name: Updater self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist/update.exe -ArgumentList '--selftest' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "El autochequeo del actualizador falló (código $($p.ExitCode))" }
+
+      - name: Add updater and version.json to the app folder
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' core/version.py)
+          cp dist/update.exe dist/stockly/update.exe
+          printf '{"version": "v%s"}\n' "$VERSION" > dist/stockly/version.json
 
       - name: Verify build output
         run: ls -lhR dist/stockly/
@@ -156,6 +195,16 @@ jobs:
           git log $RANGE --pretty=format:"- %s" >> changelog.md
           echo "" >> changelog.md
 
+      # Firma hash y tamaño de cada asset; el ayudante verifica esto antes de instalar.
+      # Requiere el secreto RELEASE_SIGNING_KEY (clave privada de releases).
+      - name: Sign release assets
+        run: |
+          python3 -m pip install --user pynacl
+          python3 -m stockly_updater.sign_release --tag "${{ github.ref_name }}" --out-dir release-meta $(find artifacts -name '*.zip')
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -163,6 +212,8 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             artifacts/**/*.zip
+            release-meta/manifest.json
+            release-meta/manifest.json.sig
           body_path: changelog.md
           draft: false
           prerelease: false

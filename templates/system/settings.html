@@ -157,6 +157,12 @@
       {{ comp.icon('settings', size='15') }}
       Sistema
     </button>
+    {% if session.get('role') in ['admin', 'root'] %}
+    <button class="s-nav__tab" data-tab="license" role="tab" aria-selected="false" aria-controls="tab-license">
+      {{ comp.icon('settings', size='15') }}
+      Licencia y actualizaciones
+    </button>
+    {% endif %}
   </nav>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -240,6 +246,12 @@
       <!-- Populated by ConfigSection.init() -->
     </div>
   </div>
+
+  {% if session.get('role') in ['admin', 'root'] %}
+  <div id="tab-license" class="tab-panel" role="tabpanel">
+    {% include "system/_license_updates.html" %}
+  </div>
+  {% endif %}
 
   <!-- Footer de navegación -->
   <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 0.875rem; justify-content: center; flex-wrap: wrap;">
