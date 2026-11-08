@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+        shell: bash
+
+      # Misma lógica que build.yml: sin el secreto, los tests de licencias se saltan
+      - name: Install license library (private repo)
+        env:
+          LICENSE_LIB_TOKEN: ${{ secrets.LICENSE_LIB_TOKEN }}
+        shell: bash
+        run: |
+          if [ -n "$LICENSE_LIB_TOKEN" ]; then
+            pip install "git+https://x-access-token:${LICENSE_LIB_TOKEN}@github.com/InnoDev69/stockly-license.git@v0.2.0"
+          else
+            echo "::warning::Sin LICENSE_LIB_TOKEN: los tests de licencias y actualizador se saltan"
+          fi
+
+      # Sin secretos ni variables SMTP: la app debe arrancar y los tests correr igual
+      - name: Run tests
+        run: python -m pytest -q
+        shell: bash
+        env:
+          FLASK_SECRET_KEY: ci-test-key
