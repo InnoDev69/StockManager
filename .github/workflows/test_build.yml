@@ -173,7 +173,11 @@ jobs:
           VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' core/version.py)
           mkdir -p release-meta-dryrun
           python -m stockly_updater.sign_release --tag "v$VERSION" --out-dir release-meta-dryrun dist/Stockly-windows-x64.zip | tee release-meta-dryrun/sign.log
-          PUB=$(sed -n 's/.*Clave pública: //p' release-meta-dryrun/sign.log)
+          PUB=$(awk -F': ' '/Clave p/ {print $NF}' release-meta-dryrun/sign.log | tr -d '\r')
+          if [ -z "$PUB" ]; then
+            echo "::error::No se pudo leer la clave pública de la firma"
+            exit 1
+          fi
           if ! grep -qF "\"$PUB\"" stockly_updater/release_keys.py; then
             echo "::error::La clave pública del secreto RELEASE_SIGNING_KEY ($PUB) no está en stockly_updater/release_keys.py. Pegala ahí antes de publicar."
             exit 1
