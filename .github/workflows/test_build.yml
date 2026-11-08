@@ -1,7 +1,14 @@
 name: Test Build (No Release)
 
+# Vista previa del release: arma el mismo paquete que build.yml, pero no crea
+# tag, no firma y no publica nada. Los artifacts duran 3 días.
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a mostrar en la vista previa (ej: 1.2.3)'
+        required: false
+        default: '0.0.0-ci'
 
 env:
   # Puerto donde levanta Flask/Waitress la app. Ajustalo si es otro.
@@ -16,6 +23,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="${INPUT_VERSION:-0.0.0-ci}"
+          printf '__version__ = "%s"\n' "$VERSION" > core/version.py
+          echo "Versión: $VERSION"
+        shell: bash
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -29,6 +47,19 @@ jobs:
           pip install pyinstaller==6.19.0 pyinstaller-hooks-contrib
           pip install -r requirements.txt
         shell: bash
+
+      # Igual que build.yml: sin el secreto el paquete sale con las licencias desactivadas
+      - name: Install license library (private repo)
+        env:
+          LICENSE_LIB_TOKEN: ${{ secrets.LICENSE_LIB_TOKEN }}
+        shell: bash
+        run: |
+          if [ -n "$LICENSE_LIB_TOKEN" ]; then
+            pip install "git+https://x-access-token:${LICENSE_LIB_TOKEN}@github.com/InnoDev69/stockly-license.git@v0.2.0"
+            python -c "import stockly_license; print('stockly_license', stockly_license.__version__)"
+          else
+            echo "::warning::Sin LICENSE_LIB_TOKEN: este paquete sale con las licencias desactivadas"
+          fi
 
       # pythonnet: backend WinForms de pywebview
       - name: Install pythonnet
@@ -56,6 +87,24 @@ jobs:
             exit 1
           fi
         shell: bash
+
+      # El ayudante (update.exe) viaja DENTRO del zip, igual que en el release real
+      - name: Build updater (update.exe)
+        run: pyinstaller --clean --noconfirm stockly_updater/update.spec
+        shell: bash
+
+      - name: Updater self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist/update.exe -ArgumentList '--selftest' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "El autochequeo del actualizador falló (código $($p.ExitCode))" }
+
+      - name: Add updater and version.json to the app folder
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' core/version.py)
+          cp dist/update.exe dist/stockly/update.exe
+          printf '{"version": "v%s"}\n' "$VERSION" > dist/stockly/version.json
 
       - name: Verify build output
         run: ls -lhR dist/stockly/
@@ -106,17 +155,63 @@ jobs:
             }
           }
 
-      # Empaquetado solo para inspección manual (por ejemplo, en una VM de Windows)
-      - name: Create Windows zip (test)
+      # Mismo nombre que el zip del release real (build.yml)
+      - name: Create Windows zip
         run: |
           cd dist
-          Compress-Archive -Path stockly -DestinationPath Stockly-windows-x64-test.zip
+          Compress-Archive -Path stockly -DestinationPath Stockly-windows-x64.zip
         shell: pwsh
+
+      # Firma el zip de prueba con el secreto real (no se publica) y comprueba que la
+      # clave pública resultante esté en stockly_updater/release_keys.py
+      - name: Check release signing key
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -o pipefail
+          VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' core/version.py)
+          mkdir -p release-meta-dryrun
+          python -m stockly_updater.sign_release --tag "v$VERSION" --out-dir release-meta-dryrun dist/Stockly-windows-x64.zip | tee release-meta-dryrun/sign.log
+          PUB=$(sed -n 's/.*Clave pública: //p' release-meta-dryrun/sign.log)
+          if ! grep -qF "\"$PUB\"" stockly_updater/release_keys.py; then
+            echo "::error::La clave pública del secreto RELEASE_SIGNING_KEY ($PUB) no está en stockly_updater/release_keys.py. Pegala ahí antes de publicar."
+            exit 1
+          fi
+          echo "Clave pública verificada: $PUB"
+
+      # Resumen en la página del run: cómo se vería el release
+      - name: Release preview (resumen)
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' core/version.py)
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(git log "$PREV_TAG..HEAD" --pretty=format:"- %s")
+            RANGE_TITLE="desde $PREV_TAG"
+          else
+            CHANGELOG=$(git log -n 20 --pretty=format:"- %s")
+            RANGE_TITLE="últimos 20 commits (no hay tags previos)"
+          fi
+          {
+            echo "## Vista previa del release v$VERSION (NO publicado)"
+            echo ""
+            echo "**Archivo:** \`Stockly-windows-x64.zip\`"
+            echo ""
+            echo "**Contenido de la carpeta stockly (nivel superior):**"
+            echo '```'
+            ls dist/stockly
+            echo '```'
+            echo ""
+            echo "**Changelog ($RANGE_TITLE):**"
+            echo ""
+            echo "$CHANGELOG"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Windows zip
         uses: actions/upload-artifact@v4
         with:
-          name: StockManager-Windows-Test
-          path: dist/Stockly-windows-x64-test.zip
+          name: StockManager-Windows-DryRun
+          path: dist/Stockly-windows-x64.zip
           if-no-files-found: error
           retention-days: 3
