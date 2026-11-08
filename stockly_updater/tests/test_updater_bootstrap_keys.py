@@ -17,6 +17,9 @@ def repo(tmp_path):
         dst = tmp_path / "repo" / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / rel, dst)
+    # Los tests parten de una lista vacía, sin depender de las claves reales del repo
+    (tmp_path / "repo" / "stockly_updater/release_keys.py").write_text(
+        "RELEASE_PUBLIC_KEYS: list[str] = [\n]\n", encoding="utf-8")
     return tmp_path / "repo"
 
 
