@@ -182,9 +182,8 @@ class UserValidator:
         """Valida el formato de un email."""
         email = Validator.validate_string("Email", email, Limits.USER_EMAIL_MAX)
         regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-        if "@" not in email or "." not in email.split("@")[-1]:
-            if re.match(regex, email) is None:
-                raise ValidationError("Email", "Formato de email inválido")
+        if re.match(regex, email) is None:
+            raise ValidationError("Email", "Formato de email inválido")
         return email
     
     @staticmethod

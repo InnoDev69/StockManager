@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from threading import Lock
 
+from core.bd.bdErrors import ConfigurationError
 from miscellaneous import logger
 
 LOGGER_NAME = "CONFIG_MANAGER"
@@ -212,7 +213,11 @@ class ConfigManager:
         for part in parts[:-1]:
             node = node.setdefault(part, {})
         node[parts[-1]] = value
-        self._write(self._data)
+        if key_path.split(".")[0] not in self._ignored_keys:
+            self._write(self._data)
+        else:
+            logger.debug(f"Key '{key_path}' is ignored for persistence; not writing to config.json", source=LOGGER_NAME)
+            raise ConfigurationError
 
     def __getattr__(self, name):
         """Permite config.backup.auto_enabled directamente"""

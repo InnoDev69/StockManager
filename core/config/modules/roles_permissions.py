@@ -26,5 +26,7 @@ ConfigManager.register_defaults("roles", {
         PERMS.CREDIT_MANAGE:encode_text("True"),
         PERMS.SETTINGS_MANAGE:encode_text("True"),
         PERMS.DEBUG_PANEL:encode_text("True"),
+        PERMS.METRICS_VIEW:encode_text("True"),
+        PERMS.CREDIT_ADJUST:encode_text("True"),
     },
 })

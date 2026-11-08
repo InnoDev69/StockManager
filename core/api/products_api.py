@@ -8,7 +8,7 @@ from core.api.auth_utils import require_auth, require_permission
 from miscellaneous import ItemValidator, ValidationError
 from miscellaneous import logger, localDate
 from miscellaneous.audit_decorator import audit_action
-from core.bd.bdErrors import DatabaseError
+from core.bd.bdErrors import DatabaseError, ItemNotFoundError
 from core.api.error_handlers import handle_db_error
 from sqlite3 import IntegrityError, OperationalError
 from miscellaneous import PERMS
@@ -426,10 +426,13 @@ def update_product(product_id):
     updates = []
     params = []
     
-    current = db.execute_query(
+    rows = db.execute_query(
         "SELECT name, description, quantity, min_quantity, price, expiration_date, status, track_stock, allow_custom_price FROM items WHERE id = ?",
         (product_id,)
-    )[0]
+    )
+    if not rows:
+        return jsonify({"error": "Producto no encontrado"}), 404
+    current = rows[0]
     
     current_values = {
         "name": current[0],
@@ -508,11 +511,16 @@ def delete_product(product_id):
         401: No autorizado
         403: Permiso denegado (no es admin)
     """
-    
-    db.disable_item(product_id)
-    db.create_notification(user_id=session.get('user_id'), title="Producto deshabilitado", message=f"El producto ha sido deshabilitado.", notification_type='warning')
-    notify_user(session.get('user_id'))
-    return jsonify({"message": "Producto deshabilitado"}), 200
+    try:
+        db.disable_item(product_id)
+        db.create_notification(user_id=session.get('user_id'), title="Producto deshabilitado", message=f"El producto ha sido deshabilitado.", notification_type='warning')
+        notify_user(session.get('user_id'))
+        return jsonify({"message": "Producto deshabilitado"}), 200
+    except ItemNotFoundError:
+        return jsonify({"error": "Producto no encontrado"}), 404
+    except Exception as e:
+        logger.exception(f"Error al deshabilitar producto {product_id}: {str(e)}")
+        return jsonify({"error": "Error interno"}), 500
 
 @products_api.route("/items", methods=["GET"])
 @require_auth
@@ -592,6 +600,9 @@ def activate_product(product_id):
         notify_user(session.get('user_id'))
         
         return jsonify({"message": "Producto activado"}), 200
+    
+    except ItemNotFoundError:
+        return jsonify({"error": "Producto no encontrado"}), 404
     
     except Exception as e:
         logger.exception(f"Error al activar producto {product_id}: {str(e)}")

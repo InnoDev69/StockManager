@@ -370,6 +370,7 @@ def _get_entity_before(entity_type, entity_id):
         elif entity_type == "sale":
             # La venta vive en 'sells' (cabecera) y 'details' / 'weight_details' (líneas):
             # get_sale_by_id ya arma todo eso junto.
+            # Issue URL: https://github.com/InnoDev69/StockManager/issues/55
             sale = db.get_sale_by_id(entity_id)
             if sale:
                 lines, total = _format_sale_lines(sale)

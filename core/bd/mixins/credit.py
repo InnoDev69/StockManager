@@ -1,6 +1,6 @@
 from miscellaneous import localDate
 
-from core.bd.bdErrors import DatabaseError, InsufficientBalanceError, CreditLimitExceededError
+from core.bd.bdErrors import BlankUpdateError, DatabaseError, InsufficientBalanceError, CreditLimitExceededError
 from miscellaneous import logger
 
 
@@ -92,9 +92,15 @@ class CreditMixin:
             (customer_id, limit),
         )
         
-    def update_customer(self, customer_id, name=None, phone=None, credit_limit=None, status=None):
+    def update_customer(self, customer_id, name=None, phone=None, credit_limit=None, status=None,
+                        update_credit_limit=False):
         """
         Actualiza los datos del cliente. Solo se actualizan los campos que no sean None.
+
+        credit_limit es el único campo que puede quedar en NULL ("sin límite"), así que
+        None no alcanza para distinguir "no tocar" de "quitar el límite": con
+        update_credit_limit=True el límite se escribe tal cual llega (incluso None);
+        con False (default) solo se escribe si credit_limit no es None.
         """
         fields = []
         values = []
@@ -105,7 +111,7 @@ class CreditMixin:
         if phone is not None:
             fields.append("phone = ?")
             values.append(phone)
-        if credit_limit is not None:
+        if update_credit_limit or credit_limit is not None:
             fields.append("credit_limit = ?")
             values.append(credit_limit)
         if status is not None:
@@ -113,7 +119,7 @@ class CreditMixin:
             values.append(status)
 
         if not fields:
-            raise DatabaseError("No se proporcionaron campos para actualizar")
+            raise BlankUpdateError("No se proporcionaron campos para actualizar")
 
         values.append(customer_id)
         query = f"UPDATE customers SET {', '.join(fields)} WHERE id = ?"
@@ -189,7 +195,7 @@ class CreditMixin:
         Registra un pago/abono. No permite pagar más de lo que el cliente debe.
         """
         if amount <= 0:
-            raise DatabaseError("El monto del pago debe ser mayor a 0")
+            raise ValueError("El monto del pago debe ser mayor a 0")
 
         current_balance = self.get_customer_balance(customer_id)
         if amount > current_balance:

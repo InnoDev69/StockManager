@@ -1,0 +1,463 @@
+{
+  "intents": [
+    {
+      "name": "saludo",
+      "examples": [
+        "hola", "buenas", "que tal", "hey", "buen dia", "buenas tardes",
+        "buenas noches", "hola stockly", "hola bot", "holaa", "hay alguien ahi",
+        "necesito ayuda", "buenas como andas", "hola que tal todo", "epa",
+        "buenas quisiera consultar algo", "hola rick"
+      ],
+      "responses": [
+        "¡Hola! Soy el asistente de Stockly. ¿En qué te puedo ayudar?",
+        "¡Buenas! ¿Qué necesitás hacer en Stockly hoy?", "MORTY SOY UN BOT, SOY ROBORIIIICK. ¿En qué te puedo ayudar?"
+      ]
+    },
+    {
+      "name": "despedida",
+      "examples": [
+        "chau", "gracias", "muchas gracias", "nos vemos", "listo gracias",
+        "eso es todo", "hasta luego", "bye", "gracias por la ayuda", "adios",
+        "listo", "genial gracias eso era todo", "perfecto muchas gracias",
+        "dale gracias nos vemos", "eso nomas queria"
+      ],
+      "responses": [
+        "¡De nada! Cualquier cosa, acá estoy.",
+        "¡Hasta luego! Volvé cuando quieras."
+      ]
+    },
+    {
+      "name": "ayuda",
+      "examples": [
+        "que podes hacer", "ayuda", "que funciones tenes", "en que me podes ayudar",
+        "no se que preguntarte", "que sabes hacer", "opciones", "menu de ayuda",
+        "que temas conoces", "que me podes explicar de stockly", "como funciona el bot",
+        "dame un resumen de lo que sabes", "en que temas me podes asistir",
+        "cuales son tus funciones"
+      ],
+      "responses": [
+        "Puedo ayudarte con el Dashboard, ventas, devoluciones, cierre de caja, inventario, cuentas corrientes, códigos de barras, notificaciones, métricas, tickets, tu perfil y usuarios. También puedo consultar stock o precio de un producto puntual. ¿Sobre qué querés saber?"
+      ]
+    },
+    {
+      "name": "info_proyecto",
+      "examples": [
+        "que es stockly", "para que sirve esta app", "como funciona stockly",
+        "que hace este sistema", "de que se trata stockly", "contame sobre stockly",
+        "que es esta aplicacion", "para que sirve este programa",
+        "explicame que es stockly en pocas palabras", "quien usa stockly"
+      ],
+      "responses": [
+        "Stockly es un sistema integral de gestión de inventario y ventas para almacenes. Te permite controlar stock, registrar ventas, manejar cuentas corrientes de clientes, imprimir tickets, gestionar códigos de barras y analizar métricas del negocio, todo desde una sola plataforma."
+      ]
+    },
+    {
+      "name": "consultar_stock",
+      "examples": [
+        "cuanto stock hay de {producto}", "hay stock de {producto}",
+        "queda {producto}", "tenes {producto} disponible", "cuantas unidades quedan de {producto}",
+        "me fijas el stock de {producto}", "hay disponibilidad de {producto}",
+        "cuanto tenemos de {producto} en deposito", "verificar stock {producto}",
+        "stock actual de {producto}", "tenes {producto}", "che tenes {producto}",
+        "tienen {producto}", "hay {producto}", "buscame {producto}",
+        "me decis si hay {producto}", "queda algo de {producto}"
+      ],
+      "responses": [
+        "Dejame revisar el inventario para {producto}..."
+      ],
+      "action": "consultar_stock",
+      "required_entities": ["producto"]
+    },
+    {
+      "name": "consultar_precio",
+      "examples": [
+        "cuanto sale {producto}", "precio de {producto}", "cuanto cuesta {producto}",
+        "a como esta el {producto}", "cual es el precio de {producto}",
+        "me pasas el precio de {producto}", "valor de {producto}",
+        "a cuanto esta {producto}", "cuanto vale {producto}"
+      ],
+      "responses": [
+        "Buscando el precio actual de {producto}..."
+      ],
+      "action": "consultar_precio",
+      "required_entities": ["producto"]
+    },
+    {
+      "name": "listar_productos",
+      "examples": [
+        "que productos tenes cargados", "mostrame el catalogo", "lista de productos",
+        "que productos hay", "ver todos los productos", "catalogo completo",
+        "mostrame todos los productos cargados", "listame el catalogo completo", "dame la lista completa de articulos"
+      ],
+      "responses": [
+        "Estos son los productos disponibles en tu inventario actual:"
+      ],
+      "action": "listar_productos"
+    },
+    {
+      "name": "dashboard_info",
+      "examples": [
+        "que es el dashboard", "que veo en el panel principal", "para que sirve el dashboard",
+        "que informacion muestra el inicio", "que son las tarjetas del dashboard",
+        "como uso el panel de control", "que muestra la pantalla principal",
+        "que datos tiene el dashboard", "que veo apenas entro al sistema"
+      ],
+      "responses": [
+        "El Dashboard es la pantalla que ves al iniciar sesión: te muestra 4 tarjetas clave (productos totales, stock bajo, productos que expiran pronto y ventas del día), accesos rápidos, buscador de productos y una tabla de productos en alerta. Es lo primero que conviene revisar cada mañana."
+      ]
+    },
+    {
+      "name": "stock_bajo_info",
+      "examples": [
+        "que significa stock bajo", "cuando hago un pedido de reposicion",
+        "cuando debo reponer un producto", "que significan los colores de stock",
+        "que es el stock minimo", "como calculo el stock minimo",
+        "cuando contacto al proveedor", "que quiere decir bajo stock",
+        "que significa el color amarillo en inventario", "como se cuando pedir mas mercaderia"
+      ],
+      "responses": [
+        "El 'stock mínimo' es el límite que vos definís para cada producto. Cuando las unidades caen por debajo de ese número, el producto pasa a 'Stock Bajo' (amarillo) para avisarte que conviene reponerlo antes de llegar a cero (rojo). Una fórmula simple: stock mínimo = ventas promedio por día × días que tarda el proveedor en entregar."
+      ]
+    },
+    {
+      "name": "vencimiento_productos_info",
+      "examples": [
+        "que significa productos que expiran pronto", "que son los productos por vencer",
+        "como veo que productos vencen", "que hago con productos proximos a vencer",
+        "que pasa con productos que van a vencer", "como marco la fecha de vencimiento"
+      ],
+      "responses": [
+        "Son productos con fecha de vencimiento dentro de los próximos 30 días. Conviene darles prioridad: ofrecer descuentos, ponerlos en un lugar visible, y si no se venden a tiempo, darlos de baja del inventario como pérdida."
+      ]
+    },
+    {
+      "name": "vender_sin_stock_info",
+      "examples": [
+        "puedo vender algo sin stock", "que pasa si vendo un producto agotado",
+        "que pasa si intento vender sin stock", "se puede vender sin stock disponible",
+        "el sistema me deja vender si no hay stock", "venta en negativo",
+        "puedo vender mas de lo que tengo cargado"
+      ],
+      "responses": [
+        "No, Stockly no permite confirmar ventas si la cantidad supera el stock físico cargado. El sistema te va a mostrar una alerta en rojo para evitar inconsistencias en el inventario."
+      ]
+    },
+    {
+      "name": "registrar_venta_ayuda",
+      "examples": [
+        "como registro una venta", "como hago una venta nueva",
+        "como cargo una venta", "pasos para registrar una venta",
+        "como vendo un producto", "como agrego una venta al sistema",
+        "como hago para cobrar una venta", "como empiezo una venta nueva"
+      ],
+      "responses": [
+        "Para vender: 1) Presioná 'Nueva Venta'. 2) Escaneá o buscá el producto. 3) Ajustá la cantidad. 4) Seleccioná el método de pago. 5) Confirmá la operación. El stock se descuenta automáticamente."
+      ]
+    },
+    {
+      "name": "devolucion_producto",
+      "examples": [
+        "como hago una devolucion", "un cliente quiere devolver un producto",
+        "como cancelo una venta", "como registro un cambio de producto",
+        "se puede deshacer una venta", "como ingreso mercaderia devuelta",
+        "como hago una nota de credito", "el cliente trajo el producto de vuelta"
+      ],
+      "responses": [
+        "Para gestionar una devolución, buscala en el Historial de Ventas y seleccioná 'Generar Devolución/Nota de Crédito'. Esto reingresa el producto al stock automáticamente y ajusta las métricas de ingresos del día, sin borrar el registro original de la venta."
+      ]
+    },
+    {
+      "name": "cierre_caja_info",
+      "examples": [
+        "como hago el cierre de caja", "como veo cuanto vendi hoy",
+        "donde veo el total del dia", "como cierro el turno",
+        "balance diario", "cuanta plata hay en la caja", "como se cuanto factura hoy"
+      ],
+      "responses": [
+        "El balance del día lo ves desde el Dashboard, en la tarjeta 'Ventas del día'. Si necesitás el desglose por medio de pago (efectivo, tarjeta, etc.), andá a Métricas y filtrá por 'Hoy'."
+      ]
+    },
+    {
+      "name": "imprimir_ticket_ayuda",
+      "examples": [
+        "como imprimo un ticket", "se puede imprimir recibo",
+        "como configuro la impresora termica", "no sale el ticket",
+        "como le doy un comprobante al cliente", "puedo reimprimir un ticket viejo"
+      ],
+      "responses": [
+        "Al finalizar una venta, el sistema te muestra la opción 'Imprimir Ticket'. Asegurate de tener la impresora (térmica o estándar) bien configurada en el sistema operativo. También podés reimprimir tickets viejos desde el Historial de Ventas."
+      ]
+    },
+    {
+      "name": "historial_ventas_info",
+      "examples": [
+        "que es el historial de ventas", "como veo ventas anteriores",
+        "como filtro las ventas por fecha", "como veo las ventas de un vendedor",
+        "como veo el desempeño de un vendedor", "como busco una venta especifica",
+        "como filtro ventas por producto", "quiero ver ventas de un vendedor puntual"
+      ],
+      "responses": [
+        "En Historial de Ventas ves el registro completo de transacciones, con estadísticas resumidas (ingresos totales, número de transacciones, unidades vendidas) y filtros por fecha, producto, vendedor o tipo de pago. Solo los administradores ven las ventas de todos; un vendedor ve únicamente las suyas."
+      ]
+    },
+    {
+      "name": "exportar_datos_info",
+      "examples": [
+        "puedo exportar mis datos", "como descargo un reporte", "en que formato exporto",
+        "puedo bajar un excel", "como exporto a csv", "se puede descargar el inventario",
+        "como saco un reporte para el contador"
+      ],
+      "responses": [
+        "Sí, casi toda la información se puede exportar en formato CSV (se abre en Excel o Google Sheets). Podés exportar el Historial de Ventas, el Catálogo de Productos desde Inventario, y el Análisis de Desempeño desde Métricas."
+      ]
+    },
+    {
+      "name": "crear_producto_ayuda",
+      "examples": [
+        "como creo un producto nuevo", "como agrego un producto al inventario",
+        "como cargo un producto nuevo", "que datos necesito para crear un producto",
+        "como doy de alta un producto"
+      ],
+      "responses": [
+        "Desde Inventario (solo administradores) completá: código de barras (podés generarlo automático), nombre claro, descripción opcional, stock inicial, stock mínimo, precio de venta unitario, y fecha de vencimiento si corresponde. Guardás y ya queda disponible para vender."
+      ]
+    },
+    {
+      "name": "editar_producto_ayuda",
+      "examples": [
+        "como edito un producto", "como cambio el precio de un producto",
+        "como modifico un producto existente", "como actualizo el stock de un producto",
+        "como corrijo el nombre de un producto"
+      ],
+      "responses": [
+        "Buscá el producto en la tabla de Inventario, hacé clic en el ícono de editar (lápiz), modificá los campos que necesites (precio, stock, nombre, etc.) y guardá. Se actualiza al instante para todos los usuarios."
+      ]
+    },
+    {
+      "name": "importar_productos_csv_ayuda",
+      "examples": [
+        "como importo productos desde un csv", "como cargo muchos productos de una vez",
+        "se puede hacer una carga masiva de productos", "como subo un excel de productos",
+        "que formato necesita el csv de stockly", "que columnas lleva el csv de productos"
+      ],
+      "responses": [
+        "Desde Inventario usá el botón 'Importar CSV'. Las columnas obligatorias son: barcode, name, description, quantity, min_quantity, price, expiration_date, en ese orden exacto. El sistema valida el formato antes de importar y te avisa si alguna línea falla."
+      ]
+    },
+    {
+      "name": "cuentas_corrientes_info",
+      "examples": [
+        "que son las cuentas corrientes", "como manejo la deuda de un cliente",
+        "como registro un pago de un cliente", "como veo el saldo de un cliente",
+        "como cargo un pago parcial", "que es una cuenta corriente en stockly"
+      ],
+      "responses": [
+        "Cuentas Corrientes sirve para manejar ventas a crédito: podés registrar clientes, ver su saldo (deuda, al día o a favor), cargar pagos parciales y revisar el historial de movimientos."
+      ]
+    },
+    {
+      "name": "reposicion_escaner_info",
+      "examples": [
+        "como funciona la reposicion por escaner", "como cargo stock con el escaner",
+        "para que sirve el escaner de codigos", "como sumo stock escaneando",
+        "como uso el lector de codigo de barras para reponer"
+      ],
+      "responses": [
+        "Reposición por Escáner te deja cargar stock rápido: escaneás o escribís el código, el sistema detecta el producto y lo agrega a la lista, vas sumando unidades, y al final confirmás para aplicar todos los cambios de una vez."
+      ]
+    },
+    {
+      "name": "codigos_barras_info",
+      "examples": [
+        "como genero un codigo de barras", "como imprimo etiquetas de productos",
+        "como edito un codigo de barras", "puedo tener codigos personalizados",
+        "como funciona el sistema de codigos de barras"
+      ],
+      "responses": [
+        "Desde Gestión de Códigos de Barras podés generar códigos automáticos (formato tipo PRD123456), usar el código EAN de tu proveedor, o crear uno personalizado. Cada código tiene que ser único, y desde ahí también podés descargar o imprimir etiquetas."
+      ]
+    },
+    {
+      "name": "novedades_sistema_info",
+      "examples": [
+        "donde veo las novedades del sistema", "que cambios tuvo la ultima version",
+        "hay un changelog de stockly", "donde veo que funciones nuevas hay",
+        "como me entero de las actualizaciones"
+      ],
+      "responses": [
+        "En Novedades del Sistema podés revisar, versión por versión, qué cambios, mejoras o correcciones se incorporaron a Stockly."
+      ]
+    },
+    {
+      "name": "notificaciones_info",
+      "examples": [
+        "que son las notificaciones", "como reviso mis alertas", "que tipos de notificacion hay",
+        "como marco una notificacion como leida", "donde veo las alertas del sistema",
+        "que significa una notificacion en rojo"
+      ],
+      "responses": [
+        "El ícono de campana te muestra alertas: azul es información general, verde es una operación exitosa, amarillo/naranja es un aviso que requiere atención pronto y rojo es un error crítico. Podés marcarlas como leídas y filtrarlas por tipo."
+      ]
+    },
+    {
+      "name": "metricas_info",
+      "examples": [
+        "que son las metricas", "como veo el rendimiento del negocio",
+        "como cambio el periodo de las metricas", "que es el ticket promedio",
+        "como veo los productos mas vendidos", "que significan las flechas de porcentaje",
+        "como veo mis ingresos totales"
+      ],
+      "responses": [
+        "Métricas (solo administradores) muestra ingresos totales, número de ventas, ticket promedio y unidades vendidas, con comparación contra el período anterior. Podés cambiar el período y ver tu top 5 de productos que más dinero generaron."
+      ]
+    },
+    {
+      "name": "cambiar_contrasena_ayuda",
+      "examples": [
+        "como cambio mi contraseña", "como actualizo mi clave", "quiero cambiar la contraseña",
+        "donde cambio mi password", "que requisitos tiene la contraseña nueva"
+      ],
+      "responses": [
+        "En Configuración, sección Seguridad, ingresá tu contraseña actual, después la nueva (mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo), la confirmás repitiéndola, y guardás."
+      ]
+    },
+    {
+      "name": "recuperar_contrasena_ayuda",
+      "examples": [
+        "me olvide mi contraseña", "no puedo entrar porque olvide la clave",
+        "como recupero mi contraseña", "perdi mi password", "olvide mi clave de acceso"
+      ],
+      "responses": [
+        "En la pantalla de login hacé clic en '¿Olvidaste tu contraseña?', ingresá tu usuario o email, y te llegará un link de recuperación (revisá también SPAM). Si no te llega nada, contactá al administrador."
+      ]
+    },
+    {
+      "name": "perfil_info",
+      "examples": [
+        "como cambio mi email", "puedo cambiar mi nombre de usuario",
+        "como edito mi perfil", "donde veo mis datos de cuenta",
+        "puedo modificar mi correo registrado"
+      ],
+      "responses": [
+        "En Configuración > Perfil podés ver tu nombre de usuario (fijo, no se puede cambiar) y tu email, que sí podés actualizar. Hacé clic en 'Editar Perfil', modificá el email y guardá."
+      ]
+    },
+    {
+      "name": "cerrar_sesion_ayuda",
+      "examples": [
+        "como cierro sesion", "como hago logout", "donde esta el boton de salir",
+        "como me desconecto de stockly"
+      ],
+      "responses": [
+        "Arriba a la derecha o en Configuración vas a encontrar el botón 'Cerrar Sesión'. Usalo siempre, sobre todo en computadoras compartidas."
+      ]
+    },
+    {
+      "name": "crear_usuario_ayuda",
+      "examples": [
+        "como creo un usuario nuevo", "como doy de alta a un empleado",
+        "que roles hay en stockly", "diferencia entre vendedor y admin",
+        "como agrego un vendedor al sistema", "que puede hacer un vendedor",
+        "que puede hacer un administrador"
+      ],
+      "responses": [
+        "En Administración de Usuarios (solo admins) creás un usuario con nombre único, contraseña temporal y un rol: 'Vendedor' (registra ventas, ve su propio historial) o 'Admin' (acceso completo). Conviene dar rol Admin solo a 1-2 personas de confianza."
+      ]
+    },
+    {
+      "name": "desactivar_vs_eliminar_usuario_info",
+      "examples": [
+        "como desactivo un usuario", "diferencia entre desactivar y eliminar usuario",
+        "un empleado se fue, que hago con su cuenta", "puedo borrar un usuario",
+        "como doy de baja a un empleado"
+      ],
+      "responses": [
+        "La recomendación es siempre desactivar, no eliminar. Al desactivar, el usuario no puede entrar pero su historial queda intacto y podés reactivarlo si vuelve. Eliminar borra la cuenta de forma permanente."
+      ]
+    },
+    {
+      "name": "tiempo_real_info",
+      "examples": [
+        "los datos se actualizan en tiempo real", "hay demora en actualizar el stock",
+        "cuanto tarda en verse una venta nueva", "el sistema es en tiempo real"
+      ],
+      "responses": [
+        "Sí, es tiempo real: al registrar una venta, el stock, el historial, las métricas y el dashboard se actualizan al instante para todos los usuarios."
+      ]
+    },
+    {
+      "name": "eliminar_historico_info",
+      "examples": [
+        "puedo borrar el historial de ventas", "puedo eliminar una venta ya cargada",
+        "como corrijo una venta mal cargada", "puedo modificar una venta ya registrada"
+      ],
+      "responses": [
+        "El historial de ventas es permanente e inmodificable por temas legales y fiscales. Si necesitás corregir un error, no se edita ni se borra: se usa la opción de Devolución/Nota de Crédito para revertir el efecto en stock e ingresos, manteniendo la venta original como referencia."
+      ]
+    },
+    {
+      "name": "consejos_uso_info",
+      "examples": [
+        "que consejos me das para usar stockly", "como uso stockly de forma mas eficiente",
+        "tips para usar el sistema", "buenas practicas en stockly",
+        "como saco mejor provecho del sistema"
+      ],
+      "responses": [
+        "Algunos tips: revisá el Dashboard cada mañana, registrá cada venta al momento, mantené el stock mínimo basado en ventas reales, revisá Métricas cada semana, exportá tus datos mensualmente como respaldo, y cambiá tu contraseña cada tres meses."
+      ]
+    },
+    {
+      "name": "soporte_tecnico",
+      "examples": [
+        "la app anda lenta", "tengo un error", "salta un cartel rojo",
+        "no me carga el inventario", "se colgo el sistema", "tengo un problema tecnico",
+        "hay un bug", "stockly no funciona", "se traba la pagina"
+      ],
+      "responses": [
+        "Si estás teniendo problemas técnicos, intentá refrescar la página o reiniciar la aplicación. Si el problema persiste o ves un mensaje de error específico, tomá una captura de pantalla y contactá al administrador."
+      ]
+    },
+    {
+      "name": "hablar_con_humano",
+      "examples": [
+        "quiero hablar con una persona", "necesito un humano", "pasame con soporte",
+        "esto no lo resuelve un bot", "quiero un operador", "quiero hablar con alguien real",
+        "no quiero hablar con un bot"
+      ],
+      "responses": [
+        "Entiendo. Para hablar con una persona, contactá al administrador de tu cuenta o al soporte de Stockly. Mientras tanto, puedo intentar ayudarte con lo que necesites."
+      ]
+    },
+    {
+      "name": "quien_eres_bot",
+      "examples": [
+        "quien sos", "sos un robot", "sos una ia", "quien te creo", "sos humano",
+        "con quien hablo", "eres un bot", "sos una inteligencia artificial"
+      ],
+      "responses": [
+        "Soy un asistente virtual de Stockly, no una persona. Estoy para responder dudas sobre el sistema y ayudarte con algunas acciones puntuales como consultar stock o precios."
+      ]
+    },
+    {
+      "name": "fuera_de_tema",
+      "examples": [
+        "contame un chiste", "que hora es", "cual es la capital de francia",
+        "quien gano el mundial", "como esta el clima", "cual es tu color favorito",
+        "recomendame una pelicula", "hablame de futbol"
+      ],
+      "responses": [
+        "Soy el asistente de Stockly, así que no puedo ayudarte con eso. Pero sí puedo ayudarte con stock, ventas, cuentas corrientes, usuarios y demás temas del sistema."
+      ]
+    },
+    {
+      "name": "feedback_negativo",
+      "examples": [
+        "no entendiste nada", "esa no es la respuesta que busco", "no me sirvio eso",
+        "estas equivocado", "no es lo que pregunte", "esa respuesta no tiene nada que ver"
+      ],
+      "responses": [
+        "Perdón, parece que no entendí bien tu consulta. ¿Podrías reformularla con otras palabras o darme más detalles?"
+      ]
+    }
+  ]
+}

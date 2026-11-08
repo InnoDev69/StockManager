@@ -68,7 +68,7 @@ def test_pago_mayor_al_saldo_falla(db, item, cliente):
 @pytest.mark.parametrize("monto", [0, -5])
 def test_pago_no_positivo_falla(db, item, cliente, monto):
     vender_fiado(db, item, cliente)
-    with pytest.raises(DatabaseError):
+    with pytest.raises(ValueError):
         db.register_payment(cliente, monto, ROOT_ID)
 
 

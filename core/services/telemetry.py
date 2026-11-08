@@ -106,17 +106,6 @@ class TelemetryService:
             except Exception as e:
                 logger.error(f"Error reading log file {log_file}: {e}", source=LOGGER_NAME)
         return lines
-    
-    def _get_unrecognized_count(self):
-        """
-        Devuelve el número de palabras no reconocidas por el bot desde el último envío.
-        """
-        
-        try:
-            with open(UNRECOGNIZED_PATH, "r", encoding="utf-8") as f:
-                return len(f.readlines())
-        except FileNotFoundError:
-            return 0
 
     # ------------------------------------------------------------------
     # Envío
@@ -131,7 +120,6 @@ class TelemetryService:
             "user": config.get("app.uuid", default="unknown"),
             "timestamp": datetime.now().isoformat(),
             "logs": logs,
-            "bot_unrecognized_words": self._get_unrecognized_count(),
             "os": sys.platform,
         }
 

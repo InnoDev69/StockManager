@@ -30,7 +30,8 @@ def index():
     stats = {
         "products": stats_data.get("products", 0),
         "low_stock": stats_data.get("low_stock", 0),
-        "sales_today": stats_data.get("sales_today", 0)
+        "sales_today": stats_data.get("sales_today", 0),
+        "expires_soon": stats_data.get("expires_soon", 0)
     }
     low_stock_list = stats_data.get("low_stock_list", [])
     

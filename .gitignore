@@ -100,7 +100,7 @@ desktop.ini
 *.swp
 *~ 
 run-dev.py
-*.json
+stockbot/unrecognized.json
 data/config.json
 data/*
 backup/*

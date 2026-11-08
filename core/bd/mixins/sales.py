@@ -69,7 +69,16 @@ class SalesMixin:
             "products": products,
             "low_stock": low_stock,
             "sales_today": sales_today,
-            "low_stock_list": low_stock_list
+            "low_stock_list": low_stock_list,
+            "expires_soon": self.get_count(
+                """
+                SELECT COUNT(*)
+                FROM items
+                WHERE status = 1
+                AND expiration_date IS NOT NULL
+                AND DATE(expiration_date) <= DATE('now', '+7 days')
+                """
+            ),
         }
 
     def record_product_sale(self, item_id, quantity, vendor_id, payment_method="Efectivo"):
@@ -670,3 +679,7 @@ class SalesMixin:
             )
         """
         return self.get_count(query, (sell_id, sell_id))
+    
+    def sale_exists(self, sell_id):
+        """Verifica si una venta existe en la tabla 'sells'."""
+        return self.get_count("SELECT COUNT(*) FROM sells WHERE id = ?", (sell_id,)) > 0
