@@ -64,7 +64,6 @@ a = Analysis(
         ('static', 'static'),
         ('core/licensing/templates', 'core/licensing/templates'),
         ('core/licensing/static', 'core/licensing/static'),
-        ('.env', '.'),
     ] + webview_datas + gi_datas + collect_data_files('barcode'),
     hiddenimports=[
         'pytz',
