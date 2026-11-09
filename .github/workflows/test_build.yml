@@ -155,6 +155,46 @@ jobs:
             }
           }
 
+      # Solo si el smoke test falla: muestra el log de la app (no contiene datos de usuario)
+      - name: Diagnóstico del arranque (solo si falla)
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem "$env:APPDATA\StockManager\logs" -Filter "app_*.log" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object {
+              Write-Host "== $($_.FullName)"
+              Get-Content $_.FullName -Tail 200
+            }
+
+      # Solo si falla: el mismo .exe en modo servidor (sin ventana). Si responde, el problema
+      # está en la parte de escritorio; si no, en el arranque común.
+      - name: Diagnóstico modo servidor (solo si falla)
+        if: failure()
+        shell: pwsh
+        env:
+          STOCKLY_SERVER_ONLY: "1"
+        run: |
+          $exe = Join-Path $PWD "dist\stockly\stockly.exe"
+          $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
+          Start-Sleep -Seconds 30
+          if (-not $p.HasExited) {
+            pip install -q py-spy
+            Write-Host "== Stack de Python del proceso colgado:"
+            py-spy dump --pid $p.Id
+          }
+          Start-Sleep -Seconds 30
+          if ($p.HasExited) {
+            Write-Host "Modo servidor: el proceso terminó con código $($p.ExitCode)"
+          } else {
+            try {
+              $r = Invoke-WebRequest -Uri "http://127.0.0.1:$($env:APP_PORT)/" -UseBasicParsing -TimeoutSec 5 -SkipHttpErrorCheck
+              Write-Host "Modo servidor: HTTP $($r.StatusCode)"
+            } catch {
+              Write-Host "Modo servidor: sin respuesta ($($_.Exception.Message))"
+            }
+          }
+          taskkill /PID $p.Id /T /F 2>$null | Out-Null
+
       # Mismo nombre que el zip del release real (build.yml)
       - name: Create Windows zip
         run: |

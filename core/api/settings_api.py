@@ -169,6 +169,8 @@ def update_setting(key):
         if value is None:
             return jsonify({"success": False, "error": "El valor es requerido"}), 400
         
+        if key.split(".")[0] in ("app", "ui"):
+            raise ConfigurationError
         if "roles" in key:
             config.set(key, safe_encode(value))
         else:
