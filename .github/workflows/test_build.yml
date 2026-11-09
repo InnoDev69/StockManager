@@ -176,7 +176,13 @@ jobs:
         run: |
           $exe = Join-Path $PWD "dist\stockly\stockly.exe"
           $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
-          Start-Sleep -Seconds 60
+          Start-Sleep -Seconds 30
+          if (-not $p.HasExited) {
+            pip install -q py-spy
+            Write-Host "== Stack de Python del proceso colgado:"
+            py-spy dump --pid $p.Id
+          }
+          Start-Sleep -Seconds 30
           if ($p.HasExited) {
             Write-Host "Modo servidor: el proceso terminó con código $($p.ExitCode)"
           } else {
