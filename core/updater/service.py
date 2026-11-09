@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -155,7 +156,8 @@ class UpdateService:
 
         args = [str(self.helper_path), "--apply", "--tag", info.latest_version,
                 "--app-dir", str(self._app_dir), "--wait-pid", str(os.getpid()), "--restart"]
-        kwargs: dict[str, Any] = {"close_fds": True, "cwd": str(self._app_dir)}
+        # Sin cwd dentro de la app: en Windows no se puede renombrar una carpeta que es el directorio de trabajo de un proceso
+        kwargs: dict[str, Any] = {"close_fds": True, "cwd": tempfile.gettempdir()}
         if os.name == "nt":
             kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
         else:
