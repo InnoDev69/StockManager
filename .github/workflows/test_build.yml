@@ -155,6 +155,17 @@ jobs:
             }
           }
 
+      # Solo si el smoke test falla: muestra el log de la app (no contiene datos de usuario)
+      - name: Diagnóstico del arranque (solo si falla)
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem "$env:APPDATA\StockManager\logs" -Filter "app_*.log" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object {
+              Write-Host "== $($_.FullName)"
+              Get-Content $_.FullName -Tail 200
+            }
+
       # Mismo nombre que el zip del release real (build.yml)
       - name: Create Windows zip
         run: |
