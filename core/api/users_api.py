@@ -312,6 +312,7 @@ def restore_password():
         200: Codigo enviado exitosamente
         400: Faltan campos requeridos o formato inválido
         404: Usuario no encontrado
+        503: Envío de correo desactivado (falta configuración SMTP)
     
     Example Request:
         POST /users/reset-password
@@ -335,7 +336,8 @@ def restore_password():
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
     
-    logger.info(f"Password reset requested for email: {data.get('email', 'N/A')}")
+    if not email_sender.enabled:
+        return jsonify({"error": "El envío de correos no está configurado"}), 503
     
     reset_code = generate_reset_code()
     db.save_reset_code(email, reset_code)

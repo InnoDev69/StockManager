@@ -30,14 +30,6 @@ jobs:
           echo "Versión: $VERSION"
         shell: bash
 
-      - name: Create .env file
-        run: |
-          echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
-          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
-          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env
-          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
-        shell: bash
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -79,6 +71,17 @@ jobs:
 
       - name: Build with PyInstaller
         run: pyinstaller --clean build.spec
+        shell: bash
+
+      # Las credenciales SMTP no deben viajar en el paquete público
+      - name: Verify package does not include .env
+        run: |
+          found_files=$(find dist -name ".env")
+          if [ -n "$found_files" ]; then
+            echo "::error::El paquete incluye archivos .env:"
+            echo "$found_files"
+            exit 1
+          fi
         shell: bash
 
       # El ayudante (update.exe) viaja DENTRO del zip: así también se actualiza a sí mismo.

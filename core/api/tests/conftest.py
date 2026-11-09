@@ -88,6 +88,14 @@ def _login(client, user_id, role):
     return client
 
 
+@pytest.fixture(autouse=True)
+def correo_configurado_si_el_test_captura_mails(request, monkeypatch):
+    """Los tests que capturan mails (fixture 'emails') parten con el correo configurado."""
+    if "emails" in request.fixturenames:
+        from miscellaneous import email_sender
+        monkeypatch.setattr(email_sender, "enabled", True)
+
+
 @pytest.fixture
 def client(app, db):
     """Cliente con sesión iniciada como root (tiene todos los permisos)."""

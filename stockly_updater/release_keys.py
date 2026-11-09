@@ -12,6 +12,5 @@ actualización (falla cerrado).
 from __future__ import annotations
 
 RELEASE_PUBLIC_KEYS: list[str] = [
-    # "AbC...base64url de 43 caracteres...",
     "9yFQCVzSR2aNUwEdV0IHMyEq0bgTmqi_xl-_e3JPRsA",
 ]
