@@ -30,6 +30,17 @@ jobs:
           echo "Versión: $VERSION"
         shell: bash
 
+      # Evita publicar un release sin claves embebidas (por ejemplo, si un merge las pisa).
+      - name: Verify embedded public keys
+        shell: bash
+        run: |
+          for f in core/licensing/public_keys.py stockly_updater/release_keys.py; do
+            if ! grep -qE '^[[:space:]]+"[A-Za-z0-9_-]{43}",' "$f"; then
+              echo "::error::No hay ninguna clave pública embebida en $f"
+              exit 1
+            fi
+          done
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
