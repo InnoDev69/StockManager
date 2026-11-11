@@ -830,6 +830,10 @@
       margin-left: var(--sb-w);
     }
 
+    body.sb-open .sb-main {
+      width: min(calc(100% - var(--sb-w) - 2rem), var(--content-max));
+    }
+
     .sb__backdrop { display: none !important; }
   }
 
